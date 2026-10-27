@@ -31,6 +31,12 @@ public class MainActivity extends BridgeActivity {
                 // 后台常驻：前台服务开关（见 KeepAliveService / MuKeepAlive）
                 try {
                     web.addJavascriptInterface(new MuKeepAlive(this), "MuKeepAlive");
+
+                // 后台检查新待办 / 新通知（见 MuBgCheck / BgCheck / BgCheckWorker）
+                try {
+                    web.addJavascriptInterface(new MuBgCheck(this), "MuBgCheck");
+                } catch (Throwable ignored) {
+                }
                 } catch (Throwable ignored) {
                 }
             } catch (Throwable ignored) {

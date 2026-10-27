@@ -1924,6 +1924,36 @@ html[data-accent="sunset"]{--amb-1:rgba(255,122,89,.07)}
         </div>
       </div>
 
+      <!-- 后台检查新内容（App 版；网页版这张卡会被隐藏） -->
+      <div class="card" id="cardBgCheck">
+        <div class="card-title"><i class="dotmark"></i>后台检查新内容 <span class="chip tag">App 版</span></div>
+        <div class="set-row">
+          <div><div class="set-t">自动检查</div><div class="set-d">约每 15 分钟查一次，系统省电时会延后</div></div>
+          <button class="sw" id="swBgCheck"></button>
+        </div>
+        <div class="set-row">
+          <div><div class="set-t">云邮新作业 / 新测验</div><div class="set-d">用已登录的令牌复查，不会重复登录</div></div>
+          <button class="sw" id="swBgUc"></button>
+        </div>
+        <div class="set-row">
+          <div><div class="set-t">校内通知 / 学术讲座</div><div class="set-d">复用资讯页的会话，过期会提示打开 App</div></div>
+          <button class="sw" id="swBgPt"></button>
+        </div>
+        <div class="set-row">
+          <div><div class="set-t">只在 Wi-Fi 下检查</div><div class="set-d">省流量也省一点电</div></div>
+          <button class="sw" id="swBgWifi"></button>
+        </div>
+        <div class="row wrap gap6" style="margin-top:12px">
+          <button class="btn ghost sm" id="btnBgTest">立即检查一次</button>
+          <button class="btn ghost sm" id="btnBgNotif">通知设置</button>
+        </div>
+        <div class="muted small" id="bgStat" style="margin-top:10px;white-space:pre-wrap">—</div>
+        <div class="muted small" style="margin-top:10px">
+          只把「令牌 / 会话 / 已见 id」交给系统后台任务，<b>不会保存学工号密码</b>，也不会上传任何数据；
+          关掉开关即停止。
+        </div>
+      </div>
+
       <div class="card hidden" id="cardUcloud">
         <div class="card-title"><i class="dotmark"></i>云邮教学空间 <span class="chip tag">App 版</span></div>
         <div class="set-row">
@@ -2771,6 +2801,14 @@ function renderSettings(){
   $('#swSys').classList.toggle('on', !!s.sysNotify);
   $('#swSound').classList.toggle('on', !!s.sound);
   $('#swSummary').classList.toggle('on', !!s.summaryOn);
+  /* 后台检查（App 版）：网页版没有这个桥，整张卡隐藏 */
+  var bcard = $('#cardBgCheck');
+  if(bcard) bcard.classList.toggle('hidden', !isNativeApp());
+  $('#swBgCheck').classList.toggle('on', !!s.bgCheck);
+  $('#swBgUc').classList.toggle('on', s.bgUc !== false);
+  $('#swBgPt').classList.toggle('on', s.bgPt !== false);
+  $('#swBgWifi').classList.toggle('on', !!s.bgWifi);
+  muBgStatus();
   $$('#segVolume button').forEach(function(b){ b.classList.toggle('on', b.dataset.vol === (s.volume || 'loud')); });
   /* 节假日数据状态 */
   var c = state.holidayCache || {}, manualN = (state.holidays || []).length;
@@ -4313,6 +4351,7 @@ function ucloudSync(){
       cfg.seenInit = true;
       save();
       renderUcloud(); renderSettings();
+      muBgPush();   /* 令牌与已见 id 变了，同步给原生后台任务 */
       if(fresh.length && cfg.alertOn !== false && !isFirst) ucStrongAlert(fresh);
       else toast('云邮已更新：' + items.length + ' 项');
       return items;
@@ -5403,6 +5442,7 @@ function ptSync(kind, more){
       list.forEach(function(it){ c.seen[it.id] = 1; });
       c.seenInit = true;
       c.lastSync = Date.now();
+      muBgPush();   /* 会话 cookie 与已见 id 变了，同步给原生后台任务 */
       c.lastError = '';
       c.diag = null;                     /* 这次通了，上次的失败快照就别挂在页面上 */
       c.idxAt = 0;                       /* 新内容进来了，允许重新补索引 */
@@ -6722,6 +6762,52 @@ function bindCalendar(){
     $('#toggleDone').textContent = doneOpen ? '收起' : '显示';
   };
 }
+/* ---------------- 后台检查新内容（App 版） ----------------
+   为什么在原生侧做：WebView 的定时器在后台被系统节流，进程也可能被回收，
+   所以「每 15 分钟看一眼学校服务器」只能交给 WorkManager + 原生 HTTP。
+
+   这里负责把「App 里已经登录成功拿到的东西」交给原生：
+   · 云邮：access_token / refresh_token / 角色 identity / 已见 id
+   · 门户：会话 cookie / 已见 id
+   原生只用它们复查，不会保存学工号密码，也不会重新走 CAS 登录（避免触发风控）。 */
+function muBg(){ try{ return window.MuBgCheck || null; }catch(e){ return null; } }
+function muBgIds(o){ try{ return Object.keys(o || {}); }catch(e){ return []; } }
+function muBgSnapshot(){
+  var uc = (typeof ucCfg === 'function' ? ucCfg() : {}) || {};
+  var pt = (typeof ptCfg === 'function' ? ptCfg() : {}) || {};
+  var seenPt = muBgIds(pt.seen);
+  return JSON.stringify({
+    ucOn: state.settings.bgUc !== false,
+    ptOn: state.settings.bgPt !== false,
+    wifiOnly: !!state.settings.bgWifi,
+    uc: { token: uc.token || '', refresh: uc.refreshToken || '', tokenAt: uc.tokenAt || 0,
+          uid: uc.userInfoId || '', identity: uc.identity || '', roleId: uc.roleId || '',
+          seen: muBgIds(uc.seen) },
+    pt: { cookie: pt.cookie || '', noticeSeen: seenPt, lectureSeen: seenPt }
+  });
+}
+function muBgPush(){
+  var b = muBg(); if(!b) return;
+  try{ b.push(muBgSnapshot()); }catch(e){}
+}
+function muBgApply(){
+  var b = muBg(); if(!b) return;
+  muBgPush();
+  try{
+    if(state.settings.bgCheck){
+      b.enable(state.settings.bgUc !== false, state.settings.bgPt !== false, !!state.settings.bgWifi);
+    }else{
+      b.disable();
+    }
+  }catch(e){}
+}
+function muBgStatus(){
+  var el = $('#bgStat'); if(!el) return;
+  var b = muBg();
+  if(!b){ el.textContent = '网页版不能后台检查：装 App 后可用'; return; }
+  try{ el.textContent = b.status() || '—'; }catch(e){ el.textContent = '读取状态失败：' + e.message; }
+}
+
 function bindSettings(){
   $('#swNotify').onclick = function(){
     state.settings.notify = !state.settings.notify;
@@ -6732,6 +6818,45 @@ function bindSettings(){
   $('#swSys').onclick = function(){
     if(!state.settings.sysNotify){ requestSysNotify(); }
     else{ state.settings.sysNotify = false; save(); renderSettings(); toast('系统通知已关闭'); }
+  };
+  /* —— 后台检查新内容 —— */
+  $('#swBgCheck').onclick = function(){
+    state.settings.bgCheck = !state.settings.bgCheck;
+    save(); renderSettings(); muBgApply();
+    if(state.settings.bgCheck){
+      var uc = (typeof ucCfg === 'function' ? ucCfg() : {}) || {};
+      toast(uc.token ? '已开启：约每 15 分钟检查一次' : '已开启；但云邮还没登录，后台只能查资讯', 3600);
+    }else{
+      toast('后台检查已关闭');
+    }
+  };
+  $('#swBgUc').onclick = function(){
+    state.settings.bgUc = !(state.settings.bgUc !== false);
+    save(); renderSettings(); muBgApply();
+  };
+  $('#swBgPt').onclick = function(){
+    state.settings.bgPt = !(state.settings.bgPt !== false);
+    save(); renderSettings(); muBgApply();
+  };
+  $('#swBgWifi').onclick = function(){
+    state.settings.bgWifi = !state.settings.bgWifi;
+    save(); renderSettings(); muBgApply();
+  };
+  $('#btnBgTest').onclick = function(){
+    var b = muBg();
+    if(!b){ toast('网页版不能后台检查'); return; }
+    muBgPush();
+    try{
+      toast(b.testNow() || '已开始检查', 3600);
+    }catch(e){
+      toast('没能开始检查：' + e.message, 3600);
+    }
+    setTimeout(function(){ muBgStatus(); }, 2500);
+  };
+  $('#btnBgNotif').onclick = function(){
+    var b = muBg();
+    if(b && b.openNotificationSettings){ b.openNotificationSettings(); }
+    else{ toast('网页版没有系统通知设置'); }
   };
   $('#btnExact').onclick = function(){
     var LN = capPlugin('LocalNotifications');
