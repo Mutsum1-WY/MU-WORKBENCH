@@ -43,19 +43,16 @@
 
 ## 安装
 
-**仓库里不放预编译 APK**（5 MB 以上的二进制会和源码不同步），请按下一节自己出一个 debug 包，首次约 5 分钟：
+从 [**Releases**](../../releases/latest) 下载 `MU-WORKBENCH-v1.0.0-debug.apk` 直接安装：
 
-```bash
-cd MU-WORKBENCH-ANDROID
-npm install
-npm run android:apk
-adb install android/app/build/outputs/apk/debug/app-debug.apk
-```
-
-出好的包也可以自己丢进 [Releases](../../releases) 当分发用。
-App 未上架应用商店、也没有签名证书，所以是 debug 包：装到手机上需要允许「安装未知来源应用」。
+- 系统要求 **Android 6.0+**（`minSdk 23`，`targetSdk 35`）
+- 未签名的 **debug 包**，安装时需要允许「安装未知来源应用」
+- APK 大小约 5.0 MB，sha256 `341407c7fea26dd51a154dec1fb4836940d3f1430c12778c1a3ea7ff0bc9e460`
+- 仓库里不直接放 APK（二进制会和源码不同步），Release 上的包对应 tag `v1.0.0`，打包用的 `index.html` 与该 tag 下的源码逐字节一致
 
 不想装 App 也可以直接用浏览器打开 `MU-WORKBENCH/index.html`（除了「系统级闹钟」和「云邮」外功能都在）。
+
+想自己出包见下一节。
 
 ## 自己构建
 
