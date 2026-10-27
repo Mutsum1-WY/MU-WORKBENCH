@@ -1,0 +1,13 @@
+{
+  "appId": "com.mu.workbench",
+  "appName": "MU WORKBENCH",
+  "webDir": "www",
+  "server": {
+    "androidScheme": "https"
+  },
+  "android": {
+    "allowMixedContent": true,
+    "captureInput": true,
+    "webContentsDebuggingEnabled": true
+  }
+}

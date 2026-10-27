@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    信息门户（my.bupt.edu.cn）只有 HTTP，没有 HTTPS（实测 TLS 握手直接失败），
+    而 Android 9+ 默认禁止明文流量。这里只给这一个域名开例外，其它域名仍然强制 HTTPS。
+    注意：不要用 android:usesCleartextTraffic="true" 全局放开——那会把整个 app 的明文限制都关掉。
+-->
+<network-security-config>
+    <domain-config cleartextTrafficPermitted="true">
+        <domain includeSubdomains="false">my.bupt.edu.cn</domain>
+    </domain-config>
+</network-security-config>

@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<paths xmlns:android="http://schemas.android.com/apk/res/android">
+    <external-path name="my_images" path="." />
+    <cache-path name="my_cache_images" path="." />
+    <!-- 附件下载（Android 10 以下的退路）：存在 app 自己的外部下载目录里，用 FileProvider 打开 -->
+    <external-files-path name="mu_downloads" path="." />
+    <files-path name="mu_files" path="." />
+</paths>

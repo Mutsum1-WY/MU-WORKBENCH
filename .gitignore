@@ -1,0 +1,50 @@
+# ---- 依赖与构建产物 ----
+node_modules/
+MU-WORKBENCH-ANDROID/www/
+MU-WORKBENCH-ANDROID/android/.gradle/
+MU-WORKBENCH-ANDROID/android/build/
+MU-WORKBENCH-ANDROID/android/app/build/
+MU-WORKBENCH-ANDROID/android/local.properties
+*.apk
+*.aab
+*.hprof
+.gradle/
+build/
+.vs/
+.idea/
+*.iml
+
+# ---- 本仓库只收安卓应用：iOS 工程与 iOS CI 不入库 ----
+MU-WORKBENCH-ANDROID/ios/
+.github/
+
+# ---- 开发脚本、截图、审计产物（本地用，不入库）----
+MU-WORKBENCH/_dev/
+MU-WORKBENCH/_shots/
+MU-WORKBENCH/_pdf_extract/
+_shots/
+.workbuddy/
+.aesthetic/
+.workflow/
+
+# ---- 与本项目无关的私人资料 ----
+北邮文件/
+培养方案卡片/
+门户存档/
+云邮登录Skill/
+*.docx
+
+# ---- 系统 / 编辑器杂项 ----
+Thumbs.db
+desktop.ini
+.DS_Store
+*.log
+*.bak
+# ---- 只收安卓：iOS 工具与构建日志不入库 ----
+MU-WORKBENCH-ANDROID/打包手册-iOS.md
+MU-WORKBENCH-ANDROID/check-ios-proj.cjs
+MU-WORKBENCH-ANDROID/_make-ios-icons.ps1
+MU-WORKBENCH-ANDROID/_toolchain.log.err
+MU-WORKBENCH-ANDROID/_setup-toolchain.ps1
+MU-WORKBENCH-ANDROID/_make-icons.ps1
+*.err
