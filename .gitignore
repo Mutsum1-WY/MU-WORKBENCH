@@ -48,3 +48,12 @@ MU-WORKBENCH-ANDROID/_toolchain.log.err
 MU-WORKBENCH-ANDROID/_setup-toolchain.ps1
 MU-WORKBENCH-ANDROID/_make-icons.ps1
 *.err
+
+# ---- 本地构建工具链（体积大，绝不入库）----
+MU-WORKBENCH-ANDROID/.toolchain/
+MU-WORKBENCH-ANDROID/.gradle-home/
+
+# ---- 私人需求文档 ----
+功能提示词.md
+对话提示词.md
+需求文档模板.md
