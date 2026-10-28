@@ -26,6 +26,8 @@ public class BgCheckWorker extends Worker {
         } catch (Throwable ignored) {
             /* 失败留给下一次；连续失败会在 BgCheck.run 里累计并提示 */
         }
+        /* 链式续排：这次跑完再排 15 分钟后的一次（不用周期任务，见 BgCheck.scheduleNext 注释） */
+        try { BgCheck.scheduleNext(getApplicationContext(), BgCheck.intervalMinutes(getApplicationContext())); } catch (Throwable ignored) {}
         return Result.success();
     }
 }

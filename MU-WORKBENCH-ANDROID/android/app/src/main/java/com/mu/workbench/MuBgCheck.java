@@ -63,6 +63,21 @@ public class MuBgCheck {
         }
     }
 
+    /** 调试用：把下一次检查排到 N 分钟后（N 可以小于 15，只用于验证链路是否真的会自己跑） */
+    @JavascriptInterface
+    public void chainIn(final int minutes) {
+        try {
+            final android.content.Context ctx = act.getApplicationContext();
+            new Thread(new Runnable() {
+                @Override
+                public void run() {
+                    BgCheck.scheduleNext(ctx, Math.max(1, minutes));
+                }
+            }, "mu-bg-chain").start();
+        } catch (Throwable ignored) {
+        }
+    }
+
     @JavascriptInterface
     public String status() {
         try {

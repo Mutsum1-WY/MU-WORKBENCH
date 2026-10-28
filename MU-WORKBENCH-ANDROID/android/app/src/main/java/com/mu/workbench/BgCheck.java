@@ -13,9 +13,9 @@ import android.provider.Settings;
 import android.util.Log;
 
 import androidx.work.Constraints;
-import androidx.work.ExistingPeriodicWorkPolicy;
+import androidx.work.ExistingWorkPolicy;
 import androidx.work.NetworkType;
-import androidx.work.PeriodicWorkRequest;
+import androidx.work.OneTimeWorkRequest;
 import androidx.work.WorkManager;
 
 import org.json.JSONArray;
@@ -164,16 +164,51 @@ public final class BgCheck {
         WorkManager wm = WorkManager.getInstance(ctx);
         if (!on) {
             wm.cancelUniqueWork(WORK_NAME);
+            wm.cancelUniqueWork(WORK_NAME + "-legacy");
             return;
         }
-        Constraints c = new Constraints.Builder()
-                .setRequiredNetworkType(wifiOnly ? NetworkType.UNMETERED : NetworkType.CONNECTED)
-                .setRequiresBatteryNotLow(true)
-                .build();
-        PeriodicWorkRequest req = new PeriodicWorkRequest.Builder(BgCheckWorker.class, 15, TimeUnit.MINUTES)
-                .setConstraints(c)
-                .build();
-        wm.enqueueUniquePeriodicWork(WORK_NAME, ExistingPeriodicWorkPolicy.UPDATE, req);
+        /* 旧版本用的是 PeriodicWorkRequest，清掉，避免两套并存 */
+        wm.cancelUniqueWork(WORK_NAME + "-legacy");
+        scheduleNext(ctx, 15);
+    }
+
+    /**
+     * 排下一次检查。
+     *
+     * 为什么不用 PeriodicWorkRequest：实测（Redmi + Android 13）发现这个 App 的进程会被
+     * 前台服务反复拉起，而 WorkManager 每次重新调度周期任务都会把「下次执行时间」重置，
+     * 于是 `TIMING_DELAY` 永远满足不了 —— dumpsys 里能看到 `Enqueue time` 一直在往后滚，
+     * 15 分钟窗口永远走不完，任务一次都没真正跑过。
+     * 改成「一次性任务 + 跑完自己排下一次」，每次调度只带固定的 initialDelay，
+     * 不依赖周期任务的周期状态，实测能正常触发。
+     */
+    static void scheduleNext(Context ctx, long delayMinutes) {
+        try {
+            JSONObject cfg = readCfg(MuBgCheck.prefs(ctx));
+            boolean wifiOnly = cfg.optBoolean("wifiOnly", false);
+            Constraints c = new Constraints.Builder()
+                    .setRequiredNetworkType(wifiOnly ? NetworkType.UNMETERED : NetworkType.CONNECTED)
+                    .setRequiresBatteryNotLow(true)
+                    .build();
+            OneTimeWorkRequest req = new OneTimeWorkRequest.Builder(BgCheckWorker.class)
+                    .setInitialDelay(delayMinutes, TimeUnit.MINUTES)
+                    .setConstraints(c)
+                    .addTag("mu-bg")
+                    .build();
+            WorkManager.getInstance(ctx)
+                    .enqueueUniqueWork(WORK_NAME, ExistingWorkPolicy.REPLACE, req);
+            Log.i(TAG, "scheduleNext in " + delayMinutes + " min");
+        } catch (Throwable e) {
+            Log.w(TAG, "scheduleNext failed: " + e);
+        }
+    }
+
+    /** 实际间隔（分钟）：默认 15，可被 cfg.intervalMin 覆盖（调试/省电都方便），夹在 1~240 */
+    static long intervalMinutes(Context ctx) {
+        int m = readCfg(MuBgCheck.prefs(ctx)).optInt("intervalMin", 15);
+        if (m < 1) m = 1;
+        if (m > 240) m = 240;
+        return m;
     }
 
     static boolean enabled(Context ctx) {
