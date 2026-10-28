@@ -89,6 +89,9 @@ public final class BgCheck {
             mergeStr(uc, ucIn, "uid");
             mergeStr(uc, ucIn, "identity");
             mergeStr(uc, ucIn, "roleId");
+            /* 门户后台登录要用的学工号 / 密码（与云邮同一组） */
+            mergeStr(uc, ucIn, "id");
+            mergeStr(uc, ucIn, "pwd");
             if (ucIn.has("tokenAt")) uc.put("tokenAt", ucIn.optLong("tokenAt", 0L));
             mergeIds(uc, ucIn, "seen");
             cfg.put("uc", uc);
@@ -283,9 +286,6 @@ public final class BgCheck {
                                 fresh.clear();
                                 diag.append("(首次只记录) ");
                             }
-                            for (UcItem it : items) {
-                                if (!seen.contains(it.id)) fresh.add(it);
-                            }
                             for (UcItem it : items) seen.add(it.id);
                             uc.put("seen", toArr(seen));
                             if (!fresh.isEmpty()) {
@@ -306,29 +306,45 @@ public final class BgCheck {
             }
         }
 
-        /* ---- 门户：从 cookie 罐里按 host 取 Cookie 头（罐子格式是 {"主机|名字": 值}） ---- */
+        /* ---- 门户：先复用会话；没有就自己登录（门户风控很松，允许真登录） ---- */
         boolean ptWanted = cfg.optBoolean("ptOn", true) && pt != null;
         if (ptWanted) {
-            String header = cookieHeaderFor(pt, "my.bupt.edu.cn");
-            String jarHeader = header;
+            final Context appCtx = ctx;
+            PortalLogin.ContextHolder holder = new PortalLogin.ContextHolder() {
+                @Override
+                public Context ctx() {
+                    return appCtx;
+                }
+            };
+            String header = PortalLogin.jarHeader(pt, PT_HOST);        /* 上次登录攒下的 */
+            if (header.isEmpty()) header = cookieHeaderFor(pt, PT_HOST); /* JS 传的罐子（可能为空） */
+            if (header.isEmpty()) header = cookieFromDefaultHandler(PT_BASE); /* App 内存里的会话 */
+            diag.append("门户cookie=jar:").append(PortalLogin.jarHeader(pt, PT_HOST).isEmpty() ? 0 : 1)
+                .append("/jvm:").append(cookieFromDefaultHandler(PT_BASE).isEmpty() ? 0 : 1).append("项 ");
+
+            String pId = uc.optString("id", "");
+            String pPwd = uc.optString("pwd", "");
             if (header.isEmpty()) {
-                /* 兜底：App 的 JS 那个 c.cookie 罐子经常是空的（CapacitorHttp 自己持有会话），
-                   同一进程里 CapacitorHttp 用的就是 JVM 默认的 CookieHandler，直接问它要。
-                   拿不到就安静跳过 —— 会话过期不该被当成"失败"反复打扰。 */
-                header = cookieFromDefaultHandler(PT_BASE);
-                diag.append("门户cookie=jar:").append(countJarHost(pt, "my.bupt.edu.cn"))
-                    .append("/jvm:").append(header.isEmpty() ? 0 : 1).append("项 ");
-            } else {
-                diag.append("门户cookie=jar:").append(countJarHost(pt, "my.bupt.edu.cn")).append("项 ");
+                header = PortalLogin.ensure(holder, pt, pId, pPwd);
+                if (!header.isEmpty()) diag.append("已登录 ");
             }
             if (header.isEmpty()) {
                 ptWanted = false;
                 needApp = true;
-                soft = "门户没有可用会话";
+                soft = pId.isEmpty() ? "门户没有登录信息" : "门户登录失败";
             } else {
                 try {
                     List<PtItem> notice = fetchPortal(PT_NOTICE, header, false);
                     List<PtItem> lecture = fetchPortal(PT_LECTURE, header, true);
+                    /* 会话被判失效 → 重登一次再取（门户允许，且只在必要时做） */
+                    if (notice == null || lecture == null) {
+                        String h2 = PortalLogin.relogin(holder, pt, pId, pPwd);
+                        if (!h2.isEmpty()) {
+                            diag.append("重登 ");
+                            notice = fetchPortal(PT_NOTICE, h2, false);
+                            lecture = fetchPortal(PT_LECTURE, h2, true);
+                        }
+                    }
                     diag.append("通知=").append(notice == null ? "失效" : notice.size())
                         .append(" 讲座=").append(lecture == null ? "失效" : lecture.size()).append(" ");
                     if (notice == null || lecture == null) {

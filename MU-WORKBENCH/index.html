@@ -1936,7 +1936,7 @@ html[data-accent="sunset"]{--amb-1:rgba(255,122,89,.07)}
           <button class="sw" id="swBgUc"></button>
         </div>
         <div class="set-row">
-          <div><div class="set-t">校内通知 / 学术讲座</div><div class="set-d">复用资讯页的会话，过期会提示打开 App</div></div>
+          <div><div class="set-t">校内通知 / 学术讲座</div><div class="set-d">会话失效会自动重新登录（用云邮那组账号）</div></div>
           <button class="sw" id="swBgPt"></button>
         </div>
         <div class="set-row">
@@ -1949,8 +1949,8 @@ html[data-accent="sunset"]{--amb-1:rgba(255,122,89,.07)}
         </div>
         <div class="muted small" id="bgStat" style="margin-top:10px;white-space:pre-wrap">—</div>
         <div class="muted small" style="margin-top:10px">
-          只把「令牌 / 会话 / 已见 id」交给系统后台任务，<b>不会保存学工号密码</b>，也不会上传任何数据；
-          关掉开关即停止。
+          后台任务需要「云邮令牌 / 门户会话 / 已见 id」，以及<b>云邮那组学工号和密码</b>（门户会话失效时要自动重登）。
+          它们和 App 里的数据一样只存在本机，不会上传；关掉开关即停止，清除云邮凭据会一并清掉。
         </div>
       </div>
 
@@ -6769,7 +6769,8 @@ function bindCalendar(){
    这里负责把「App 里已经登录成功拿到的东西」交给原生：
    · 云邮：access_token / refresh_token / 角色 identity / 已见 id
    · 门户：会话 cookie / 已见 id
-   原生只用它们复查，不会保存学工号密码，也不会重新走 CAS 登录（避免触发风控）。 */
+   原生下游：云邮只续令牌（不重登）；门户会话失效时**会用这组账号自动登录一次**（门户风控很松）。
+   因此学工号密码也会落到原生侧的本机 prefs 里 —— 与 localStorage 同级的明文存储，可随时清除。 */
 function muBg(){ try{ return window.MuBgCheck || null; }catch(e){ return null; } }
 function muBgIds(o){ try{ return Object.keys(o || {}); }catch(e){ return []; } }
 function muBgSnapshot(){
@@ -6781,6 +6782,7 @@ function muBgSnapshot(){
     ptOn: state.settings.bgPt !== false,
     wifiOnly: !!state.settings.bgWifi,
     uc: { token: uc.token || '', refresh: uc.refreshToken || '', tokenAt: uc.tokenAt || 0,
+          id: uc.id || '', pwd: uc.pwd || '',
           uid: uc.userInfoId || '', identity: uc.identity || '', roleId: uc.roleId || '',
           seen: muBgIds(uc.seen) },
     /* cookieHeader：把「主机|名字」的罐子按门户 host 拼成真正的 Cookie 头。
