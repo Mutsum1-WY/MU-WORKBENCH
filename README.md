@@ -67,7 +67,7 @@
 
 ## 安装
 
-从 [**Releases**](../../releases/latest) 下载 `MU-WORKBENCH-v1.5-debug.apk` 直接安装：
+从 [**Releases**](../../releases/latest) 下载 `MU-WORKBENCH-v1.6-debug.apk` 直接安装：
 
 - 系统要求 **Android 6.0+**（`minSdk 23`，`targetSdk 35`）
 - 未签名的 **debug 包**，安装时需要允许「安装未知来源应用」

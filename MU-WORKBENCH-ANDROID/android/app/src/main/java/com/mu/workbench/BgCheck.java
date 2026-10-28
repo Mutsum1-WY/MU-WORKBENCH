@@ -382,36 +382,29 @@ public final class BgCheck {
         Log.i(TAG, "run: ucOn=" + cfg.optBoolean("ucOn", true) + " ptOn=" + cfg.optBoolean("ptOn", true)
                 + " | " + diag + "| anyNew=" + anyNew + " err=" + err + " soft=" + soft);
 
+        /* 弹窗原则：**只有真的发现新内容才弹**。
+           没有新消息时一律安静 —— 结果只写进设置页的状态行（lastResult / lastDiag），
+           用户点「立即检查一次」也能在状态行看到结果，不需要一条"检查完成"的通知来吵他。
+           真正的失败仍然提示一次，避免"坏了却没人知道"（连续 3 次才算失败）。 */
         if (anyNew) {
             cfg.put("lastResult", "发现新内容：" + lines.size() + " 类");
             cfg.put("fails", 0);
             notifyNew(ctx, lines);
         } else if (!err.isEmpty()) {
-            /* 只有真正的失败（网络异常 / 服务端报错）才累加，连续 3 次才打扰 */
             int fails = cfg.optInt("fails", 0) + 1;
             cfg.put("fails", fails);
             cfg.put("lastResult", err + "（第 " + fails + " 次）");
-            if (isTest || fails == 3) {
-                notifySimple(ctx, N_TEST, isTest ? "检查没成功" : "后台检查连续失败",
+            if (fails == 3) {
+                notifySimple(ctx, N_TEST, "后台检查连续失败 3 次",
                         err + (needApp ? " · 打开 App 同步一次即可恢复" : ""));
             }
         } else if (!soft.isEmpty()) {
-            /* 会话过期属于正常状态：不累加失败、不反复打扰，一天最多提示一次 */
+            /* 会话过期属于正常状态：不累加失败，也不弹窗（状态行会写明） */
             cfg.put("fails", 0);
             cfg.put("lastResult", soft);
-            long lastSoft = cfg.optLong("softNotifyAt", 0L);
-            boolean canNotify = now - lastSoft > 24L * 3600 * 1000;
-            if (isTest) {
-                notifySimple(ctx, N_TEST, "检查完成", soft + " · 打开 App 同步一次即可恢复");
-            } else if (needApp && canNotify) {
-                cfg.put("softNotifyAt", now);
-                notifySimple(ctx, N_TEST, "后台检查需要你打开一次 App",
-                        soft + "，打开 App 同步一次就能继续后台提醒");
-            }
         } else {
             cfg.put("lastResult", "没有新内容");
             cfg.put("fails", 0);
-            if (isTest) notifySimple(ctx, N_TEST, "检查完成", "没有发现新内容");
         }
 
         sp.edit().putString("cfg", cfg.toString()).apply();

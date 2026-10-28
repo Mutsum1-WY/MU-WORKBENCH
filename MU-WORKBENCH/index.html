@@ -6857,12 +6857,31 @@ function bindSettings(){
     var b = muBg();
     if(!b){ toast('网页版不能后台检查'); return; }
     muBgPush();
+    var before = '';
+    try{ before = b.status() || ''; }catch(e){}
     try{
-      toast(b.testNow() || '已开始检查', 3600);
+      toast((b.testNow() || '已开始检查') + '（没有新内容就不弹通知）', 3200);
     }catch(e){
       toast('没能开始检查：' + e.message, 3600);
+      return;
     }
-    setTimeout(function(){ muBgStatus(); }, 2500);
+    /* 结果只回显在页面上：没新消息时不该用通知打扰 */
+    var tries = 0;
+    var timer = setInterval(function(){
+      tries++;
+      muBgStatus();
+      var now = '';
+      try{ now = b.status() || ''; }catch(e){}
+      if(now && now !== before){
+        clearInterval(timer);
+        var m = /上次结果：([^\n]*)/.exec(now);
+        var d = /上次细节：([^\n]*)/.exec(now);
+        toast('检查完成：' + (m ? m[1] : '见状态行') + (d ? '｜' + d[1] : ''), 5600);
+      }else if(tries >= 10){
+        clearInterval(timer);
+        toast('还在检查，稍后看状态行', 3600);
+      }
+    }, 2000);
   };
   $('#btnBgNotif').onclick = function(){
     var b = muBg();
