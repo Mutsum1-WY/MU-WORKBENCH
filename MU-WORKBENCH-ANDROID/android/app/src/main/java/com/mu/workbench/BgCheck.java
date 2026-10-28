@@ -10,6 +10,7 @@ import android.content.SharedPreferences;
 import android.net.Uri;
 import android.os.Build;
 import android.provider.Settings;
+import android.util.Log;
 
 import androidx.work.Constraints;
 import androidx.work.ExistingPeriodicWorkPolicy;
@@ -51,9 +52,12 @@ public final class BgCheck {
     private static final String UC_BASIC = "Basic c3dvcmQ6c3dvcmRfc2VjcmV0";   /* sword:sword_secret */
     private static final String PT_NOTICE = "http://my.bupt.edu.cn/list.jsp?urltype=tree.TreeTempUrl&wbtreeid=1154";
     private static final String PT_LECTURE = "http://my.bupt.edu.cn/hy_list.jsp?urltype=tree.TreeTempUrl&wbtreeid=1300";
+    private static final String PT_BASE = "http://my.bupt.edu.cn/";
 
     private static final String WORK_NAME = "mu-bg-check";
     private static final String CHANNEL_ID = "mu-new";
+    private static final String TAG = "MuBgCheck";
+    private static final String PT_HOST = "my.bupt.edu.cn";
     private static final long TOKEN_TTL = 100L * 60 * 1000;      /* 令牌 2 小时，留 20 分钟余量 */
     private static final int SEEN_CAP = 400;
 
@@ -180,6 +184,7 @@ public final class BgCheck {
         JSONObject cfg = readCfg(MuBgCheck.prefs(ctx));
         long last = cfg.optLong("lastRun", 0L);
         String res = cfg.optString("lastResult", "还没跑过");
+        String diag = cfg.optString("lastDiag", "");
         int fails = cfg.optInt("fails", 0);
         StringBuilder sb = new StringBuilder();
         sb.append(cfg.optBoolean("enabled", false) ? "后台检查：开" : "后台检查：关");
@@ -190,8 +195,10 @@ public final class BgCheck {
         sb.append("\n云邮令牌：").append(uc != null && uc.optLong("tokenAt", 0) > 0
                 ? (fresh(uc) ? "有效" : "已过期（会用 refresh 续）") : "没有（先在今日页登录）");
         JSONObject pt = cfg.optJSONObject("pt");
-        sb.append("\n门户会话：").append(pt != null && !pt.optString("cookie", "").isEmpty()
-                ? "有" : "没有（先在资讯页同步一次）");
+        int ptN = pt == null ? 0 : countJarHost(pt, PT_HOST);
+        sb.append("\n门户会话：").append(ptN > 0
+                ? ("有（" + ptN + " 项 cookie）") : "没有（先去资讯页同步一次）");
+        if (!diag.isEmpty()) sb.append("\n上次细节：").append(diag);
         return sb.toString();
     }
 
@@ -206,7 +213,9 @@ public final class BgCheck {
         List<String> lines = new ArrayList<>();
         boolean anyNew = false;
         boolean needApp = false;
-        String err = "";
+        String err = "";     /* 硬失败：网络异常 / 服务端报错 —— 计入 fails */
+        String soft = "";    /* 软状态：会话过期 / 没登录 —— 不计失败，只提示 */
+        StringBuilder diag = new StringBuilder();
 
         JSONObject uc = cfg.optJSONObject("uc");
         JSONObject pt = cfg.optJSONObject("pt");
@@ -231,7 +240,14 @@ public final class BgCheck {
                             err = "云邮待办拉取失败";
                         } else {
                             Set<String> seen = ids(uc.optJSONArray("seen"));
+                            boolean ucFirst = seen.isEmpty();     /* 第一次：只记下来，不报警 */
                             List<UcItem> fresh = new ArrayList<>();
+                            for (UcItem it : items) if (!seen.contains(it.id)) fresh.add(it);
+                            diag.append("云邮=").append(items.size()).append("项/新").append(fresh.size()).append(" ");
+                            if (ucFirst) {
+                                fresh.clear();
+                                diag.append("(首次只记录) ");
+                            }
                             for (UcItem it : items) {
                                 if (!seen.contains(it.id)) fresh.add(it);
                             }
@@ -255,63 +271,165 @@ public final class BgCheck {
             }
         }
 
-        /* ---- 门户：复用 cookie，过期就提示 ---- */
-        if (cfg.optBoolean("ptOn", true) && pt != null && !pt.optString("cookie", "").isEmpty()) {
-            try {
-                String cookie = pt.optString("cookie", "");
-                List<PtItem> notice = fetchPortal(PT_NOTICE, cookie, false);
-                List<PtItem> lecture = fetchPortal(PT_LECTURE, cookie, true);
-                if (notice == null || lecture == null) {
-                    needApp = true;
-                    if (err.isEmpty()) err = "门户会话已过期";
-                } else {
-                    String nLine = diffNotice(notice, pt, "noticeSeen", "校内通知");
-                    if (nLine != null) {
-                        lines.add(nLine);
-                        anyNew = true;
+        /* ---- 门户：从 cookie 罐里按 host 取 Cookie 头（罐子格式是 {"主机|名字": 值}） ---- */
+        boolean ptWanted = cfg.optBoolean("ptOn", true) && pt != null;
+        if (ptWanted) {
+            String header = cookieHeaderFor(pt, "my.bupt.edu.cn");
+            String jarHeader = header;
+            if (header.isEmpty()) {
+                /* 兜底：App 的 JS 那个 c.cookie 罐子经常是空的（CapacitorHttp 自己持有会话），
+                   同一进程里 CapacitorHttp 用的就是 JVM 默认的 CookieHandler，直接问它要。
+                   拿不到就安静跳过 —— 会话过期不该被当成"失败"反复打扰。 */
+                header = cookieFromDefaultHandler(PT_BASE);
+                diag.append("门户cookie=jar:").append(countJarHost(pt, "my.bupt.edu.cn"))
+                    .append("/jvm:").append(header.isEmpty() ? 0 : 1).append("项 ");
+            } else {
+                diag.append("门户cookie=jar:").append(countJarHost(pt, "my.bupt.edu.cn")).append("项 ");
+            }
+            if (header.isEmpty()) {
+                ptWanted = false;
+                needApp = true;
+                soft = "门户没有可用会话";
+            } else {
+                try {
+                    List<PtItem> notice = fetchPortal(PT_NOTICE, header, false);
+                    List<PtItem> lecture = fetchPortal(PT_LECTURE, header, true);
+                    diag.append("通知=").append(notice == null ? "失效" : notice.size())
+                        .append(" 讲座=").append(lecture == null ? "失效" : lecture.size()).append(" ");
+                    if (notice == null || lecture == null) {
+                        needApp = true;
+                        soft = "门户会话已过期";
+                    } else {
+                        String nLine = diffNotice(notice, pt, "noticeSeen", "校内通知");
+                        if (nLine != null) { lines.add(nLine); anyNew = true; }
+                        String lLine = diffNotice(lecture, pt, "lectureSeen", "学术讲座");
+                        if (lLine != null) { lines.add(lLine); anyNew = true; }
                     }
-                    String lLine = diffNotice(lecture, pt, "lectureSeen", "学术讲座");
-                    if (lLine != null) {
-                        lines.add(lLine);
-                        anyNew = true;
-                    }
+                } catch (Throwable e) {
+                    if (err.isEmpty()) err = "门户：" + brief(e);
                 }
-            } catch (Throwable e) {
-                if (err.isEmpty()) err = "门户：" + brief(e);
             }
         }
 
         cfg.put("uc", uc);
         if (pt != null) cfg.put("pt", pt);
         cfg.put("lastRun", now);
+        cfg.put("lastDiag", diag.toString().trim());
+        Log.i(TAG, "run: ucOn=" + cfg.optBoolean("ucOn", true) + " ptOn=" + cfg.optBoolean("ptOn", true)
+                + " | " + diag + "| anyNew=" + anyNew + " err=" + err + " soft=" + soft);
 
         if (anyNew) {
             cfg.put("lastResult", "发现新内容：" + lines.size() + " 类");
             cfg.put("fails", 0);
             notifyNew(ctx, lines);
         } else if (!err.isEmpty()) {
+            /* 只有真正的失败（网络异常 / 服务端报错）才累加，连续 3 次才打扰 */
             int fails = cfg.optInt("fails", 0) + 1;
             cfg.put("fails", fails);
             cfg.put("lastResult", err + "（第 " + fails + " 次）");
-            /* 连续失败 3 次才打扰；测试模式一定回话 */
             if (isTest || fails == 3) {
                 notifySimple(ctx, N_TEST, isTest ? "检查没成功" : "后台检查连续失败",
                         err + (needApp ? " · 打开 App 同步一次即可恢复" : ""));
             }
+        } else if (!soft.isEmpty()) {
+            /* 会话过期属于正常状态：不累加失败、不反复打扰，一天最多提示一次 */
+            cfg.put("fails", 0);
+            cfg.put("lastResult", soft);
+            long lastSoft = cfg.optLong("softNotifyAt", 0L);
+            boolean canNotify = now - lastSoft > 24L * 3600 * 1000;
+            if (isTest) {
+                notifySimple(ctx, N_TEST, "检查完成", soft + " · 打开 App 同步一次即可恢复");
+            } else if (needApp && canNotify) {
+                cfg.put("softNotifyAt", now);
+                notifySimple(ctx, N_TEST, "后台检查需要你打开一次 App",
+                        soft + "，打开 App 同步一次就能继续后台提醒");
+            }
         } else {
             cfg.put("lastResult", "没有新内容");
             cfg.put("fails", 0);
-            if (isTest) notifySimple(ctx, N_TEST, "检查完成", "最近 20 条里没有新内容");
-        }
-        if (needApp && !anyNew && !isTest && cfg.optInt("fails", 0) == 1) {
-            notifySimple(ctx, N_TEST, "后台检查需要你打开一次 App",
-                    "云邮令牌或门户会话已过期，打开 App 同步一次就能继续后台提醒");
+            if (isTest) notifySimple(ctx, N_TEST, "检查完成", "没有发现新内容");
         }
 
         sp.edit().putString("cfg", cfg.toString()).apply();
     }
 
     /* ---------- 云邮 ---------- */
+
+    /**
+     * 从 App 传过来的 cookie 罐里取出某个 host 的 Cookie 头。
+     *
+     * 罐子的格式是 {"主机|名字": 值}（JS 侧的 ptJarTo / ptJarHeader 就是这么存的），
+     * 直接把整个 JSON 当 Cookie 头发出去是错的 —— CAS 和门户都用 JSESSIONID，
+     * 必须按 host 过滤，否则门户收到的是 CAS 的票，永远判"未登录"。
+     */
+    private static String cookieHeaderFor(JSONObject pt, String host) {
+        String direct = pt.optString("cookieHeader", "");
+        if (!direct.isEmpty()) return direct;
+        String raw = pt.optString("cookie", "");
+        if (raw.isEmpty()) return "";
+        try {
+            JSONObject jar = new JSONObject(raw);
+            String pre = host + "|";
+            StringBuilder sb = new StringBuilder();
+            java.util.Iterator<String> it = jar.keys();
+            while (it.hasNext()) {
+                String k = it.next();
+                if (!k.startsWith(pre)) continue;
+                String name = k.substring(pre.length());
+                if (name.isEmpty()) continue;
+                if (sb.length() > 0) sb.append("; ");
+                sb.append(name).append('=').append(jar.optString(k, ""));
+            }
+            return sb.toString();
+        } catch (Throwable e) {
+            /* 不是 JSON：兼容旧格式（已经是 header 字符串） */
+            return raw.indexOf('=') > 0 ? raw : "";
+        }
+    }
+
+    private static int countJarHost(JSONObject pt, String host) {
+        try {
+            JSONObject jar = new JSONObject(pt.optString("cookie", ""));
+            String pre = host + "|";
+            int n = 0;
+            java.util.Iterator<String> it = jar.keys();
+            while (it.hasNext()) if (it.next().startsWith(pre)) n++;
+            return n;
+        } catch (Throwable e) {
+            return pt.optString("cookieHeader", "").isEmpty() ? 0 : 1;
+        }
+    }
+
+    /**
+     * 从 JVM 默认的 CookieHandler 里取某个站点的 Cookie 头。
+     *
+     * 为什么需要它：App 里的门户请求走 CapacitorHttp，它自己持有一套 cookie ——
+     * 既没写进 state.portal.cookie，也没进 WebView 的 cookie 库，所以 JS 传过来的罐子常常是空的。
+     * 同一进程里 CapacitorHttp 用的就是 JVM 默认 CookieHandler，直接问它最省事。
+     * 进程被杀过之后这里会拿不到（内存态），此时安静跳过，等用户打开 App 再续。
+     */
+    private static String cookieFromDefaultHandler(String base) {
+        try {
+            java.net.CookieHandler ch = java.net.CookieHandler.getDefault();
+            if (ch == null) return "";
+            java.util.Map<String, java.util.List<String>> got =
+                    ch.get(new java.net.URI(base), new java.util.HashMap<String, java.util.List<String>>());
+            if (got == null) return "";
+            StringBuilder sb = new StringBuilder();
+            for (java.util.Map.Entry<String, java.util.List<String>> e : got.entrySet()) {
+                if (e.getKey() == null || !"Cookie".equalsIgnoreCase(e.getKey())) continue;
+                if (e.getValue() == null) continue;
+                for (String v : e.getValue()) {
+                    if (v == null || v.isEmpty()) continue;
+                    if (sb.length() > 0) sb.append("; ");
+                    sb.append(v);
+                }
+            }
+            return sb.toString();
+        } catch (Throwable e) {
+            return "";
+        }
+    }
 
     private static final class UcItem {
         String id, title, due;
@@ -464,11 +582,12 @@ public final class BgCheck {
 
     private static String diffNotice(List<PtItem> list, JSONObject pt, String key, String label) throws Exception {
         Set<String> seen = ids(pt.optJSONArray(key));
+        boolean first = seen.isEmpty();     /* 第一次见：只记录，不弹通知 */
         List<PtItem> fresh = new ArrayList<>();
         for (PtItem it : list) if (!seen.contains(it.id)) fresh.add(it);
         for (PtItem it : list) seen.add(it.id);
         pt.put(key, toArr(seen));
-        if (fresh.isEmpty()) return null;
+        if (first || fresh.isEmpty()) return null;
         StringBuilder t = new StringBuilder();
         for (int i = 0; i < Math.min(2, fresh.size()); i++) {
             if (i > 0) t.append("、");

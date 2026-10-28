@@ -6783,7 +6783,13 @@ function muBgSnapshot(){
     uc: { token: uc.token || '', refresh: uc.refreshToken || '', tokenAt: uc.tokenAt || 0,
           uid: uc.userInfoId || '', identity: uc.identity || '', roleId: uc.roleId || '',
           seen: muBgIds(uc.seen) },
-    pt: { cookie: pt.cookie || '', noticeSeen: seenPt, lectureSeen: seenPt }
+    /* cookieHeader：把「主机|名字」的罐子按门户 host 拼成真正的 Cookie 头。
+       原生侧也会自己解析，但由 JS 来解释罐子格式最不容易错（CAS 与门户都用 JSESSIONID）。 */
+    pt: { cookie: pt.cookie || '',
+          cookieHeader: (function(){
+            try{ return ptJarHeader(ptJarFrom(pt.cookie), 'my.bupt.edu.cn'); }catch(e){ return ''; }
+          })(),
+          noticeSeen: seenPt, lectureSeen: seenPt }
   });
 }
 function muBgPush(){
