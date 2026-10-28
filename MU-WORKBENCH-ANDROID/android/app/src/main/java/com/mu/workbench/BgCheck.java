@@ -107,7 +107,19 @@ public final class BgCheck {
             cfg.put("pt", pt);
         }
 
+        /* enabled 也由 JS 兜底一份：清过数据 / 重装后 prefs 里没有它，
+           否则会出现「界面开关是开的，但其实没排期」。只在 false→true 时排期，
+           避免每次同步都重置计时。 */
+        boolean wasOn = cfg.optBoolean("enabled", false);
+        boolean wantOn = in.has("enabled") ? in.optBoolean("enabled", false) : wasOn;
+        cfg.put("enabled", wantOn);
+        if (in.has("intervalMin")) cfg.put("intervalMin", in.optInt("intervalMin", 15));
         sp.edit().putString("cfg", cfg.toString()).apply();
+        if (wantOn != wasOn) {
+            setEnabled(ctx, wantOn, cfg.optBoolean("ucOn", true),
+                    cfg.optBoolean("ptOn", true), cfg.optBoolean("wifiOnly", false));
+        }
+        return;
     }
 
     private static void mergeStr(JSONObject dst, JSONObject src, String key) {
@@ -233,9 +245,10 @@ public final class BgCheck {
         sb.append("\n云邮令牌：").append(uc != null && uc.optLong("tokenAt", 0) > 0
                 ? (fresh(uc) ? "有效" : "已过期（会用 refresh 续）") : "没有（先在今日页登录）");
         JSONObject pt = cfg.optJSONObject("pt");
-        int ptN = pt == null ? 0 : countJarHost(pt, PT_HOST);
-        sb.append("\n门户会话：").append(ptN > 0
-                ? ("有（" + ptN + " 项 cookie）") : "没有（先去资讯页同步一次）");
+        String ptCk = pt == null ? "" : PortalLogin.jarHeader(pt, PT_HOST);
+        sb.append("\n门户会话：").append(ptCk.isEmpty()
+                ? "没有（下次检查会自动登录）"
+                : ("有（" + ptCk.split(";").length + " 项 cookie）"));
         if (!diag.isEmpty()) sb.append("\n上次细节：").append(diag);
         return sb.toString();
     }

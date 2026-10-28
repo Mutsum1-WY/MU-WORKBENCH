@@ -6778,6 +6778,9 @@ function muBgSnapshot(){
   var pt = (typeof ptCfg === 'function' ? ptCfg() : {}) || {};
   var seenPt = muBgIds(pt.seen);
   return JSON.stringify({
+    /* enabled 也带一份：清过数据 / 重装后原生 prefs 里没有它，
+       否则会出现「界面开关是开的、其实没排期」 */
+    enabled: !!state.settings.bgCheck,
     ucOn: state.settings.bgUc !== false,
     ptOn: state.settings.bgPt !== false,
     wifiOnly: !!state.settings.bgWifi,
