@@ -1,0 +1,22 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+
+    <!-- P5R 斜切底条：从左上到右下的细斜带，只作轮廓装饰（通知栏会整体染白） -->
+    <path
+        android:fillColor="#FFFFFFFF"
+        android:fillAlpha="0.28"
+        android:pathData="M2.2,21.4 L21.8,10.6 V8.4 L2.2,19.2 Z" />
+
+    <!-- M -->
+    <path
+        android:fillColor="#FFFFFFFF"
+        android:pathData="M2.3,3.6 h3.1 l2.0,7.2 2.0,-7.2 h3.1 v15.2 h-2.5 v-9.1 l-1.8,6.4 h-1.6 l-1.8,-6.4 v9.1 H2.3 Z" />
+
+    <!-- U -->
+    <path
+        android:fillColor="#FFFFFFFF"
+        android:pathData="M12.4,3.6 h2.6 v9.0 c0,1.9 0.9,2.9 2.1,2.9 1.2,0 2.1,-1.0 2.1,-2.9 v-9 h2.6 v9.2 c0,3.7 -1.9,5.9 -4.7,5.9 -2.8,0 -4.7,-2.2 -4.7,-5.9 Z" />
+</vector>

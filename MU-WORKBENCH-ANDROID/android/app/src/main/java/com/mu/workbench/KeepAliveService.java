@@ -108,7 +108,7 @@ public class KeepAliveService extends Service {
 
         b.setContentTitle(title)
                 .setContentText(text)
-                .setSmallIcon(android.R.drawable.stat_notify_sync)
+                .setSmallIcon(R.drawable.ic_stat_mu)
                 .setOngoing(true)
                 .setOnlyAlertOnce(true)
                 .setShowWhen(false)

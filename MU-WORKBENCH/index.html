@@ -2254,6 +2254,176 @@ var COLORS = [
   {k:'sunset',a:'#ff7a59', b:'#ffb020', n:'落日'},
   {k:'rose',  a:'#f43f75', b:'#fb7185', n:'樱粉'}
 ];
+/* ===== 内置节假日数据（离线兜底） =====
+   来源：NateScarlet/holiday-cn（转写国务院办公厅通知），只在联网更新缺失时使用。
+   2023 年通知：http://www.gov.cn/zhengce/zhengceku/2022-12/08/content_5730844.htm
+   2024 年通知：https://www.gov.cn/zhengce/zhengceku/202310/content_6911528.htm
+   2025 年通知：https://www.gov.cn/zhengce/zhengceku/202411/content_6986383.htm
+   2026 年通知：https://www.gov.cn/zhengce/zhengceku/202511/content_7047091.htm
+   结构：年 → [日期, 1=放假/0=调休上班, 名称] */
+var HOLIDAY_RAW = {
+  '2023': [
+    ['2022-12-31',1,'元旦'],
+    ['2023-01-01',1,'元旦'],
+    ['2023-01-02',1,'元旦'],
+    ['2023-01-21',1,'春节'],
+    ['2023-01-22',1,'春节'],
+    ['2023-01-23',1,'春节'],
+    ['2023-01-24',1,'春节'],
+    ['2023-01-25',1,'春节'],
+    ['2023-01-26',1,'春节'],
+    ['2023-01-27',1,'春节'],
+    ['2023-01-28',0,'春节'],
+    ['2023-01-29',0,'春节'],
+    ['2023-04-05',1,'清明节'],
+    ['2023-04-23',0,'劳动节'],
+    ['2023-04-29',1,'劳动节'],
+    ['2023-04-30',1,'劳动节'],
+    ['2023-05-01',1,'劳动节'],
+    ['2023-05-02',1,'劳动节'],
+    ['2023-05-03',1,'劳动节'],
+    ['2023-05-06',0,'劳动节'],
+    ['2023-06-22',1,'端午节'],
+    ['2023-06-23',1,'端午节'],
+    ['2023-06-24',1,'端午节'],
+    ['2023-06-25',0,'端午节'],
+    ['2023-09-29',1,'中秋节、国庆节'],
+    ['2023-09-30',1,'中秋节、国庆节'],
+    ['2023-10-01',1,'中秋节、国庆节'],
+    ['2023-10-02',1,'中秋节、国庆节'],
+    ['2023-10-03',1,'中秋节、国庆节'],
+    ['2023-10-04',1,'中秋节、国庆节'],
+    ['2023-10-05',1,'中秋节、国庆节'],
+    ['2023-10-06',1,'中秋节、国庆节'],
+    ['2023-10-07',0,'中秋节、国庆节'],
+    ['2023-10-08',0,'中秋节、国庆节'],
+  ],
+  '2024': [
+    ['2024-01-01',1,'元旦'],
+    ['2024-02-04',0,'春节'],
+    ['2024-02-10',1,'春节'],
+    ['2024-02-11',1,'春节'],
+    ['2024-02-12',1,'春节'],
+    ['2024-02-13',1,'春节'],
+    ['2024-02-14',1,'春节'],
+    ['2024-02-15',1,'春节'],
+    ['2024-02-16',1,'春节'],
+    ['2024-02-17',1,'春节'],
+    ['2024-02-18',0,'春节'],
+    ['2024-04-04',1,'清明节'],
+    ['2024-04-05',1,'清明节'],
+    ['2024-04-06',1,'清明节'],
+    ['2024-04-07',0,'清明节'],
+    ['2024-04-28',0,'劳动节'],
+    ['2024-05-01',1,'劳动节'],
+    ['2024-05-02',1,'劳动节'],
+    ['2024-05-03',1,'劳动节'],
+    ['2024-05-04',1,'劳动节'],
+    ['2024-05-05',1,'劳动节'],
+    ['2024-05-11',0,'劳动节'],
+    ['2024-06-10',1,'端午节'],
+    ['2024-09-14',0,'中秋节'],
+    ['2024-09-15',1,'中秋节'],
+    ['2024-09-16',1,'中秋节'],
+    ['2024-09-17',1,'中秋节'],
+    ['2024-09-29',0,'国庆节'],
+    ['2024-10-01',1,'国庆节'],
+    ['2024-10-02',1,'国庆节'],
+    ['2024-10-03',1,'国庆节'],
+    ['2024-10-04',1,'国庆节'],
+    ['2024-10-05',1,'国庆节'],
+    ['2024-10-06',1,'国庆节'],
+    ['2024-10-07',1,'国庆节'],
+    ['2024-10-12',0,'国庆节'],
+  ],
+  '2025': [
+    ['2025-01-01',1,'元旦'],
+    ['2025-01-26',0,'春节'],
+    ['2025-01-28',1,'春节'],
+    ['2025-01-29',1,'春节'],
+    ['2025-01-30',1,'春节'],
+    ['2025-01-31',1,'春节'],
+    ['2025-02-01',1,'春节'],
+    ['2025-02-02',1,'春节'],
+    ['2025-02-03',1,'春节'],
+    ['2025-02-04',1,'春节'],
+    ['2025-02-08',0,'春节'],
+    ['2025-04-04',1,'清明节'],
+    ['2025-04-05',1,'清明节'],
+    ['2025-04-06',1,'清明节'],
+    ['2025-04-27',0,'劳动节'],
+    ['2025-05-01',1,'劳动节'],
+    ['2025-05-02',1,'劳动节'],
+    ['2025-05-03',1,'劳动节'],
+    ['2025-05-04',1,'劳动节'],
+    ['2025-05-05',1,'劳动节'],
+    ['2025-05-31',1,'端午节'],
+    ['2025-06-01',1,'端午节'],
+    ['2025-06-02',1,'端午节'],
+    ['2025-09-28',0,'国庆节、中秋节'],
+    ['2025-10-01',1,'国庆节、中秋节'],
+    ['2025-10-02',1,'国庆节、中秋节'],
+    ['2025-10-03',1,'国庆节、中秋节'],
+    ['2025-10-04',1,'国庆节、中秋节'],
+    ['2025-10-05',1,'国庆节、中秋节'],
+    ['2025-10-06',1,'国庆节、中秋节'],
+    ['2025-10-07',1,'国庆节、中秋节'],
+    ['2025-10-08',1,'国庆节、中秋节'],
+    ['2025-10-11',0,'国庆节、中秋节'],
+  ],
+  '2026': [
+    ['2026-01-01',1,'元旦'],
+    ['2026-01-02',1,'元旦'],
+    ['2026-01-03',1,'元旦'],
+    ['2026-01-04',0,'元旦'],
+    ['2026-02-14',0,'春节'],
+    ['2026-02-15',1,'春节'],
+    ['2026-02-16',1,'春节'],
+    ['2026-02-17',1,'春节'],
+    ['2026-02-18',1,'春节'],
+    ['2026-02-19',1,'春节'],
+    ['2026-02-20',1,'春节'],
+    ['2026-02-21',1,'春节'],
+    ['2026-02-22',1,'春节'],
+    ['2026-02-23',1,'春节'],
+    ['2026-02-28',0,'春节'],
+    ['2026-04-04',1,'清明节'],
+    ['2026-04-05',1,'清明节'],
+    ['2026-04-06',1,'清明节'],
+    ['2026-05-01',1,'劳动节'],
+    ['2026-05-02',1,'劳动节'],
+    ['2026-05-03',1,'劳动节'],
+    ['2026-05-04',1,'劳动节'],
+    ['2026-05-05',1,'劳动节'],
+    ['2026-05-09',0,'劳动节'],
+    ['2026-06-19',1,'端午节'],
+    ['2026-06-20',1,'端午节'],
+    ['2026-06-21',1,'端午节'],
+    ['2026-09-20',0,'国庆节'],
+    ['2026-09-25',1,'中秋节'],
+    ['2026-09-26',1,'中秋节'],
+    ['2026-09-27',1,'中秋节'],
+    ['2026-10-01',1,'国庆节'],
+    ['2026-10-02',1,'国庆节'],
+    ['2026-10-03',1,'国庆节'],
+    ['2026-10-04',1,'国庆节'],
+    ['2026-10-05',1,'国庆节'],
+    ['2026-10-06',1,'国庆节'],
+    ['2026-10-07',1,'国庆节'],
+    ['2026-10-10',0,'国庆节'],
+  ]
+};
+/* 展开成 { 2026-10-01: {off:true,name:国庆节} } 便于 O(1) 查 */
+var HOLIDAY_BUILTIN = (function(){
+  var out = {};
+  Object.keys(HOLIDAY_RAW).forEach(function(y){
+    var m = {};
+    HOLIDAY_RAW[y].forEach(function(r){ m[r[0]] = { off: !!r[1], name: r[2] || '' }; });
+    out[y] = m;
+  });
+  return out;
+})();
+
 var ACCENTS = [
   /* P5R：默认血红，其余五套只换主色，骨架不变 */
   {k:'blue',  a:'#e4002b', b:'#ff3355', c:'#ac001f', pg:'#f7f4ec', n:'血红'},
@@ -2311,7 +2481,8 @@ function seed(){
     todos: [],                       /* 待办不预置任何数据 */
     projects: [p1, p2],              /* 项目卡片保留示例，方便看懂用法 */
     holidays: [],                    /* 手动维护的节假日/调休：{date, off, name} */
-    holidayCache: { year:0, days:{}, updatedAt:0, source:'' },
+    /* 按年份缓存：{ '2026': { days:{'2026-10-01':{off,name}}, updatedAt, source } } */
+    holidayCache: { years:{}, updatedAt:0, source:'' },
     fired: {},                       /* 今天已经弹过提醒的待办，避免重复打扰 */
     ucloud: defaultUcloud(),         /* 云邮教学空间（App 版专用） */
     portal: defaultPortal(),         /* 信息门户：校内通知 + 学术讲座（App 版专用） */
@@ -2330,7 +2501,11 @@ function migrate(o){
   o.projects = Array.isArray(o.projects) ? o.projects : [];
   o.pomo = Object.assign({date:todayKey(),count:0,linkId:''}, o.pomo || {});
   o.holidays = Array.isArray(o.holidays) ? o.holidays : [];
-  o.holidayCache = Object.assign({ year:0, days:{}, updatedAt:0, source:'' }, o.holidayCache || {});
+  var _hc = o.holidayCache || {};
+  o.holidayCache = { years: _hc.years || {}, updatedAt: _hc.updatedAt || 0, source: _hc.source || '' };
+  if(_hc.days && _hc.year && !o.holidayCache.years[_hc.year]){
+    o.holidayCache.years[_hc.year] = { days: _hc.days, updatedAt: _hc.updatedAt || 0, source: _hc.source || '' };
+  }
   o.fired = (o.fired && typeof o.fired === 'object') ? o.fired : {};
   o.ucloud = Object.assign(defaultUcloud(), o.ucloud || {});
   o.portal = Object.assign(defaultPortal(), o.portal || {});
@@ -2435,8 +2610,17 @@ function isRepeatType(t){ return !!t.type && t.type !== 'once'; }
 function holidayInfo(key){
   var list = state.holidays || [];
   for(var i=0;i<list.length;i++){ if(list[i].date === key) return list[i]; }
-  var days = (state.holidayCache && state.holidayCache.days) || {};
-  return days[key] || null;
+  var y = String(key).slice(0,4);
+  var c = state.holidayCache || {}, cy = (c.years && c.years[y]) || null;
+  var hit = (cy && cy.days && cy.days[key]) || (HOLIDAY_BUILTIN[y] && HOLIDAY_BUILTIN[y][key]) || null;
+  return hit ? { off: !!hit.off, name: hit.name || '', src: (cy && cy.days && cy.days[key]) ? 'net' : 'builtin' } : null;
+}
+/* 某年数据来自哪里：'net' 联网更新过 / 'builtin' 用内置兜底 / '' 没有 */
+function holidayYearSource(y){
+  var c = state.holidayCache || {};
+  if(c.years && c.years[y] && c.years[y].days && Object.keys(c.years[y].days).length) return 'net';
+  if(HOLIDAY_BUILTIN[y]) return 'builtin';
+  return '';
 }
 /* 返回：holiday 法定放假 / swap 调休上班 / weekend 普通周末 / workday 普通工作日 */
 function dayKind(key){
@@ -2906,15 +3090,26 @@ function renderSettings(){
   $('#swBgWifi').classList.toggle('on', !!s.bgWifi);
   muBgStatus();
   $$('#segVolume button').forEach(function(b){ b.classList.toggle('on', b.dataset.vol === (s.volume || 'loud')); });
-  /* 节假日数据状态 */
+  /* 节假日数据状态（按年缓存 + 内置兜底） */
   var c = state.holidayCache || {}, manualN = (state.holidays || []).length;
   var hs = $('#holidayStat');
   if(hs){
     var nowYear = new Date().getFullYear();
-    var txt = c.updatedAt
-      ? ('已载入 ' + c.year + ' 年数据：' + Object.keys(c.days || {}).length + ' 天 · ' + new Date(c.updatedAt).toLocaleDateString())
-      : '还没更新：工作日按「周一～周五」算';
-    if(c.updatedAt && c.year !== nowYear) txt += '｜现在是 ' + nowYear + ' 年，请重新更新';
+    var ys = Object.keys(c.years || {}).sort();
+    var netDays = 0;
+    ys.forEach(function(y){ netDays += Object.keys((c.years[y] || {}).days || {}).length; });
+    var by = Object.keys(HOLIDAY_BUILTIN).sort();
+    var txt;
+    if(ys.length){
+      txt = '已更新 ' + ys.join('/') + ' 年：联网 ' + netDays + ' 天';
+    }else if(by.length){
+      txt = '内置 ' + by[0] + '–' + by[by.length-1] + ' 年节假日（离线可用）';
+    }else{
+      txt = '还没更新：工作日按「周一～周五」算';
+    }
+    if(by.length && (!ys.length || ys.indexOf(String(nowYear)) < 0)){
+      txt += '｜点「更新数据」可刷新 ' + nowYear + ' 年';
+    }
     if(manualN) txt += ' · 手动补充 ' + manualN + ' 天';
     hs.textContent = txt;
   }
@@ -3018,8 +3213,10 @@ function p5Confirm(opt){
 
 /* 节假日数据状态提示（用在「工作日 / 休息日」类型下面） */
 function holidayHint(){
-  var c = state.holidayCache || {};
-  if(c.updatedAt) return '已载入 ' + c.year + ' 年节假日数据';
+  var c = state.holidayCache || {}, ys = Object.keys(c.years || {}).sort();
+  var by = Object.keys(HOLIDAY_BUILTIN).sort();
+  if(ys.length) return '已更新 ' + ys.join('/') + ' 年节假日数据';
+  if(by.length) return '内置 ' + by[0] + '–' + by[by.length-1] + ' 年节假日（离线可用）';
   return '未更新节假日，按周一～周五算';
 }
 
@@ -3028,12 +3225,15 @@ var HOLIDAY_SOURCES = [
   { n:'jsDelivr', url:function(y){ return 'https://cdn.jsdelivr.net/gh/NateScarlet/holiday-cn@master/' + y + '.json'; } },
   { n:'GitHub Raw', url:function(y){ return 'https://raw.githubusercontent.com/NateScarlet/holiday-cn/master/' + y + '.json'; } }
 ];
+/* 一次更新「去年 / 今年 / 明年」三年，按年份分别缓存；失败的年份自动换源重试。
+   内置数据保证断网时也能用，这里只是把最新通知补进来。 */
 function fetchHolidays(){
-  var y = new Date().getFullYear(), i = 0;
-  function tryNext(){
-    if(i >= HOLIDAY_SOURCES.length){ toast('节假日获取失败，可手动维护', 4200); return; }
-    var src = HOLIDAY_SOURCES[i++];
-    toast('正在从 ' + src.n + ' 获取 ' + y + ' 年节假日数据…', 2600);
+  var nowY = new Date().getFullYear();
+  var want = [nowY, nowY + 1, nowY - 1];
+  var got = 0, daysTotal = 0, srcUsed = '';
+  function fetchYear(y, si, cb){
+    if(si >= HOLIDAY_SOURCES.length){ cb(false, 0); return; }
+    var src = HOLIDAY_SOURCES[si];
     fetch(src.url(y)).then(function(r){
       if(!r.ok) throw new Error('HTTP ' + r.status);
       return r.json();
@@ -3044,15 +3244,32 @@ function fetchHolidays(){
         days[d.date] = { off: !!d.isOffDay, name: d.name || '' };
       });
       if(!Object.keys(days).length) throw new Error('数据为空');
-      state.holidayCache = { year:y, days:days, updatedAt:Date.now(), source:src.n };
-      save(); renderSettings(); renderCalendar(); renderDayList(); nativeSyncSoon();
-      toast('已载入 ' + y + ' 年 ' + Object.keys(days).length + ' 天节假日/调休数据', 3600);
+      var c = state.holidayCache = state.holidayCache || { years:{}, updatedAt:0, source:'' };
+      c.years = c.years || {};
+      c.years[String(y)] = { days: days, updatedAt: Date.now(), source: src.n };
+      c.updatedAt = Date.now(); c.source = src.n;
+      srcUsed = src.n;
+      cb(true, Object.keys(days).length);
     })['catch'](function(e){
-      console.warn('[MU] 节假日数据源失败：' + src.n, e);
-      tryNext();
+      console.warn('[MU] ' + y + ' 年节假日失败：' + src.n, e);
+      fetchYear(y, si + 1, cb);
     });
   }
-  tryNext();
+  function step(){
+    if(!want.length){
+      if(got){
+        save(); renderSettings(); renderCalendar(); renderDayList(); nativeSyncSoon();
+        toast('已更新 ' + got + ' 年节假日（共 ' + daysTotal + ' 天 · ' + srcUsed + '）', 3600);
+      }else{
+        toast('节假日获取失败，当前用内置数据', 4200);
+      }
+      return;
+    }
+    var y = want.shift();
+    toast('正在获取 ' + y + ' 年节假日…', 1500);
+    fetchYear(y, 0, function(ok, n){ if(ok){ got++; daysTotal += n; } step(); });
+  }
+  step();
 }
 /* 手动维护节假日 / 调休（优先级高于联网数据） */
 function openHolidayModal(){
@@ -3136,10 +3353,13 @@ function dayFlagRender(){
   var mode = m ? (m.off ? 'off' : 'work') : 'auto';
   $$('#dayFlagSeg button').forEach(function(b){ b.classList.toggle('on', b.dataset.df === mode); });
   if(!note) return;
-  var cache = (state.holidayCache && state.holidayCache.days) || {};
-  var c = cache[key], txt;
-  if(m) txt = '本机标记' + (m.name ? '：' + m.name : '') + (c ? '（已覆盖联网数据）' : '');
-  else if(c) txt = '联网：' + (c.off ? '放假' : '调休上班') + (c.name ? ' · ' + c.name : '') + '（可覆盖）';
+  var _y = String(key).slice(0,4);
+  var _cy = ((state.holidayCache || {}).years || {})[_y];
+  var c = (_cy && _cy.days && _cy.days[key]) || (HOLIDAY_BUILTIN[_y] && HOLIDAY_BUILTIN[_y][key]) || null;
+  var srcName = (_cy && _cy.days && _cy.days[key]) ? '联网' : '内置';
+  var txt;
+  if(m) txt = '本机标记' + (m.name ? '：' + m.name : '') + (c ? '（已覆盖' + srcName + '数据）' : '');
+  else if(c) txt = srcName + '：' + (c.off ? '放假' : '调休上班') + (c.name ? ' · ' + c.name : '') + '（可覆盖）';
   else txt = dayKind(key) === 'weekend' ? '按周末算' : '按工作日算';
   note.textContent = txt;
 }

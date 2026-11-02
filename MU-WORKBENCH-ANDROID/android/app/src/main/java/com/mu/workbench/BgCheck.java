@@ -794,7 +794,7 @@ public final class BgCheck {
             b.setContentTitle(title)
                     .setContentText(text)
                     .setStyle(new Notification.BigTextStyle().bigText(text))
-                    .setSmallIcon(android.R.drawable.stat_notify_chat)
+                    .setSmallIcon(R.drawable.ic_stat_mu)
                     .setAutoCancel(true)
                     .setShowWhen(true)
                     .setContentIntent(pi);
