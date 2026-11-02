@@ -1788,14 +1788,19 @@ html.p5-switch body::after{
 /*[ZZ_CSS_END]*/
 /*[KB_CSS_BEGIN]*/
 /* ================== 今日课程（教务课表） =================== */
-.kb-wrap{background:var(--surface-1);border:var(--bw) solid var(--ink);box-shadow:var(--sh);padding:12px 13px;margin-bottom:12px}
-.kb-dayline{display:flex;align-items:center;gap:8px;font-size:10.5px;font-weight:800;color:var(--ink-3);margin:0 0 9px}
+/* 每门课单独成卡（和「资讯」卡片同一套纸片外观 + 左右交替飞入），外层容器不再套卡片 */
+.kb-wrap{background:transparent;border:0;box-shadow:none;padding:0;margin-bottom:0}
+.kb-dayline{display:flex;align-items:center;gap:8px;font-size:10.5px;font-weight:800;color:var(--ink-3);margin:0 2px 9px}
 .kb-dayline b{color:var(--ink);font-size:11.5px;font-weight:900;font-style:italic}
 .kb-dayline .kb-now{margin-left:auto;border:1.5px solid var(--ink);background:var(--accent-soft);color:var(--accent-ink);font-size:9.5px;font-weight:900;padding:2px 7px;letter-spacing:.02em}
-.kb-item{display:flex;gap:10px;padding:9px 0;border-bottom:1px dashed var(--line-2);position:relative}
-.kb-item:last-of-type{border-bottom:none}
-.kb-item.live{background:var(--accent-soft);margin:0 -7px;padding-left:7px;padding-right:7px;border-left:4px solid var(--accent)}
-.kb-item.past{opacity:.58}
+.kb-item{
+  display:flex;gap:10px;padding:11px 13px;position:relative;
+  background:var(--surface-1);border:var(--bw) solid var(--ink);box-shadow:3px 3px 0 var(--ink);margin-bottom:10px;
+  transition:transform 90ms var(--ease),box-shadow 90ms var(--ease),background var(--t);
+}
+.kb-item:hover{transform:translate(-1px,-1px);box-shadow:5px 5px 0 var(--ink)}
+.kb-item.live{background:var(--accent-soft);border-left:6px solid var(--accent);box-shadow:3px 3px 0 var(--accent)}
+.kb-item.past{opacity:.62}
 .kb-time{flex:none;width:52px;text-align:right;padding-top:1px}
 .kb-time b{display:block;font-size:13.5px;font-weight:900;font-style:italic;letter-spacing:-.02em;font-variant-numeric:tabular-nums;line-height:1.1}
 .kb-time span{display:block;font-size:9.5px;font-weight:700;color:var(--ink-3);margin-top:2px;font-variant-numeric:tabular-nums}
@@ -1843,6 +1848,40 @@ html.p5-switch body::after{
   .kb-time b{font-size:12.5px}
   .kb-nm{font-size:12.5px}
 }
+
+/* ============ 卡片入场动画：对齐「资讯」的左右交替飞入，时长与错峰都加长 ============
+   资讯原版是 320ms / 38ms；这两处（今日课程、今日待办）用 480ms / 55ms，
+   出现得更从容，也更容易看清「一张一张飞进来」。 */
+@keyframes kbCardInL{
+  from{opacity:0;transform:translate3d(-44px,10px,0) rotate(-2.2deg) skewX(-10deg)}
+  to{opacity:1;transform:none}
+}
+@keyframes kbCardInR{
+  from{opacity:0;transform:translate3d(44px,10px,0) rotate(2.2deg) skewX(10deg)}
+  to{opacity:1;transform:none}
+}
+/* 今日课程：kb-wrap 的第 1 个孩子是日期行，课程卡从第 2 个孩子开始 → 偶数从左、奇数从右 */
+.kb-wrap>.kb-item:nth-child(n){animation-duration:480ms;animation-timing-function:cubic-bezier(.2,.85,.25,1);animation-fill-mode:backwards}
+.kb-wrap>.kb-item:nth-child(even){animation-name:kbCardInL}
+.kb-wrap>.kb-item:nth-child(odd){animation-name:kbCardInR}
+.kb-wrap>.kb-item:nth-child(2){animation-delay:0ms}
+.kb-wrap>.kb-item:nth-child(3){animation-delay:55ms}
+.kb-wrap>.kb-item:nth-child(4){animation-delay:110ms}
+.kb-wrap>.kb-item:nth-child(5){animation-delay:165ms}
+.kb-wrap>.kb-item:nth-child(6){animation-delay:220ms}
+.kb-wrap>.kb-item:nth-child(7){animation-delay:275ms}
+.kb-wrap>.kb-item:nth-child(8){animation-delay:330ms}
+.kb-wrap>.kb-item:nth-child(n+9){animation-delay:385ms}
+/* 今日待办：原来 320ms / 38ms，同样加长；容器第 1 个孩子是章节标题，卡片从第 2 个开始 */
+#todayList>.task:nth-child(n){animation-duration:480ms;animation-timing-function:cubic-bezier(.2,.85,.25,1)}
+#todayList>.task:nth-child(2){animation-delay:0ms}
+#todayList>.task:nth-child(3){animation-delay:55ms}
+#todayList>.task:nth-child(4){animation-delay:110ms}
+#todayList>.task:nth-child(5){animation-delay:165ms}
+#todayList>.task:nth-child(6){animation-delay:220ms}
+#todayList>.task:nth-child(7){animation-delay:275ms}
+#todayList>.task:nth-child(8){animation-delay:330ms}
+#todayList>.task:nth-child(n+9){animation-delay:385ms}
 /*[KB_CSS_END]*/
 </style>
 </head>
