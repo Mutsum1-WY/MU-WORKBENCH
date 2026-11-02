@@ -1786,6 +1786,64 @@ html.p5-switch body::after{
   .zz-in{width:56px}
 }
 /*[ZZ_CSS_END]*/
+/*[KB_CSS_BEGIN]*/
+/* ================== 今日课程（教务课表） =================== */
+.kb-wrap{background:var(--surface-1);border:var(--bw) solid var(--ink);box-shadow:var(--sh);padding:12px 13px;margin-bottom:12px}
+.kb-dayline{display:flex;align-items:center;gap:8px;font-size:10.5px;font-weight:800;color:var(--ink-3);margin:0 0 9px}
+.kb-dayline b{color:var(--ink);font-size:11.5px;font-weight:900;font-style:italic}
+.kb-dayline .kb-now{margin-left:auto;border:1.5px solid var(--ink);background:var(--accent-soft);color:var(--accent-ink);font-size:9.5px;font-weight:900;padding:2px 7px;letter-spacing:.02em}
+.kb-item{display:flex;gap:10px;padding:9px 0;border-bottom:1px dashed var(--line-2);position:relative}
+.kb-item:last-of-type{border-bottom:none}
+.kb-item.live{background:var(--accent-soft);margin:0 -7px;padding-left:7px;padding-right:7px;border-left:4px solid var(--accent)}
+.kb-item.past{opacity:.58}
+.kb-time{flex:none;width:52px;text-align:right;padding-top:1px}
+.kb-time b{display:block;font-size:13.5px;font-weight:900;font-style:italic;letter-spacing:-.02em;font-variant-numeric:tabular-nums;line-height:1.1}
+.kb-time span{display:block;font-size:9.5px;font-weight:700;color:var(--ink-3);margin-top:2px;font-variant-numeric:tabular-nums}
+.kb-main{flex:1;min-width:0}
+.kb-nm{font-size:13px;font-weight:800;line-height:1.35;display:flex;align-items:baseline;gap:6px;flex-wrap:wrap}
+.kb-nm .kb-p{flex:none;font-size:8.5px;font-weight:900;background:var(--ink);color:var(--paper);padding:1px 4px;letter-spacing:.04em}
+.kb-meta{font-size:10.5px;font-weight:700;color:var(--ink-3);line-height:1.6;margin-top:3px}
+.kb-meta em{font-style:normal;color:var(--ink-2)}
+.kb-meta i{font-style:normal;color:var(--accent-ink);font-weight:800}
+.kb-status{flex:none;font-size:9px;font-weight:900;color:var(--ink-3);padding-top:3px;letter-spacing:.02em;white-space:nowrap}
+.kb-status.on{color:var(--accent-ink)}
+/* 距上课倒计时 / 正在上的剩余进度条 */
+.kb-count{font-size:10.5px;font-weight:800;color:var(--accent-ink);margin-top:5px;line-height:1.4}
+.kb-count b{font-weight:900;font-variant-numeric:tabular-nums}
+.kb-progrow{display:flex;align-items:center;gap:8px;margin-top:6px}
+.kb-prog{flex:1;height:7px;background:var(--track);border:1.5px solid var(--ink);overflow:hidden}
+.kb-prog i{display:block;height:100%;background:var(--accent);width:0;transition:width 300ms var(--ease)}
+.kb-progrow>span{flex:none;font-size:10px;font-weight:800;color:var(--ink-2);white-space:nowrap;font-variant-numeric:tabular-nums}
+.kb-progrow>span b{color:var(--accent-ink);font-weight:900}
+.kb-empty{padding:14px 4px 4px;text-align:center}
+.kb-empty .kb-et{font-size:13px;font-weight:900;font-style:italic;letter-spacing:-.01em}
+.kb-empty .kb-ed{font-size:10.5px;font-weight:700;color:var(--ink-3);margin-top:6px;line-height:1.7}
+.kb-foot{font-size:9.5px;font-weight:700;color:var(--ink-3);line-height:1.6;margin-top:10px;padding-top:8px;border-top:1px dashed var(--line-2)}
+.kb-foot b{color:var(--ink-2);font-weight:800}
+.kb-week{border:1.5px solid var(--ink);background:var(--surface-1);margin:12px 0 0;overflow:hidden}
+.kb-week>summary{list-style:none;cursor:pointer;padding:10px 12px;font-size:11.5px;font-weight:900;display:flex;align-items:center;gap:7px}
+.kb-week>summary::-webkit-details-marker{display:none}
+.kb-week>summary::before{content:'+';color:var(--accent);font-weight:900;font-size:14px;width:11px;text-align:center}
+.kb-week[open]>summary::before{content:'−'}
+.kb-week>summary em{font-style:normal;font-size:9.5px;font-weight:700;color:var(--ink-3)}
+.kb-week[open]>summary{border-bottom:1.5px dashed var(--line-2)}
+.kb-week-body{padding:8px 12px 10px}
+.kb-wd{display:flex;gap:8px;padding:6px 0;border-bottom:1px dashed var(--line-2)}
+.kb-wd:last-child{border-bottom:none}
+.kb-wd>span{flex:none;width:36px;font-size:10.5px;font-weight:900;font-style:italic;padding-top:2px}
+.kb-wd.today>span{color:var(--accent-ink)}
+.kb-wd>div{flex:1;min-width:0}
+.kb-wl{font-size:11px;font-weight:700;line-height:1.7;color:var(--ink-2)}
+.kb-wl b{font-weight:900;font-variant-numeric:tabular-nums}
+.kb-wl i{font-style:normal;color:var(--ink-3);font-weight:700}
+.kb-wl.none{font-size:10.5px;color:var(--ink-3);font-weight:600}
+.kb-warn{margin-top:8px;font-size:10px;font-weight:700;color:var(--warn);line-height:1.6}
+@media (max-width:380px){
+  .kb-time{width:46px}
+  .kb-time b{font-size:12.5px}
+  .kb-nm{font-size:12.5px}
+}
+/*[KB_CSS_END]*/
 </style>
 </head>
 <body>
@@ -1831,7 +1889,9 @@ html.p5-switch body::after{
         </div>
       </div>
 
-      <div id="ucCard"></div>
+      <div id="kbCard"></div>
+
+<div id="ucCard"></div>
 
       <div id="todayList"></div>
     </section>
@@ -2414,6 +2474,11 @@ html.p5-switch body::after{
 <script type="application/json" id="zzData">{"meta":{"title":"北京邮电大学本科生综合素质评价办法","org":"北京邮电大学学生处","published":"2025-12-30","passed":"2021-11-01","revised":"2025-12-18","effective":"自 2021 级本科生开始实施","url":"https://xsc.bupt.edu.cn/info/1095/1676.htm","fetched":"2026-11-03"},"weights":{"basic":0.1,"major":0.7,"dev":0.2,"pass":60},"basic":{"total":100,"items":[{"k":"politics","n":"政治思想","max":25},{"k":"attitude","n":"学习态度","max":25},{"k":"morality","n":"道德品质","max":20},{"k":"law","n":"法纪观念","max":15},{"k":"life","n":"健康生活","max":15}],"peer":{"self":0.1,"class":0.7,"counselor":0.2,"max":100},"deduct":[{"k":"warning","n":"警告处分","min":30,"max":40,"desc":"受学校纪律处分，视情节轻重，警告处分扣 30-40 分/次"},{"k":"seriousWarning","n":"严重警告处分","min":40,"max":50,"desc":"受学校纪律处分，视情节轻重，严重警告处分扣 40-50 分/次"},{"k":"demerit","n":"记过处分","min":50,"max":60,"desc":"受学校纪律处分，视情节轻重，记过处分扣 50-60 分/次"},{"k":"probation","n":"留校察看处分","min":60,"max":100,"desc":"受学校纪律处分，视情节轻重，留校察看处分扣 60-100 分/次"},{"k":"publicSecurity","n":"治安管理处罚（触犯国家法律、法规）","min":100,"max":100,"desc":"触犯国家法律、法规受到治安管理处罚的扣 100 分/次"},{"k":"criticism","n":"通报批评或产生其他不良行为影响","min":10,"max":30,"desc":"视情节轻重扣 10-30 分/次"}]},"major":{"total":100,"desc":"课程学分加权成绩；含必修课（含体育课）和专业选修课程（按首次成绩计算），不含全校任选课、辅修课程；由教务部门提供"},"dev":{"total":100,"health":{"max":40,"parts":[{"k":"fitness","n":"体质健康测试","max":100,"ratio":0.2},{"k":"exercise","n":"体育锻炼（课外锻炼耐力跑）","max":100,"ratio":0.1},{"k":"activity","n":"身心健康活动评价","max":10,"ratio":1}]},"other":{"max":60,"items":[{"k":"thought","n":"思想成长","max":14,"examples":["参加爱国主义、四史学习、民族精神、爱校荣校等主题教育活动，以及获得的相关荣誉","参加理论学习、时事研讨、主题党日、团日、班级活动，以及获得的相关荣誉","参加生态文明、网络文明等主题教育活动，践行社会主义核心价值观，以及获得的相关荣誉","参加宪法学习、法治宣传、校纪校规学习教育，以及获得的相关荣誉","参加学术道德、学风建设、科技周等主题教育活动，以及获得的相关荣誉","获通报表扬、嘉奖、立功等荣誉","党团支部、班集体、宿舍等获得的集体荣誉"]},{"k":"academic","n":"学术创新","max":14,"examples":["参与各级各类学术科技、创新创业竞赛及活动等，以及获得的相关荣誉","参与海外学习交流、国际学术交流，参与跨文化交流等活动，以及获得的相关荣誉"]},{"k":"aesthetics","n":"美育素养","max":12,"examples":["积极参与各级各类音乐、美术、舞蹈、戏剧、诗歌、书法、读书、诵读等文化艺术活动与竞赛，以及获得的相关荣誉、发表的相关作品"]},{"k":"labor","n":"劳动素养","max":12,"examples":["积极参与劳动教育学习宣传活动，以及获得的相关荣誉","参加校园打扫、社会实践、志愿公益等日常生活劳动、生产劳动、服务性劳动活动，以及获得的相关荣誉"]},{"k":"organization","n":"组织协调能力","max":8,"examples":["参加党团班骨干培训（因党团员义务要求及任职要求参加的培训活动不予加分）","参加党团班学（含学生社团）组织的工作，视工作表现和工作业绩评定","参加职业素质能力提升等相关活动，以及获得的相关荣誉"]}]}},"principles":["参加同一活动及所获荣誉，不可在不同测评项目中重复加分。","因同一活动获得加分的，只计最高级别分值。","参加经学校相关部门认定的国家级重要活动项目，或在某方面做出突出贡献，在社会上产生重大积极影响，经学校认定后，在基本素质和发展素质总评分基础上可累加相应分数，但不超过基本素质和发展素质满分之和的上限。","在综合素质测评中弄虚作假、虚报成果者，一经核实，扣除其全部加分，并对基本素质成绩进行核减。"],"chapters":[{"no":"第一章","title":"总则","sections":[{"no":"第一条","title":"","body":"为全面贯彻落实党的教育方针，深入贯彻落实中共中央、国务院《深化新时代教育评价改革总体方案》精神，落实立德树人根本任务，培养德智体美劳全面发展的社会主义建设者和接班人，培养担当民族复兴大任的时代新人，结合学生全面发展的成长成才需求和学校工作实际，制定本办法。"},{"no":"第二条","title":"","body":"综合素质评价旨在引导学生明确成长发展目标导向、检视成长缺项、完善成长路径、提升能力素养，引导学生在大学期间自我教育、自我管理、自我完善和自我成长，促进学生德智体美劳全面发展。"},{"no":"第三条","title":"","body":"综合素质评价坚持以德为先、能力为重、全面发展、\"五育\"并举的原则，坚持公平、公正、公开的原则，坚持全方位、全过程、全要素评价的原则。采取过程评价与结果评价相结合、定量评价与定性评价相结合、记实评价与民主评议相结合的方法，提高综合素质评价的科学性、专业性、客观性。"},{"no":"第四条","title":"","body":"本办法适用于学校在籍全日制本科生。本科一年级至四年级每学年开展一次综合素质测评，第四学年的综合素质测评在第八学期初进行，其他学年综合素质测评一般在下一学年学期初进行。综合素质评价成绩在 60 分及以上为测评及格。对于学年综合素质测评不及格的学生，学院对其进行教育引导，督促学生全面发展、成长成才。"},{"no":"第五条","title":"","body":"综合素质评价结果作为在籍全日制本科生参与各项评奖、评优以及先进推荐的依据。"}]},{"no":"第二章","title":"培养目标","sections":[{"no":"第六条","title":"","body":"为全面提高学生综合素质，以培养德智体美劳全面发展的社会主义建设者和接班人为目标，结合新时代高校人才培养要求及我校\"着力培养以'网络强国 网信报国'为使命，厚植家国情怀、筑牢宽厚学识、强固知行智达，拓展全球视野，涵养健康身心，服务国家战略和引领未来发展的拔尖创新人才和卓越领军人才\"的人才培养目标，进一步完善本科生综合素质培养目标。\n\n### （一）培养内容\n\n本科生综合素质培养内容分为三大模块，涵盖 14 项核心能力素养，具体内容和培养目标如下。\n\n| 模块 | 能力素养指标 | 培养目标 |\n| --- | --- | --- |\n| 品行修养 | 政治思想 | 厚植爱国主义情怀，热爱和拥护中国共产党，树立共产主义远大理想和中国特色社会主义共同理想，增强中国特色社会主义道路自信、理论自信、制度自信、文化自信；积极参加各类思想政治教育学习，提升政治修养；正确认识世界和中国发展大势，及时学习、理解和认同党和国家的路线、方针和政策；主动向党组织靠拢，认真负责地完成党组织交给的各项任务。 |\n| 品行修养 | 学习态度 | 学习态度端正，坚持勤奋、严谨、求实、创新的优良学风，求真学问，练真本领；刻苦学习，追求真理，崇尚科学，勇于创新，努力掌握现代科学文化知识和专业技能，树立终身学习的意识；养成良好的学习习惯，科学规划学习时间，掌握科学有效的学习方法；规范学习行为，遵守考试与学习纪律、学术规范，坚守学术道德，维护学术诚信。 |\n| 品行修养 | 道德品质 | 自觉学习和践行社会主义核心价值观，提高个人品德修养，遵守社会公德，明礼诚信，公道正派；具备社会责任感和集体荣誉感，自觉维护公共和集体利益；尊敬师长，团结同学，互助互爱，保持良好的人际关系。 |\n| 品行修养 | 法纪观念 | 遵守宪法、法律法规，遵守学校的各项规章制度，自觉维护公共秩序，做到令行禁止；正确行使权利，依法依规履行义务；积极参加宪法学习、法治宣传、校纪校规学习教育；依法上网、文明上网。 |\n| 品行修养 | 健康生活 | 拥有自尊自信、理性平和、积极向上的健康心态，具有较强的挫折耐受力和社会适应力；倡导绿色文明，爱护校园环境卫生，践行\"垃圾分类\"、\"光盘行动\"，勤俭节约，爱护公共财物；遵守宿舍管理规定，保持安全、卫生、整洁的宿舍环境，养成良好的卫生习惯。 |\n| 知识技能 | 专业知识 | 掌握本专业的基础知识和基本技能，不断完善自身的知识储备和能力结构，具有独立获取知识、提出问题、分析问题和解决问题的能力。 |\n| 知识技能 | 体质健康 | 掌握一定的体育知识和科学锻炼身体的基本技能，树立健康第一的理念，养成良好的体育锻炼习惯，提高体质健康水平，具备为建设伟大祖国辛勤努力、持续奋斗的健康体魄。 |\n| 知识技能 | 美育素养 | 具有学习、理解、运用人文领域知识和技能的基本能力、情感态度和价值取向。传承中华优秀传统文化、革命文化和社会主义先进文化，培养文化艺术鉴赏能力，培养文艺特长兴趣，能够认识美、体验美、感受美、欣赏美和创造美。 |\n| 知识技能 | 劳动素养 | 理解和形成马克思主义劳动观，牢固树立劳动最光荣、劳动最崇高、劳动最伟大、劳动最美丽的观念；热爱劳动、崇尚劳动、尊重劳动，能够辛勤劳动、诚实劳动、创造性劳动，培养勤俭、奋斗、创新、奉献的劳动精神，具备满足生存发展需要的基本劳动能力，形成良好劳动习惯。 |\n| 可持续发展 | 科学创新 | 能够追求创新，勇于探索，具有思辨能力和批判思维。具有专业应用实践能力，善于用科学创新方法解决问题。 |\n| 可持续发展 | 国际视野 | 拓展国际视角，具备国际视野和跨文化的交流、竞争与合作能力。 |\n| 可持续发展 | 社会参与 | 通过参与志愿服务、社会实践、社会公益等项目，承担社会责任，提升实践能力，促进个人价值实现，推动社会发展进步。 |\n| 可持续发展 | 组织协调能力 | 通过承担各级各类党团班学组织（含学生社团）的相关工作、参加专项培训项目，培养组织管理、团队合作、沟通交流、表达写作等能力。 |\n| 可持续发展 | 职业素质能力发展 | 树立正确择业观，坚持实现自身价值与服务祖国人民的统一；通过参加职业生涯规划和技能提升等活动项目，合理规划职业生涯，促进职业素质能力发展。 |\n\n### （二）发展目标\n\n根据本科生成长规律和各年级学生发展需求特点，有计划、有侧重地进行综合素质能力培养。各年级学生综合素质发展目标如下。\n\n| 年级 | 综合素质发展目标 |\n| --- | --- |\n| 一年级 | 适应大学生活，提升自我管理能力，养成良好生活学习习惯，明确德智体美劳全面发展的培养目标和学习规划。 |\n| 二年级 | 加强专业知识学习与技能提升，提高科学创新意识，增强社会实践能力和组织协调能力。 |\n| 三年级 | 提高专业应用实践能力，增强思辨能力和批判思维，拓宽学术视野，明确职业目标和发展规划。 |\n| 四年级（毕业年级） | 树立终身学习意识，提升职业素质和社会适应能力。 |"}]},{"no":"第三章","title":"评价体系","sections":[{"no":"第七条","title":"","body":"综合素质评价内容依据本办法中的综合素质培养内容制定，包括基本素质、专业素质、发展素质三个部分。学生综合素质评价的考核成绩计算方法：\n\n**学年综合素质评价成绩 = 基本素质成绩 × 10% + 专业素质成绩 × 70% + 发展素质成绩 × 20%**"},{"no":"第八条","title":"","body":"综合素质评价的考核内容和要求\n\n### （一）基本素质测评\n\n基本素质测评参照学生综合素质培养内容中的品行修养模块内容，包含政治思想（25 分）、学习态度（25 分）、道德品质（20 分）、法纪观念（15 分）、健康生活（15 分），满分为 100 分，采取班级评议形式评出基本素质基准分，并结合测评周期内的违纪事项予以扣分，计算学生基本素质成绩：\n\n**基本素质成绩 = 班级评议成绩 − 扣分项**\n\n各学院制定班级评议和扣分细则。班级评议应在年级学生综合素质评价工作小组的监督指导下进行，在学生个人自评、班级同学互评和辅导员、班主任评议的基础上计算成绩：\n\n**班级评议成绩 = 学生自评成绩 × 10% + 班级同学互评成绩 × 70% + 辅导员、班主任评议成绩 × 20%**\n\n其中，学生自评、班级同学互评和辅导员、班主任评议成绩满分均为 100 分。\n\n扣分项参考：\n\n| 项目 | 参考扣分标准/次 |\n| --- | --- |\n| 受学校纪律处分及以上 | 视情节轻重，警告处分扣 30-40 分，严重警告处分扣 40-50 分，记过处分扣 50-60 分，留校察看处分扣 60-100 分，触犯国家法律、法规受到治安管理处罚的扣 100 分。 |\n| 受到通报批评或产生其他不良行为影响 | 视情节轻重扣 10-30 分。 |\n\n因不同行为造成的多次扣减项目扣分累计；因同一行为造成的多次扣减项目计最高一项。基础素质成绩扣至 0 分为止。\n\n### （二）专业素质测评\n\n主要考核学生各门课程的学习成绩，满分为 100 分，由教务部门提供。\n\n**专业素质成绩 = 课程学分加权成绩**\n\n课程学分加权成绩包括必修课（含体育课）和专业选修课程（按首次成绩计算），不含全校任选课、辅修课程。\n\n### （三）发展素质测评\n\n发展素质测评旨在全面提升学生综合素质、引导学生增强自主发展动力。发展素质包括思想成长、学术创新、身心健康、美育素养、劳动素养、组织协调能力，满分为 100 分。计算公式：\n\n**发展素质成绩 = 身心健康成绩 + 其他发展素质成绩**\n\n**1. 身心健康（40 分）** 包括学生体质健康测试成绩、体育锻炼成绩（课外锻炼耐力跑）和身心健康活动评价成绩。计算方法：\n\n**身心健康成绩 = 体质健康测试成绩 × 20% + 体育锻炼成绩（课外锻炼耐力跑）× 10% + 身心健康活动评价成绩**\n\n其中，体质健康测试成绩、体育锻炼成绩（课外锻炼耐力跑）满分均为 100 分，依据体质健康测试和体育锻炼成绩评价细则，由体育部提供。身心健康活动评价成绩满分为 10 分，包括学生参加体育活动和心理素质教育活动，以及获得的相关荣誉。\n\n**2. 其他发展素质（60 分）** 采用累计加分计算，以\"第二课堂成绩单\"等活动记录为主要参考依据。\n\n| 能力素养指标 | 加分项目（包括但不限于以下活动） |\n| --- | --- |\n| 思想成长（14 分） | 参加爱国主义、四史学习、民族精神、爱校荣校等主题教育活动，以及获得的相关荣誉；参加理论学习、时事研讨、主题党日、团日、班级活动，以及获得的相关荣誉；参加生态文明、网络文明等主题教育活动，践行社会主义核心价值观，以及获得的相关荣誉；参加宪法学习、法治宣传、校纪校规学习教育，以及获得的相关荣誉；参加学术道德、学风建设、科技周等主题教育活动，以及获得的相关荣誉；获通报表扬、嘉奖、立功等荣誉；党团支部、班集体、宿舍等获得的集体荣誉。 |\n| 学术创新（14 分） | 参与各级各类学术科技、创新创业竞赛及活动等，以及获得的相关荣誉；参与海外学习交流、国际学术交流，参与跨文化交流等活动，以及获得的相关荣誉。 |\n| 美育素养（12 分） | 积极参与各级各类音乐、美术、舞蹈、戏剧、诗歌、书法、读书、诵读等文化艺术活动与竞赛，以及获得的相关荣誉、发表的相关作品。 |\n| 劳动素养（12 分） | 积极参与劳动教育学习宣传活动，以及获得的相关荣誉；参加校园打扫、社会实践、志愿公益等日常生活劳动、生产劳动、服务性劳动活动，以及获得的相关荣誉。 |\n| 组织协调能力（8 分） | 参加党团班骨干培训（因党团员义务要求及任职要求参加的培训活动不予加分）；参加党团班学（含学生社团）组织的工作，视工作表现和工作业绩评定；参加职业素质能力提升等相关活动，以及获得的相关荣誉。 |\n\n### （四）测评原则\n\n各学院按照基本素质、专业素质、发展素质测评指标内容和权重制定评价细则，评定过程中遵循以下测评原则：\n\n1. 参加同一活动及所获荣誉，不可在不同测评项目中重复加分。\n2. 因同一活动获得加分的，只计最高级别分值。\n3. 参加经学校相关部门认定的国家级重要活动项目，或在某方面做出突出贡献，在社会上产生重大积极影响，经学校认定后，在基本素质和发展素质总评分基础上可累加相应分数，但不超过基本素质和发展素质满分之和的上限。\n4. 在综合素质测评中弄虚作假、虚报成果者，一经核实，扣除其全部加分，并对基本素质成绩进行核减。"}]},{"no":"第四章","title":"评价机构及职责","sections":[{"no":"第九条","title":"","body":"学生综合素质评价工作在学校学生奖助工作领导小组指导下开展。学校成立学生综合素质评价工作组，由分管学生工作校领导任组长，成员包括学生工作部、教务部、校团委、体育部。学校学生综合素质评价工作组负责学校学生综合素质评价工作的统筹规划、宏观指导、组织协调、督促检查。"},{"no":"第十条","title":"","body":"学院成立学生综合素质评价委员会，领导学院学生综合素质评价工作。\n\n1. 委员会组成：委员会由院党委书记、院长任主任，主管学生工作和本科教学工作的院领导任副主任，学生工作办公室主任、教务科长、分团委书记、党支部书记及辅导员为成员。\n\n2. 委员会职责：根据本办法制定本学院学生综合素质评价实施细则，上报学校学生综合素质评价工作组；组织本学院的学生综合素质评价工作；学生综合素质测评结果审定；接受学生的监督，裁决学生对综合素质测评结果的申诉。\n\n3. 学院成立年级学生综合素质评价工作小组，年级学生综合素质评价工作小组成员包括辅导员、班主任、党支部书记、团支部书记、班长及其他学生代表。工作小组审核本年级学生相关申请材料，根据学院学生综合素质评价实施细则，开展年级学生综合素质评价工作。"},{"no":"第十一条","title":"","body":"学生综合素质评价结果须在院内公示不少于 5 个工作日。学生对评价结果有异议，应在公示期间向学院学生综合素质评价委员会提出书面申诉。学生综合素质评价委员会在接到申诉后进行审查并做出最终审定。"}]},{"no":"第五章","title":"附则","sections":[{"no":"第十二条","title":"","body":"本办法自 2021 级本科生开始实施，由党委学生工作部负责解释。"}]}],"notes":["各学院制定班级评议和扣分细则。","班级评议应在年级学生综合素质评价工作小组的监督指导下进行。","因不同行为造成的多次扣减项目扣分累计；因同一行为造成的多次扣减项目计最高一项。","基础素质成绩扣至 0 分为止。","扣分项参考标准为学校层面区间，具体认定由各学院细则规定。","发展素质满分 100 分 = 身心健康 40 分 + 其他发展素质 60 分。","各学院按照基本素质、专业素质、发展素质测评指标内容和权重制定评价细则。","本办法自 2021 级本科生开始实施，由党委学生工作部负责解释。"]}</script>
 <!--[ZZ_DATA_END]-->
 
+<!--[KB_DATA_BEGIN]-->
+<!-- 课表数据：教务系统 2026-2027-1 快照，由 _dev/kb/inject_kb.cjs 生成，勿手改 -->
+<script type="application/json" id="kbData">{"meta":{"semester":"2026-2027-1","semesterLabel":"2026-2027 学年 第 1 学期","startMonday":"2026-08-31","totalWeeks":19,"fetched":"2026-11-03","source":"教务系统（jwgl.bupt.edu.cn）","student":"2026211629"},"periods":[{"no":1,"time":"08:00-08:45"},{"no":2,"time":"08:50-09:35"},{"no":3,"time":"09:50-10:35"},{"no":4,"time":"10:40-11:25"},{"no":5,"time":"11:30-12:15"},{"no":6,"time":"13:00-13:45"},{"no":7,"time":"13:50-14:35"},{"no":8,"time":"14:45-15:30"},{"no":9,"time":"15:40-16:25"},{"no":10,"time":"16:35-17:20"},{"no":11,"time":"17:25-18:10"},{"no":12,"time":"18:30-19:15"},{"no":13,"time":"19:20-20:05"},{"no":14,"time":"20:10-20:55"}],"courses":[{"name":"数学分析(上)","teacher":"贺子毅,邸博宁","weekdays":[1],"start":2,"end":4,"weeks":"4-19(周)","room":"教学实验综合楼-S114","practice":false},{"name":"计算导论与程序设计","teacher":"崔毅东","weekdays":[1],"start":6,"end":7,"weeks":"4-7,9,13,15,19(周)","room":"教学实验综合楼-S502","practice":false,"segments":[{"weeks":"4-7,9,13,15,19(周)","room":"教学实验综合楼-S502"},{"weeks":"8,10-12,14,16-18(周)","room":"工程实验楼-321"}]},{"name":"大数据与人工智能行业应用实践","teacher":"王玉龙","weekdays":[1],"start":13,"end":14,"weeks":"3-4(周)","room":"智慧教学楼-402","practice":true},{"name":"大数据与人工智能行业应用实践","teacher":"张磊","weekdays":[1],"start":13,"end":14,"weeks":"5-18(周)","room":"智慧教学楼-402","practice":true},{"name":"习近平新时代中国特色社会主义思想概论","teacher":"严梦春","weekdays":[2],"start":2,"end":4,"weeks":"4-19(周)","room":"教学实验综合楼-S119","practice":false},{"name":"国家安全教育（下）","teacher":"严潮斌","weekdays":[2],"start":6,"end":7,"weeks":"4-7(周)","room":"教学实验综合楼-N507","practice":false},{"name":"智能软件系统工程导论","teacher":"王祎","weekdays":[2],"start":8,"end":9,"weeks":"5-7,9-10,12,14,16,18(周)","room":"教学实验综合楼-S211","practice":false},{"name":"智能软件系统工程导论","teacher":"傅湘玲","weekdays":[2],"start":8,"end":9,"weeks":"4,8,11,13,15,17,19(周)","room":"工程实验楼-321","practice":false},{"name":"AI创新实践","teacher":"戴志涛,吴斌,李一凡,赵学达,李东洁,石劭轩,刘健培,邵蓥侠,吴起凡,卢向群,徐童","weekdays":[2],"start":12,"end":14,"weeks":"5(周)","room":"教学实验综合楼-S208","practice":true,"segments":[{"weeks":"5(周)","room":"教学实验综合楼-S208"},{"weeks":"10(周)","room":"教学实验综合楼-报告厅"}]},{"name":"数学分析(上)","teacher":"贺子毅,邸博宁","weekdays":[3],"start":2,"end":4,"weeks":"4-19(周)","room":"教学实验综合楼-S114","practice":false},{"name":"线性代数","teacher":"邓雯","weekdays":[4],"start":2,"end":4,"weeks":"4-19(周)","room":"教学实验综合楼-S208","practice":false},{"name":"大学生心理健康1","teacher":"钟玉","weekdays":[4],"start":6,"end":7,"weeks":"4-7(周)","room":"教学实验综合楼-S103","practice":false},{"name":"基础综合英语","teacher":"蔡红霞","weekdays":[4],"start":8,"end":9,"weeks":"4-19(周)","room":"智慧教学楼-317","practice":false},{"name":"计算导论与程序设计","teacher":"崔毅东","weekdays":[4],"start":10,"end":11,"weeks":"4-8,10,12,15-16,19(周)","room":"教学实验综合楼-S308","practice":false,"segments":[{"weeks":"4-8,10,12,15-16,19(周)","room":"教学实验综合楼-S308"},{"weeks":"9,11,13,14,17,18(周)","room":"工程实验楼-321"}]},{"name":"人机交互：用户体验设计","teacher":"刘娜","weekdays":[4],"start":13,"end":14,"weeks":"3-18(周)","room":"教学实验综合楼-N403","practice":false},{"name":"信息通信概论","teacher":"孙其博","weekdays":[5],"start":8,"end":9,"weeks":"4-11(周)","room":"教学实验综合楼-S508","practice":false},{"name":"AI创新实践","teacher":"戴志涛,吴斌,李一凡,赵学达,李东洁,石劭轩,刘健培,邵蓥侠,吴起凡,卢向群,徐童","weekdays":[6],"start":12,"end":14,"weeks":"4-5,7-16,18(周)","room":"教学实验综合楼-S513","practice":true,"segments":[{"weeks":"4-5,7-16,18(周)","room":"教学实验综合楼-S513"},{"weeks":"6(周)","room":"教学实验综合楼-报告厅"}]}]}</script>
+<!--[KB_DATA_END]-->
+
 <script>
 /* ============================================================================
    MU WORKBENCH · 逻辑部分
@@ -2910,6 +2975,227 @@ var calLongPressAt = 0;   /* 长按日期后短时间内忽略随后的 click，
 var doneOpen = false;
 
 /* ---- 今日 ---- */
+/*[KB_JS_BEGIN]*/
+/* ====================== [6e] 今日课程（教务课表快照） ======================
+   数据来源：教务系统（jwgl.bupt.edu.cn）
+     · 课表：/jsxsd/xskb/xskb_list.do（学期理论课表）
+     · 教学周历：/jsxsd/jxzl/jxzl_query（第 1 周 = 2026-08-31 起，共 19 周）
+   内嵌数据在 <script type="application/json" id="kbData">，由 _dev/kb/inject_kb.cjs 生成。
+   只读展示：今天有没有课、几点、在哪、谁上，外加一个「本周课表」折叠。
+   ⚠ 这是 2026-2027-1 学期的快照（2026-11-03 抓取）：调课、换教室、下学期都要重新抓。 */
+
+var KB = null;
+function kbData(){
+  if(KB) return KB;
+  try{
+    var el = document.getElementById('kbData');
+    KB = (el && el.textContent) ? JSON.parse(el.textContent) : null;
+  }catch(e){ KB = null; }
+  return KB;
+}
+
+/* 周次字符串 → 是否命中某周："4-19" / "8,10-12,14,16-18" / "5" / "3-4" */
+function kbWeekHit(spec, w){
+  var s = String(spec || '').replace(/[（(].*?[)）]/g, '');
+  if(!s) return false;
+  var parts = s.split(',');
+  for(var i = 0; i < parts.length; i++){
+    var p = parts[i].trim();
+    if(!p) continue;
+    var m = /^(\d+)\s*-\s*(\d+)$/.exec(p);
+    if(m){ if(w >= +m[1] && w <= +m[2]) return true; continue; }
+    if(+p === w) return true;
+  }
+  return false;
+}
+
+function kbPeriodTime(no){
+  var d = kbData(); if(!d) return '';
+  for(var i = 0; i < d.periods.length; i++) if(d.periods[i].no === no) return d.periods[i].time;
+  return '';
+}
+/* 课程起止时间："08:50" / "11:25" */
+function kbSpan(c){
+  var a = kbPeriodTime(c.start) || '', b = kbPeriodTime(c.end) || '';
+  var s = a.split('-')[0] || '', e = b.split('-')[1] || b.split('-')[0] || '';
+  return [s, e];
+}
+function kbMinOf(t){
+  var m = /^(\d{1,2}):(\d{2})$/.exec(String(t || ''));
+  return m ? (+m[1] * 60 + +m[2]) : null;
+}
+function kbWeekdayOf(d){ var g = d.getDay(); return g === 0 ? 7 : g; }
+function kbWeekOf(d){
+  var data = kbData(); if(!data) return { week: 0, inRange: false };
+  var start = fromKey(data.meta.startMonday);
+  var t0 = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+  var diff = Math.round((t0.getTime() - start.getTime()) / 86400000);
+  var week = Math.floor(diff / 7) + 1;
+  return { week: week, inRange: week >= 1 && week <= data.meta.totalWeeks };
+}
+function kbPickSegment(c, week){
+  if(!c.segments) return null;
+  for(var i = 0; i < c.segments.length; i++) if(kbWeekHit(c.segments[i].weeks, week)) return c.segments[i];
+  return c.segments[0];
+}
+/* 某一天（周几 + 第几周）的课 */
+function kbCoursesFor(weekday, week){
+  var data = kbData(); if(!data) return [];
+  return data.courses.filter(function(c){
+    if(c.weekdays.indexOf(weekday) < 0) return false;
+    if(kbWeekHit(c.weeks, week)) return true;
+    /* 单双周换教室/换老师的课：周次写在 segments 里 */
+    if(c.segments){
+      for(var i = 0; i < c.segments.length; i++) if(kbWeekHit(c.segments[i].weeks, week)) return true;
+    }
+    return false;
+  }).map(function(c){
+    var seg = kbPickSegment(c, week);
+    return { name: c.name, teacher: c.teacher, room: (seg && seg.room) || c.room,
+             start: c.start, end: c.end, practice: !!c.practice, weeks: c.weeks };
+  }).sort(function(a, b){ return a.start - b.start; });
+}
+/* 往后找下一门课（今天剩下的 / 未来 14 天） */
+function kbNextCourse(now){
+  var data = kbData(); if(!data) return null;
+  var nowMin = now.getHours() * 60 + now.getMinutes();
+  for(var d = 0; d < 15; d++){
+    var day = new Date(now.getFullYear(), now.getMonth(), now.getDate() + d);
+    var wk = kbWeekOf(day).week;
+    if(!kbWeekOf(day).inRange) continue;
+    var list = kbCoursesFor(kbWeekdayOf(day), wk);
+    for(var i = 0; i < list.length; i++){
+      var span = kbSpan(list[i]);
+      var startMin = kbMinOf(span[0]);
+      if(d === 0 && startMin != null && startMin <= nowMin) continue;
+      return { day: day, weekday: kbWeekdayOf(day), course: list[i], span: span, inDays: d };
+    }
+  }
+  return null;
+}
+
+var KB_WDNAME = ['周一', '周二', '周三', '周四', '周五', '周六', '周日'];
+
+/* 十来个老师的长名单会占两行，收成「某某 等 12 人」 */
+function kbTeacher(t){
+  var arr = String(t || '').split(/[,，]/).map(function(s){ return s.trim(); }).filter(Boolean);
+  if(arr.length <= 2) return arr.join('、');
+  return arr[0] + ' 等 ' + arr.length + ' 人';
+}
+
+/* 分钟数 → 「2 小时 10 分」/「45 分」/「不到 1 分」 */
+function kbDur(min){
+  if(min == null) return '';
+  min = Math.round(min);
+  if(min <= 0) return '不到 1 分';
+  var h = Math.floor(min / 60), m = min % 60;
+  if(h && m) return h + ' 小时 ' + m + ' 分';
+  if(h) return h + ' 小时';
+  return m + ' 分';
+}
+
+function kbRender(){
+  var host = document.getElementById('kbCard');
+  if(!host) return;
+  var data = kbData();
+  if(!data){ host.innerHTML = ''; return; }
+
+  var now = new Date(), tk = todayKey();
+  var wk = kbWeekOf(now), wd = kbWeekdayOf(now);
+  var m = data.meta;
+  var todayList = wk.inRange ? kbCoursesFor(wd, wk.week) : [];
+  var head = '<div class="view-head"><h2>今日课程</h2><span class="vcount">' +
+    (wk.inRange ? ('第 ' + wk.week + ' 周 · ' + KB_WDNAME[wd - 1] + ' · ' + (todayList.length ? todayList.length + ' 门' : '无课')) : '学期外') +
+    '</span></div>';
+  var html = head + '<div class="kb-wrap">';
+
+  if(!wk.inRange){
+    html += '<div class="kb-empty"><div class="kb-et">课表不在本学期</div>' +
+      '<div class="kb-ed">当前课表快照是 <b>' + esc(m.semesterLabel) + '</b>（' + esc(m.fetched) + ' 抓取）。<br>新学期/调课后需要重新抓取课表。</div></div>';
+    html += '<div class="kb-foot">来源：' + esc(m.source) + ' · 快照 ' + esc(m.fetched) + '</div></div>';
+    host.innerHTML = html;
+    return;
+  }
+
+  var nowMin = now.getHours() * 60 + now.getMinutes();
+  var liveI = -1;
+  todayList.forEach(function(c, i){
+    var span = kbSpan(c), s = kbMinOf(span[0]), e = kbMinOf(span[1]);
+    if(s != null && e != null && nowMin >= s && nowMin <= e) liveI = i;
+  });
+
+  html += '<div class="kb-dayline"><b>' + KB_WDNAME[wd - 1] + '</b><span>' +
+    (now.getMonth() + 1) + '月' + now.getDate() + '日</span>' +
+    '<span class="kb-now">第 ' + wk.week + ' 周 / 共 ' + m.totalWeeks + ' 周</span></div>';
+
+  if(!todayList.length){
+    var nx = kbNextCourse(now);
+    html += '<div class="kb-empty"><div class="kb-et">今天没课</div><div class="kb-ed">' +
+      (nx ? ('下一门：' + KB_WDNAME[nx.weekday - 1] + ' ' + nx.span[0] + ' ' + esc(nx.course.name) +
+             (nx.course.room ? '（' + esc(nx.course.room) + '）' : '')) : '接下来两周都没有课') +
+      '</div></div>';
+  }else{
+    var nextMarked = false;
+    todayList.forEach(function(c, i){
+      var span = kbSpan(c), s = kbMinOf(span[0]), e = kbMinOf(span[1]);
+      var cls = 'kb-item', status = '', statusCls = '', extra = '';
+      if(liveI === i && s != null && e != null){
+        /* 正在上：进度条 = 已上时长占比，右边写还剩多久 */
+        cls += ' live'; status = '正在上'; statusCls = ' on';
+        var pct = e > s ? Math.max(0, Math.min(100, (nowMin - s) / (e - s) * 100)) : 100;
+        extra = '<div class="kb-progrow"><div class="kb-prog"><i style="width:' + pct.toFixed(1) + '%"></i></div>' +
+                '<span>还剩 <b>' + esc(kbDur(e - nowMin)) + '</b></span></div>';
+      }else if(e != null && nowMin > e){
+        cls += ' past'; status = '已下课';
+      }else if(s != null){
+        /* 还没开始：标出距离上课还有多久 */
+        extra = '<div class="kb-count">距上课 <b>' + esc(kbDur(s - nowMin)) + '</b></div>';
+      }
+      var segRoom = c.room;
+      html += '<div class="' + cls + '">' +
+        '<div class="kb-time"><b>' + esc(span[0]) + '</b><span>' + esc(span[1]) + '</span></div>' +
+        '<div class="kb-main"><div class="kb-nm">' + esc(c.name) +
+          (c.practice ? '<span class="kb-p">实践</span>' : '') + '</div>' +
+          '<div class="kb-meta"><i>第 ' + c.start + '-' + c.end + ' 节</i> · ' + esc(segRoom || '地点待定') +
+          (c.teacher ? ' · ' + esc(kbTeacher(c.teacher)) : '') + '</div>' + extra + '</div>' +
+        (status ? '<div class="kb-status' + statusCls + '">' + status + '</div>' : '') +
+        '</div>';
+    });
+  }
+
+  /* 本周课表 */
+  var weekHtml = '', n = 0;
+  for(var wd2 = 1; wd2 <= 7; wd2++){
+    var cs = kbCoursesFor(wd2, wk.week);
+    var lines = cs.map(function(c){
+      var sp = kbSpan(c);
+      n++;
+      return '<div class="kb-wl"><b>' + esc(sp[0]) + '-' + esc(sp[1]) + '</b> ' + esc(c.name) +
+        (c.room ? ' <i>· ' + esc(c.room) + '</i>' : '') + '</div>';
+    }).join('');
+    weekHtml += '<div class="kb-wd' + (wd2 === wd ? ' today' : '') + '"><span>' + KB_WDNAME[wd2 - 1] + '</span><div>' +
+      (lines || '<div class="kb-wl none">无课</div>') + '</div></div>';
+  }
+  html += '<details class="kb-week"><summary>本周课表 <em>第 ' + wk.week + ' 周 · ' + n + ' 门</em></summary>' +
+    '<div class="kb-week-body">' + weekHtml + '</div></details>';
+
+  if(dayKind(tk) === 'holiday'){
+    html += '<div class="kb-warn">今天是法定节假日（' + esc(holidayName(tk) || '放假') + '）：课表按周次排，节假日通常停课，以学校通知为准。</div>';
+  }
+  html += '<div class="kb-foot">' + esc(m.semesterLabel) + ' · 第 ' + wk.week + ' / ' + m.totalWeeks + ' 周 · 教务系统快照（' + esc(m.fetched) + ' 抓取，调课以下发通知为准）</div>';
+  html += '</div>';
+  host.innerHTML = html;
+}
+
+/* 今日页开着的时候，倒计时/进度条每分钟自己走一格（切走就停） */
+setInterval(function(){
+  try{
+    var v = document.getElementById('view-today');
+    if(v && v.classList.contains('on') && !document.hidden) kbRender();
+  }catch(e){}
+}, 30000);
+/*[KB_JS_END]*/
+
 function renderToday(){
   var k = todayKey(), now = new Date();
   $('#topDate').textContent = (now.getMonth()+1)+'月'+now.getDate()+'日 '+WEEK[now.getDay()]+' · 本地版';
@@ -2945,6 +3231,8 @@ function renderToday(){
     html += '<div class="empty">今天还没有安排 · 点上面「＋ 新建待办」加一条</div>';
   }
   $('#todayList').innerHTML = html;
+
+  kbRender();   /* 今日课程卡片（教务课表快照） */
 
   var pending = list.filter(function(t){ return !isDoneOn(t,k); }).length + pendingOverdue().length;
   var badge = $('#tabBadgeToday');
