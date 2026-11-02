@@ -56,23 +56,31 @@
 
 ## 界面
 
-- **六套主题色**：渐变蓝（默认）、青碧、紫罗兰、薄荷、樱粉、落日。整套配色挂在 `<html data-accent>` 上，一个属性同时改掉页面底色、卡片、进度条、按钮、选中态与系统状态栏色。
-- **深色模式**：跟随系统（`prefers-color-scheme`），六套主题在深色下都可用。
+整套界面是 **Persona 5 Royal 风格**的视觉致敬（红/黑/米纸白三色、2px 粗黑描边、4px 硬投影、
+斜切与半调网点、全大写斜体标题、竖排编号的待办条目）。*仅为风格参考，与 ATLUS / SEGA 无关。*
+
+- **六套主题色**：血红（默认）、青碧、紫电、翠绿、樱粉、落日。整套配色挂在 `<html data-accent>` 上，一个属性同时改掉页面底色、卡片、进度条、按钮、选中态与系统状态栏色；骨架（黑框、粗描边、硬投影）不变。
+- **深色模式**：跟随系统。深色只反转「纸 / 墨 / 表面」，顶栏、底栏、首屏黑卡、横幅保持深底浅字。
 - **手机优先**：按 390px 设计；宽屏（≥900px）时底部 Tab 自动变成左侧固定导航。
 
 <p align="center">
-  <img src="screenshots/clock.png" width="240" alt="时钟页">
-  <img src="screenshots/today-dark.png" width="240" alt="深色模式">
+  <img src="screenshots/clock.png" width="190" alt="时钟页">
+  <img src="screenshots/today-dark.png" width="190" alt="深色模式">
+  <img src="screenshots/news.png" width="190" alt="资讯页">
+</p>
+
+<p align="center">
+  <img src="screenshots/editor.png" width="240" alt="新建待办（P5R 风格）">
 </p>
 
 ## 安装
 
-从 [**Releases**](../../releases/latest) 下载 `MU-WORKBENCH-v1.6-debug.apk` 直接安装：
+从 [**Releases**](../../releases/latest) 下载 `MU-WORKBENCH-v2.0-debug.apk` 直接安装：
 
 - 系统要求 **Android 6.0+**（`minSdk 23`，`targetSdk 35`）
 - 未签名的 **debug 包**，安装时需要允许「安装未知来源应用」
-- APK 大小约 5.5 MB，sha256 `e28dadd537f9032f577056a6cf3bdac077d950248b62d5f1de9ad79ecaf912bd`
-- 仓库里不直接放 APK（二进制会和源码不同步），Release 上的包对应 tag `v1.1`，打包用的 `index.html` 与该 tag 下的源码逐字节一致
+- APK 大小约 5.10 MB，sha256 `80f5b80a8fe3a5914f1b8723b3f0329315f982d9487cec4b092d8cc072f8b548`
+- 仓库里不直接放 APK（二进制会和源码不同步），Release 上的包对应 tag `v2.0`，打包用的 `index.html` 与该 tag 下的源码逐字节一致
 
 不想装 App 也可以直接用浏览器打开 `MU-WORKBENCH/index.html`（除了「系统级闹钟」和「云邮」外功能都在）。
 
