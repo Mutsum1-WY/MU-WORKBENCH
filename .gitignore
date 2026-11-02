@@ -34,6 +34,9 @@ _shots/
 云邮登录Skill/
 *.docx
 
+# ---- 签名密钥（调试包用的 keystore，绝不能进仓库） ----
+MU-WORKBENCH-ANDROID/_keys/
+
 # ---- 系统 / 编辑器杂项 ----
 Thumbs.db
 desktop.ini
