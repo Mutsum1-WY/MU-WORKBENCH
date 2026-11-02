@@ -95,6 +95,68 @@ public class MuNative {
         return "1";
     }
 
+    /**
+     * 把一段文本（备份 JSON）写进手机「下载/MU WORKBENCH」，同步把结果 JSON 返回给 JS。
+     *
+     * 为什么需要它：WebView 不支持网页上的 blob 下载，`<a download>` 点了会静默失败，
+     * 所以设置页的「导出备份」在 App 里必须走这里。Android 10+ 用 MediaStore 写公共下载目录
+     * （不需要存储权限）；9 及以下写应用外部 Download 目录，把完整路径回给 JS。
+     */
+    @JavascriptInterface
+    public String saveTextFile(String name, String content) {
+        JSONObject o = new JSONObject();
+        try {
+            if (content == null) throw new Exception("没有内容可写");
+            String fileName = safeName(name);
+            String display;
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                ContentResolver cr = act.getContentResolver();
+                ContentValues cv = new ContentValues();
+                cv.put(MediaStore.Downloads.DISPLAY_NAME, fileName);
+                cv.put(MediaStore.Downloads.MIME_TYPE, "application/json");
+                cv.put(MediaStore.Downloads.RELATIVE_PATH, Environment.DIRECTORY_DOWNLOADS + "/" + FOLDER);
+                cv.put(MediaStore.Downloads.IS_PENDING, 1);
+                Uri target = cr.insert(MediaStore.Downloads.EXTERNAL_CONTENT_URI, cv);
+                if (target == null) throw new Exception("手机不允许写入下载目录");
+                try {
+                    OutputStream out = cr.openOutputStream(target);
+                    if (out == null) throw new Exception("打不开写入通道");
+                    try {
+                        out.write(content.getBytes("UTF-8"));
+                        out.flush();
+                    } finally {
+                        try { out.close(); } catch (Throwable ignored) { }
+                    }
+                    ContentValues ready = new ContentValues();
+                    ready.put(MediaStore.Downloads.IS_PENDING, 0);
+                    cr.update(target, ready, null, null);
+                } catch (Throwable e) {
+                    try { cr.delete(target, null, null); } catch (Throwable ignored) { }
+                    throw e;
+                }
+                display = "下载/" + FOLDER + "/" + fileName;
+            } else {
+                File dir = new File(act.getExternalFilesDir(Environment.DIRECTORY_DOWNLOADS), FOLDER);
+                if (!dir.exists() && !dir.mkdirs()) throw new Exception("建不了下载目录");
+                File f = unique(dir, fileName);
+                try (FileOutputStream out = new FileOutputStream(f)) {
+                    out.write(content.getBytes("UTF-8"));
+                }
+                fileName = f.getName();
+                display = f.getAbsolutePath();
+            }
+            o.put("ok", true);
+            o.put("name", fileName);
+            o.put("display", display);
+        } catch (Throwable e) {
+            try {
+                o.put("ok", false);
+                o.put("msg", msgOf(e));
+            } catch (Throwable ignored) { }
+        }
+        return o.toString();
+    }
+
     /* ---------------- 下载实现 ---------------- */
 
     private void fetch(String id, String url, String cookie, String name, String referer) throws Exception {

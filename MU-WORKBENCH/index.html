@@ -2115,6 +2115,7 @@ html.p5-switch body::after{
         </div>
         <input type="file" id="fileImport" accept="application/json,.json" hidden>
         <div class="muted small" style="margin-top:10px" id="dataStat">—</div>
+        <div class="muted small" style="margin-top:4px" id="exportHint">—</div>
       </div>
 
       <div class="card about-card">
@@ -3154,6 +3155,9 @@ function renderSettings(){
   var todos = state.todos.length, projects = state.projects.length;
   var items = state.projects.reduce(function(a,p){ return a + p.items.length; },0);
   $('#dataStat').textContent = '当前：' + todos + ' 条待办 · ' + projects + ' 张卡片 · ' + items + ' 个技能点';
+  $('#exportHint').textContent = (window.MuNative && typeof window.MuNative.saveTextFile === 'function')
+    ? '导出位置：手机「下载/MU WORKBENCH/MU-WORKBENCH-备份-' + todayKey() + '.json」'
+    : '导出位置：浏览器下载目录（MU-WORKBENCH-备份-' + todayKey() + '.json）';
   applyAccent();
 }
 
@@ -7525,14 +7529,26 @@ $('#swUcloud').onclick = function(){
   $('#btnTestNotify').onclick = function(){ bannerClosed = false; fireTodayReminder('测试提醒'); };
   $('#btnTestSound').onclick = function(){ chime('done'); toast('这就是提示音'); };
   $('#btnExport').onclick = function(){
+    var json = JSON.stringify(state, null, 2);
+    var fname = 'MU-WORKBENCH-备份-' + todayKey() + '.json';
+    /* App 版：WebView 不支持网页那种 blob 下载（点了静默失败、也不落盘），改走原生写「下载/MU WORKBENCH」 */
+    if(window.MuNative && typeof window.MuNative.saveTextFile === 'function'){
+      try{
+        var res = JSON.parse(window.MuNative.saveTextFile(fname, json) || '{}');
+        if(res.ok){ toast('备份已保存到 ' + res.display); }
+        else{ toast('导出失败：' + (res.msg || '手机没让写文件')); }
+      }catch(e){ toast('导出失败：' + e.message); }
+      return;
+    }
+    /* 网页版：正常走浏览器下载 */
     try{
-      var blob = new Blob([JSON.stringify(state, null, 2)], { type:'application/json' });
+      var blob = new Blob([json], { type:'application/json' });
       var a = document.createElement('a');
       a.href = URL.createObjectURL(blob);
-      a.download = 'MU-WORKBENCH-备份-' + todayKey() + '.json';
+      a.download = fname;
       document.body.appendChild(a); a.click(); a.remove();
       setTimeout(function(){ URL.revokeObjectURL(a.href); }, 4000);
-      toast('备份文件已导出到下载目录');
+      toast('备份文件已下载：' + fname);
     }catch(e){ toast('导出失败：' + e.message); }
   };
   $('#btnImport').onclick = function(){ $('#fileImport').click(); };
