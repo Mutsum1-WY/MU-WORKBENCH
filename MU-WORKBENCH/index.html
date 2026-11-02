@@ -1057,6 +1057,52 @@ body.rd-on{overflow:hidden}
 .toast.on{opacity:1;transform:none}
 @media(min-width:900px){.toast-wrap{bottom:28px}}
 
+/* ====================== 9b. 应用内确认浮层（替代系统 confirm） ====================== */
+.p5-confirm-wrap{
+  position:fixed;inset:0;z-index:120;
+  display:flex;align-items:center;justify-content:center;
+  padding:22px;
+  background:rgba(11,11,12,.66);
+}
+.p5-confirm-wrap[hidden]{display:none}
+.p5-confirm{
+  position:relative;
+  width:100%;max-width:332px;
+  background:var(--surface-1);
+  border:var(--bw) solid var(--ink);
+  padding:20px 16px 16px;
+  box-shadow:8px 8px 0 var(--accent);
+  transform:rotate(-.5deg);
+  animation:p5ConfirmIn 200ms var(--ease);
+}
+@keyframes p5ConfirmIn{
+  from{opacity:0;transform:translateY(18px) skewX(-6deg) scale(.96)}
+  to{opacity:1;transform:rotate(-.5deg)}
+}
+/* 顶部红黑警示条 */
+.p5-confirm::before{
+  content:'';position:absolute;left:0;right:0;top:0;height:7px;
+  background:repeating-linear-gradient(115deg,var(--accent) 0 10px,var(--ink) 10px 16px);
+  border-bottom:var(--bw) solid var(--ink);
+}
+.p5-confirm-t{
+  font-size:16px;font-weight:900;font-style:italic;letter-spacing:-.01em;
+  margin:8px 0 10px;color:var(--ink);
+}
+.p5-confirm-m{
+  font-size:13.5px;line-height:1.72;color:var(--ink-2);margin:0 0 18px;
+  white-space:pre-wrap;word-break:break-word;
+}
+.p5-confirm-x{margin:-6px 0 14px}
+.p5-confirm-f{display:flex;justify-content:flex-end;gap:8px}
+.p5-confirm-f .btn{min-width:86px}
+/* 危险操作的主按钮做成实心红（P5R 的“盖章”感），比描边更醒目 */
+.p5-confirm-f .btn.danger{
+  background:var(--accent);color:var(--chrome-ink);
+  border-color:var(--ink);box-shadow:4px 4px 0 var(--ink);
+}
+.p5-confirm-f .btn.danger:hover{background:var(--accent-2);color:var(--chrome)}
+
 /* ============================================================================
    P5R 皮肤 · 第 3 层：课程/加分、扫码、动效、深色（黑化）
    ============================================================================ */
@@ -1455,13 +1501,110 @@ html.sc-lock{overflow:hidden}
 .cb-led,.cb-comps,.cb-fold,.cb-item,.cb-comp{transition:background-color 220ms linear,border-color var(--t),box-shadow var(--t)}
 
 /* 列表错峰弹入（只用于首屏列表，避免整页抖） */
-#todayList>.task,#dayList>.task,#projGrid>.pcard{animation:riseIn 220ms var(--ease) backwards}
-#todayList>.task:nth-child(2),#dayList>.task:nth-child(2){animation-delay:40ms}
-#todayList>.task:nth-child(3),#dayList>.task:nth-child(3){animation-delay:80ms}
-#todayList>.task:nth-child(4),#dayList>.task:nth-child(4){animation-delay:120ms}
-#todayList>.task:nth-child(5),#dayList>.task:nth-child(5){animation-delay:160ms}
-#projGrid>.pcard:nth-child(2){animation-delay:60ms}
-#projGrid>.pcard:nth-child(3){animation-delay:120ms}
+/* 列表卡片：左右交替飞入（P5R 菜单入场）
+   奇数从左、偶数从右，逐张错峰 38ms。注意 #todayList 的第一个子元素是章节标题（.view-head），
+   卡片从第 2 个子元素开始，所以那个容器要奇偶对调。 */
+@keyframes flyInLeft{
+  from{opacity:0;transform:translate3d(-56px,10px,0) rotate(-2.6deg) skewX(-12deg)}
+  to{opacity:1;transform:none}
+}
+@keyframes flyInRight{
+  from{opacity:0;transform:translate3d(56px,10px,0) rotate(2.6deg) skewX(12deg)}
+  to{opacity:1;transform:none}
+}
+/* A 组：容器里第 1 个孩子就是卡片 → 奇数从左 */
+#dayList>.task:nth-child(odd),
+#inboxList>.task:nth-child(odd),
+#doneList>.task:nth-child(odd),
+#projGrid>.pcard:nth-child(odd),
+#ptList>.pt-item:nth-child(odd),
+#crList>.cr-item:nth-child(odd),
+#cbList>.cb-item:nth-child(odd){
+  animation:flyInLeft 320ms cubic-bezier(.2,.85,.25,1) backwards;
+}
+#dayList>.task:nth-child(even),
+#inboxList>.task:nth-child(even),
+#doneList>.task:nth-child(even),
+#projGrid>.pcard:nth-child(even),
+#ptList>.pt-item:nth-child(even),
+#crList>.cr-item:nth-child(even),
+#cbList>.cb-item:nth-child(even){
+  animation:flyInRight 320ms cubic-bezier(.2,.85,.25,1) backwards;
+}
+/* B 组：今日页（首个孩子是标题）→ 偶数从左、奇数从右 */
+#todayList>.task:nth-child(even){
+  animation:flyInLeft 320ms cubic-bezier(.2,.85,.25,1) backwards;
+}
+#todayList>.task:nth-child(odd){
+  animation:flyInRight 320ms cubic-bezier(.2,.85,.25,1) backwards;
+}
+/* 错峰 */
+#dayList>.task:nth-child(2),
+#inboxList>.task:nth-child(2),
+#doneList>.task:nth-child(2),
+#projGrid>.pcard:nth-child(2),
+#ptList>.pt-item:nth-child(2),
+#crList>.cr-item:nth-child(2),
+#cbList>.cb-item:nth-child(2){animation-delay:38ms}
+#dayList>.task:nth-child(3),
+#inboxList>.task:nth-child(3),
+#doneList>.task:nth-child(3),
+#projGrid>.pcard:nth-child(3),
+#ptList>.pt-item:nth-child(3),
+#crList>.cr-item:nth-child(3),
+#cbList>.cb-item:nth-child(3){animation-delay:76ms}
+#dayList>.task:nth-child(4),
+#inboxList>.task:nth-child(4),
+#doneList>.task:nth-child(4),
+#projGrid>.pcard:nth-child(4),
+#ptList>.pt-item:nth-child(4),
+#crList>.cr-item:nth-child(4),
+#cbList>.cb-item:nth-child(4){animation-delay:114ms}
+#dayList>.task:nth-child(5),
+#inboxList>.task:nth-child(5),
+#doneList>.task:nth-child(5),
+#projGrid>.pcard:nth-child(5),
+#ptList>.pt-item:nth-child(5),
+#crList>.cr-item:nth-child(5),
+#cbList>.cb-item:nth-child(5){animation-delay:152ms}
+#dayList>.task:nth-child(6),
+#inboxList>.task:nth-child(6),
+#doneList>.task:nth-child(6),
+#projGrid>.pcard:nth-child(6),
+#ptList>.pt-item:nth-child(6),
+#crList>.cr-item:nth-child(6),
+#cbList>.cb-item:nth-child(6){animation-delay:190ms}
+#dayList>.task:nth-child(7),
+#inboxList>.task:nth-child(7),
+#doneList>.task:nth-child(7),
+#projGrid>.pcard:nth-child(7),
+#ptList>.pt-item:nth-child(7),
+#crList>.cr-item:nth-child(7),
+#cbList>.cb-item:nth-child(7){animation-delay:228ms}
+#dayList>.task:nth-child(8),
+#inboxList>.task:nth-child(8),
+#doneList>.task:nth-child(8),
+#projGrid>.pcard:nth-child(8),
+#ptList>.pt-item:nth-child(8),
+#crList>.cr-item:nth-child(8),
+#cbList>.cb-item:nth-child(8){animation-delay:266ms}
+#dayList>.task:nth-child(9),
+#inboxList>.task:nth-child(9),
+#doneList>.task:nth-child(9),
+#projGrid>.pcard:nth-child(9),
+#ptList>.pt-item:nth-child(9),
+#crList>.cr-item:nth-child(9),
+#cbList>.cb-item:nth-child(9){animation-delay:304ms}
+#todayList>.task:nth-child(3){animation-delay:38ms}
+#todayList>.task:nth-child(4){animation-delay:76ms}
+#todayList>.task:nth-child(5){animation-delay:114ms}
+#todayList>.task:nth-child(6){animation-delay:152ms}
+#todayList>.task:nth-child(7){animation-delay:190ms}
+#todayList>.task:nth-child(8){animation-delay:228ms}
+#todayList>.task:nth-child(9){animation-delay:266ms}
+#todayList>.task:nth-child(10){animation-delay:304ms}
+
+
 
 /* 主题切换：整页闪一下红斜条（掌牌式“切场”） */
 html.p5-switch body::after{
@@ -2056,6 +2199,7 @@ html.p5-switch body::after{
 
 <!-- 弹窗与提示 -->
 <div class="modal-wrap" id="modalWrap"><div class="modal" id="modalCard"></div></div>
+<div class="p5-confirm-wrap" id="p5ConfirmWrap" hidden><div class="p5-confirm" id="p5ConfirmCard"></div></div>
 <div class="toast-wrap" id="toastWrap"></div>
 
 <!--[COURSE_DATA_BEGIN]-->
@@ -2834,6 +2978,44 @@ function switchTab(name){
 function openModal(html){ $('#modalCard').innerHTML = html; $('#modalWrap').classList.add('on'); }
 function closeModal(){ $('#modalWrap').classList.remove('on'); $('#modalCard').innerHTML = ''; }
 
+/* ---------------- 应用内确认框 ----------------
+   替代安卓/浏览器的白框 confirm()：独立浮层（不占用 #modalCard，避免顶掉正在编辑的弹窗），
+   返回 Promise<boolean>。点「取消」/遮罩/ESC 都算 false。
+   测试环境可以用 window.__p5AutoConfirm = true/false 直接短路，方便 Node 仿真与 e2e。 */
+var _p5ConfirmResolve = null;
+function p5Confirm(opt){
+  opt = opt || {};
+  if(typeof window !== 'undefined' && window.__p5AutoConfirm !== undefined){
+    return Promise.resolve(!!window.__p5AutoConfirm);
+  }
+  var wrap = $('#p5ConfirmWrap'), card = $('#p5ConfirmCard');
+  if(!wrap || !card) return Promise.resolve(typeof confirm === 'function' ? confirm(opt.text || '') : false);
+  if(_p5ConfirmResolve){ try{ _p5ConfirmResolve(false); }catch(e){} _p5ConfirmResolve = null; }
+  return new Promise(function(resolve){
+    _p5ConfirmResolve = resolve;
+    card.innerHTML =
+      '<div class="p5-confirm-t">' + esc(opt.title || '确认') + '</div>' +
+      '<p class="p5-confirm-m">' + esc(opt.text || '') + '</p>' +
+      (opt.extra ? '<div class="p5-confirm-x">' + opt.extra + '</div>' : '') +
+      '<div class="p5-confirm-f">' +
+        '<button class="btn" data-p5c="no">' + esc(opt.cancel || '取消') + '</button>' +
+        '<button class="btn ' + (opt.danger ? 'danger' : 'primary') + '" data-p5c="yes">' + esc(opt.ok || '确定') + '</button>' +
+      '</div>';
+    wrap.hidden = false;
+    wrap.classList.add('on');
+    function finish(v){
+      var r = _p5ConfirmResolve; _p5ConfirmResolve = null;
+      wrap.classList.remove('on'); wrap.hidden = true; card.innerHTML = '';
+      if(r) r(v);
+    }
+    wrap.onclick = function(e){ if(e.target === wrap) finish(false); };
+    $$('#p5ConfirmCard [data-p5c]').forEach(function(b){
+      b.onclick = function(){ finish(b.dataset.p5c === 'yes'); };
+    });
+    card.querySelector('[data-p5c="yes"]').focus();
+  });
+}
+
 /* 节假日数据状态提示（用在「工作日 / 休息日」类型下面） */
 function holidayHint(){
   var c = state.holidayCache || {};
@@ -3227,9 +3409,11 @@ function openTaskModal(id, presetDate, presetType){
       var a = b.dataset.mc;
       if(a === 'close'){ closeModal(); return; }
       if(a === 'del'){
-        if(!confirm('删除这条待办？')) return;
-        state.todos = state.todos.filter(function(t){ return t.id !== draft.id; });
-        save(); closeModal(); renderAll(); toast('已删除');
+        p5Confirm({ text:'删除这条待办？', ok:'删除', danger:true }).then(function(ok){
+          if(!ok) return;
+          state.todos = state.todos.filter(function(t){ return t.id !== draft.id; });
+          save(); closeModal(); renderAll(); toast('已删除');
+        });
         return;
       }
       if(a === 'save'){
@@ -3296,9 +3480,11 @@ function openProjectModal(id){
       var a = b.dataset.mc;
       if(a === 'close'){ closeModal(); return; }
       if(a === 'del'){
-        if(!confirm('删除这张卡片？里面的技能点也一起删。')) return;
-        state.projects = state.projects.filter(function(p){ return p.id !== draft.id; });
-        save(); closeModal(); renderAll(); toast('卡片已删除');
+        p5Confirm({ text:'删除这张卡片？里面的技能点也一起删。', ok:'删除', danger:true }).then(function(ok){
+          if(!ok) return;
+          state.projects = state.projects.filter(function(p){ return p.id !== draft.id; });
+          save(); closeModal(); renderAll(); toast('卡片已删除');
+        });
         return;
       }
       if(a === 'save'){
@@ -6563,9 +6749,11 @@ function bindToday(){
       return;
     }
     if(act === 'del'){
-      if(!confirm('删除这条待办？')) return;
-      state.todos = state.todos.filter(function(x){ return x.id !== id; });
-      save(); renderAll(); toast('已删除');
+      p5Confirm({ text:'删除这条待办？', ok:'删除', danger:true }).then(function(ok){
+        if(!ok) return;
+        state.todos = state.todos.filter(function(x){ return x.id !== id; });
+        save(); renderAll(); toast('已删除');
+      });
       return;
     }
     if(act === 'toDay'){
@@ -6606,9 +6794,12 @@ function bindProjects(){
       save(); renderProjects(); return;
     }
     if(itemEl && act === 'delItem'){
-      if(!confirm('删除「' + it.title + '」？')) return;
-      p.items = p.items.filter(function(x){ return x.id !== it.id; });
-      save(); renderProjects(); return;
+      p5Confirm({ text:'删除「' + it.title + '」？', ok:'删除', danger:true }).then(function(ok){
+        if(!ok) return;
+        p.items = p.items.filter(function(x){ return x.id !== it.id; });
+        save(); renderProjects();
+      });
+      return;
     }
   });
   /* 拖动进度条：实时更新卡片，松手才写盘，避免卡顿 */
@@ -7071,12 +7262,14 @@ $('#swUcloud').onclick = function(){
     });
   };
   $('#ucClear').onclick = function(){
-    if(!confirm('清除云邮学号密码和已拉取的列表？')) return;
-    var keepOn = ucCfg().on;
-    state.ucloud = defaultUcloud();
-    state.ucloud.on = keepOn;
-    save(); renderSettings(); renderUcloud();
-    toast('凭据已清除');
+    p5Confirm({ text:'清除云邮学号密码和已拉取的列表？', ok:'清除', danger:true }).then(function(ok){
+      if(!ok) return;
+      var keepOn = ucCfg().on;
+      state.ucloud = defaultUcloud();
+      state.ucloud.on = keepOn;
+      save(); renderSettings(); renderUcloud();
+      toast('凭据已清除');
+    });
   };
   $('#segVolume').onclick = function(e){
     var b = e.target.closest('[data-vol]'); if(!b) return;
@@ -7130,22 +7323,30 @@ $('#swUcloud').onclick = function(){
       try{
         var o = JSON.parse(r.result);
         if(!o || typeof o !== 'object' || (!o.todos && !o.projects)) throw new Error('文件内容不像 MU WORKBENCH 备份');
-        if(!confirm('导入会覆盖当前全部数据，继续？')) return;
-        state = migrate(o);
-        save(); renderAll(); renderTools();
-        toast('导入完成');
+        p5Confirm({ text:'导入会覆盖当前全部数据，继续？', ok:'导入', danger:true }).then(function(ok){
+          if(!ok) return;
+          state = migrate(o);
+          save(); renderAll(); renderTools();
+          toast('导入完成');
+        });
       }catch(err){ toast('导入失败：' + err.message); }
     };
     r.readAsText(f);
     e.target.value = '';
   };
   $('#btnWipe').onclick = function(){
-    if(!confirm('清空全部数据？不可撤销，建议先导出备份。')) return;
-    if(!confirm('再确认一次：真的要清空吗？')) return;
-    try{ localStorage.removeItem(LS_KEY); }catch(e){}
-    state = migrate({ settings:defaultSettings(), todos:[], projects:[], pomo:{date:todayKey(),count:0,linkId:''} });
-    save(); renderAll(); renderTools();
-    toast('已清空，从零开始');
+    p5Confirm({ text:'清空全部数据？不可撤销，建议先导出备份。', ok:'继续', danger:true })
+      .then(function(ok){
+        if(!ok) return false;
+        return p5Confirm({ text:'再确认一次：真的要清空吗？', ok:'清空', danger:true });
+      })
+      .then(function(ok2){
+        if(!ok2) return;
+        try{ localStorage.removeItem(LS_KEY); }catch(e){}
+        state = migrate({ settings:defaultSettings(), todos:[], projects:[], pomo:{date:todayKey(),count:0,linkId:''} });
+        save(); renderAll(); renderTools();
+        toast('已清空，从零开始');
+      });
   };
 }
 function bindClock(){
