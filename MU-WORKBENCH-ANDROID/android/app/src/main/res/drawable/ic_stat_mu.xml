@@ -1,22 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
     android:width="24dp"
     android:height="24dp"
     android:viewportWidth="24"
     android:viewportHeight="24">
 
-    <!-- P5R 斜切底条：从左上到右下的细斜带，只作轮廓装饰（通知栏会整体染白） -->
+    <!-- MU WORKBENCH · 通知栏小图标。
+         通知栏只保留 alpha 通道并整体染色，所以这里只有一块纯白剪影：
+         字形直接取自启动图标（ic_launcher_foreground.xml）里的 MU，转正 14° 后
+         横向压缩到 24dp 方框比例；不要再加底色、网点或半透明斜带——
+         那些细节在 18~24dp 下会糊成一团，反而认不出来。 -->
     <path
         android:fillColor="#FFFFFFFF"
-        android:fillAlpha="0.28"
-        android:pathData="M2.2,21.4 L21.8,10.6 V8.4 L2.2,19.2 Z" />
-
-    <!-- M -->
-    <path
-        android:fillColor="#FFFFFFFF"
-        android:pathData="M2.3,3.6 h3.1 l2.0,7.2 2.0,-7.2 h3.1 v15.2 h-2.5 v-9.1 l-1.8,6.4 h-1.6 l-1.8,-6.4 v9.1 H2.3 Z" />
-
-    <!-- U -->
-    <path
-        android:fillColor="#FFFFFFFF"
-        android:pathData="M12.4,3.6 h2.6 v9.0 c0,1.9 0.9,2.9 2.1,2.9 1.2,0 2.1,-1.0 2.1,-2.9 v-9 h2.6 v9.2 c0,3.7 -1.9,5.9 -4.7,5.9 -2.8,0 -4.7,-2.2 -4.7,-5.9 Z" />
+        android:pathData="M3.5,4.01 L6.77,4.01 L7.05,13.58 L9.26,4.02 L12.52,4 L10.92,19.74 L8.89,19.73 L10.11,7.73 L7.32,19.74 L5.49,19.74 L5.15,7.73 L3.93,19.73 L1.9,19.74 Z
+        M19.64,4.01 L22.1,4 L20.96,14.74 L20.66,16.01 L20.25,17.16 L19.74,18.17 L19.18,18.97 L18.62,19.47 L17.79,19.87 L16.84,20 L15.57,19.84 L14.96,19.61 L14.49,19.22 L14.09,18.63 L13.77,17.86 L13.54,16.97 L13.4,14.63 L13.47,13.38 L14.42,4 L16.89,4.02 L15.92,13.6 L15.89,14.75 L16.07,15.62 L16.45,16.17 L17.01,16.33 L17.61,16.16 L18.08,15.62 L18.45,14.77 L18.65,13.61 Z" />
 </vector>
