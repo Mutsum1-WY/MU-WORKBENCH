@@ -3191,9 +3191,9 @@ function kbRender(animate){
       var span = kbSpan(c), s = kbMinOf(span[0]), e = kbMinOf(span[1]);
       var cls = 'kb-item', status = '', statusCls = '', extra = '';
       if(liveI === i && s != null && e != null){
-        /* 正在上：进度条 = 已上时长占比，右边写还剩多久 */
+        /* 正在上：进度条 = 剩余时间占比（越上越少，像倒计时），右边写还剩多久 */
         cls += ' live'; status = '正在上'; statusCls = ' on';
-        var pct = e > s ? Math.max(0, Math.min(100, (nowMin - s) / (e - s) * 100)) : 100;
+        var pct = e > s ? Math.max(0, Math.min(100, 100 - (nowMin - s) / (e - s) * 100)) : 0;
         extra = '<div class="kb-progrow"><div class="kb-prog"><i style="width:' + pct.toFixed(1) + '%"></i></div>' +
                 '<span>还剩 <b>' + esc(kbDur(e - nowMin)) + '</b></span></div>';
       }else if(e != null && nowMin > e){
@@ -3282,7 +3282,8 @@ function kbTick(){
     var k = kbModel[j];
     if(k.kind === 'live' && k.prog){
       var total = (k.e - k.s) * 60;
-      var pct = total > 0 ? Math.max(0, Math.min(100, (nowSec - k.s * 60) / total * 100)) : 100;
+      /* 剩余时间占比：100% → 0%，随时间递减（别再加回来，之前是「已上占比」越走越满） */
+      var pct = total > 0 ? Math.max(0, Math.min(100, 100 - (nowSec - k.s * 60) / total * 100)) : 0;
       k.prog.style.width = pct.toFixed(2) + '%';
       if(k.left){
         var left = '还剩 <b>' + esc(kbDur(k.e - nowMin)) + '</b>';
