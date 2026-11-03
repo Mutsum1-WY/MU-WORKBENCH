@@ -1860,18 +1860,20 @@ html.p5-switch body::after{
   from{opacity:0;transform:translate3d(44px,10px,0) rotate(2.2deg) skewX(10deg)}
   to{opacity:1;transform:none}
 }
-/* 今日课程：kb-wrap 的第 1 个孩子是日期行，课程卡从第 2 个孩子开始 → 偶数从左、奇数从右 */
-.kb-wrap>.kb-item:nth-child(n){animation-duration:480ms;animation-timing-function:cubic-bezier(.2,.85,.25,1);animation-fill-mode:backwards}
-.kb-wrap>.kb-item:nth-child(even){animation-name:kbCardInL}
-.kb-wrap>.kb-item:nth-child(odd){animation-name:kbCardInR}
-.kb-wrap>.kb-item:nth-child(2){animation-delay:0ms}
-.kb-wrap>.kb-item:nth-child(3){animation-delay:55ms}
-.kb-wrap>.kb-item:nth-child(4){animation-delay:110ms}
-.kb-wrap>.kb-item:nth-child(5){animation-delay:165ms}
-.kb-wrap>.kb-item:nth-child(6){animation-delay:220ms}
-.kb-wrap>.kb-item:nth-child(7){animation-delay:275ms}
-.kb-wrap>.kb-item:nth-child(8){animation-delay:330ms}
-.kb-wrap>.kb-item:nth-child(n+9){animation-delay:385ms}
+/* 今日课程：kb-wrap 的第 1 个孩子是日期行，课程卡从第 2 个孩子开始 → 偶数从左、奇数从右。
+   只在 .kb-anim 存在时播（切到今日页 / 首屏才加）——定时刷新时间时不加这个类，
+   否则每刷新一次卡片就重新飞进来一次，很吵。 */
+.kb-wrap.kb-anim>.kb-item:nth-child(n){animation-duration:480ms;animation-timing-function:cubic-bezier(.2,.85,.25,1);animation-fill-mode:backwards}
+.kb-wrap.kb-anim>.kb-item:nth-child(even){animation-name:kbCardInL}
+.kb-wrap.kb-anim>.kb-item:nth-child(odd){animation-name:kbCardInR}
+.kb-wrap.kb-anim>.kb-item:nth-child(2){animation-delay:0ms}
+.kb-wrap.kb-anim>.kb-item:nth-child(3){animation-delay:55ms}
+.kb-wrap.kb-anim>.kb-item:nth-child(4){animation-delay:110ms}
+.kb-wrap.kb-anim>.kb-item:nth-child(5){animation-delay:165ms}
+.kb-wrap.kb-anim>.kb-item:nth-child(6){animation-delay:220ms}
+.kb-wrap.kb-anim>.kb-item:nth-child(7){animation-delay:275ms}
+.kb-wrap.kb-anim>.kb-item:nth-child(8){animation-delay:330ms}
+.kb-wrap.kb-anim>.kb-item:nth-child(n+9){animation-delay:385ms}
 /* 今日待办：原来 320ms / 38ms，同样加长；容器第 1 个孩子是章节标题，卡片从第 2 个开始 */
 #todayList>.task:nth-child(n){animation-duration:480ms;animation-timing-function:cubic-bezier(.2,.85,.25,1)}
 #todayList>.task:nth-child(2){animation-delay:0ms}
@@ -3133,11 +3135,20 @@ function kbDur(min){
   return m + ' 分';
 }
 
-function kbRender(){
+var kbModel = [];        /* 已渲染课程卡的时间钩子：kbTick 只改文字和进度条，不重建 DOM */
+var kbRendered = null;   /* 上次整块渲染的日期 + 每张卡的状态，用来判断要不要重建 */
+var kbFirstPaint = true; /* 首屏也飞一次；之后只有切到今日页（切屏）才播入场动画 */
+
+function kbRender(animate){
   var host = document.getElementById('kbCard');
   if(!host) return;
   var data = kbData();
-  if(!data){ host.innerHTML = ''; return; }
+  if(!data){ host.innerHTML = ''; kbModel = []; kbRendered = null; return; }
+  if(kbFirstPaint){ animate = true; kbFirstPaint = false; }
+
+  /* 整块重建会丢掉「本周课表」的展开状态，先记下来，渲染完再恢复 */
+  var weekOpen = false, weekOld = host.querySelector('details.kb-week');
+  if(weekOld) weekOpen = weekOld.open;
 
   var now = new Date(), tk = todayKey();
   var wk = kbWeekOf(now), wd = kbWeekdayOf(now);
@@ -3146,13 +3157,14 @@ function kbRender(){
   var head = '<div class="view-head"><h2>今日课程</h2><span class="vcount">' +
     (wk.inRange ? ('第 ' + wk.week + ' 周 · ' + KB_WDNAME[wd - 1] + ' · ' + (todayList.length ? todayList.length + ' 门' : '无课')) : '学期外') +
     '</span></div>';
-  var html = head + '<div class="kb-wrap">';
+  var html = head + '<div class="kb-wrap' + (animate ? ' kb-anim' : '') + '">';
 
   if(!wk.inRange){
     html += '<div class="kb-empty"><div class="kb-et">课表不在本学期</div>' +
       '<div class="kb-ed">当前课表快照是 <b>' + esc(m.semesterLabel) + '</b>（' + esc(m.fetched) + ' 抓取）。<br>新学期/调课后需要重新抓取课表。</div></div>';
     html += '<div class="kb-foot">来源：' + esc(m.source) + ' · 快照 ' + esc(m.fetched) + '</div></div>';
     host.innerHTML = html;
+    kbModel = []; kbRendered = { day: tk, week: wk.week, inRange: false, kinds: [] };
     return;
   }
 
@@ -3224,15 +3236,71 @@ function kbRender(){
   html += '<div class="kb-foot">' + esc(m.semesterLabel) + ' · 第 ' + wk.week + ' / ' + m.totalWeeks + ' 周 · 教务系统快照（' + esc(m.fetched) + ' 抓取，调课以下发通知为准）</div>';
   html += '</div>';
   host.innerHTML = html;
+  var weekNew = host.querySelector('details.kb-week');
+  if(weekNew && weekOpen) weekNew.open = true;
+
+  /* 记下每张卡的时间（分钟）和要更新的节点，kbTick 用 */
+  kbModel = [];
+  var items = host.querySelectorAll('.kb-item');
+  if(items.length === todayList.length){
+    todayList.forEach(function(c, i){
+      var el = items[i], span = kbSpan(c);
+      kbModel.push({
+        el: el,
+        s: kbMinOf(span[0]), e: kbMinOf(span[1]),
+        kind: el.classList.contains('live') ? 'live' : (el.classList.contains('past') ? 'past' : 'next'),
+        count: el.querySelector('.kb-count b'),
+        prog: el.querySelector('.kb-prog > i'),
+        left: el.querySelector('.kb-progrow > span'),
+        lastCount: '', lastLeft: ''
+      });
+    });
+  }
+  kbRendered = { day: tk, week: wk.week, inRange: true,
+                 kinds: kbModel.map(function(x){ return x.kind; }) };
 }
 
-/* 今日页开着的时候，倒计时/进度条每分钟自己走一格（切走就停） */
+/* 今日页开着的时候，每秒刷一次「距上课 / 还剩多久 / 进度条」。
+   只改文字和进度条宽度（kbTick），不重建 DOM —— 所以不会每秒重播入场动画，也不会把
+   「本周课表」的展开状态弄丢；只有上课/下课/进入下一节这种结构变化才整块重建（同样不带动画）。 */
+function kbTick(){
+  var r = kbRendered;
+  if(!r || !r.inRange) return;
+  var now = new Date(), tk = todayKey();
+  if(tk !== r.day || kbWeekOf(now).week !== r.week){ kbRender(); return; }   /* 跨天/换周：重建一次 */
+  if(!kbModel.length) return;
+  var nowMin = now.getHours() * 60 + now.getMinutes();
+  var nowSec = nowMin * 60 + now.getSeconds();
+  /* 先看每张卡「待上 / 正在上 / 已下课」有没有变；变了就得重建（两种状态的结构不同） */
+  for(var i = 0; i < kbModel.length; i++){
+    var m = kbModel[i];
+    if(m.s == null || m.e == null) continue;
+    var kind = (nowMin >= m.s && nowMin <= m.e) ? 'live' : (nowMin > m.e ? 'past' : 'next');
+    if(kind !== m.kind){ kbRender(); return; }
+  }
+  for(var j = 0; j < kbModel.length; j++){
+    var k = kbModel[j];
+    if(k.kind === 'live' && k.prog){
+      var total = (k.e - k.s) * 60;
+      var pct = total > 0 ? Math.max(0, Math.min(100, (nowSec - k.s * 60) / total * 100)) : 100;
+      k.prog.style.width = pct.toFixed(2) + '%';
+      if(k.left){
+        var left = '还剩 <b>' + esc(kbDur(k.e - nowMin)) + '</b>';
+        if(left !== k.lastLeft){ k.left.innerHTML = left; k.lastLeft = left; }
+      }
+    }else if(k.kind === 'next' && k.count){
+      var txt = kbDur(k.s - nowMin);
+      if(txt !== k.lastCount){ k.count.textContent = txt; k.lastCount = txt; }
+    }
+  }
+}
+
 setInterval(function(){
   try{
     var v = document.getElementById('view-today');
-    if(v && v.classList.contains('on') && !document.hidden) kbRender();
+    if(v && v.classList.contains('on') && !document.hidden) kbTick();
   }catch(e){}
-}, 30000);
+}, 1000);
 /*[KB_JS_END]*/
 
 function renderToday(){
@@ -3703,7 +3771,10 @@ function switchTab(name){
   $$('.tab').forEach(function(b){ b.classList.toggle('on', b.dataset.tab === name); });
   window.scrollTo(0,0);
   if(name === 'clock'){ refreshPomoLink(); tickClock(); }
-  if(name === 'today'){ maybeUcloudSync(); }
+  if(name === 'today'){
+    maybeUcloudSync();
+    kbRender(true);   /* 切屏进今日页：刷新课程时间，并播一次卡片入场动画 */
+  }
   if(name === 'news'){ renderNews(); maybePortalSync(); }
   if(name === 'course'){ crEnter(); }
 }
@@ -8282,6 +8353,7 @@ function keepAliveInit(){
     try{ pomoSync(); }catch(e){}
     try{ tmSync(); }catch(e){}
     try{ tickClock(); }catch(e){}
+    try{ kbTick(); }catch(e){}   /* 回到前台：课程倒计时/进度立刻校正一次 */
     try{ keepAliveSync(); }catch(e){}
   };
   document.addEventListener('visibilitychange', function(){ if(!document.hidden) onShow(); });
