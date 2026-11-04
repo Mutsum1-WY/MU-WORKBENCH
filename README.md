@@ -88,13 +88,13 @@
 
 ## 安装
 
-从 [**Releases**](../../releases/latest) 下载 `MU-WORKBENCH-v2.9-debug.apk` 直接安装：
+从 [**Releases**](../../releases/latest) 下载 `MU-WORKBENCH-v2.9.1-debug.apk` 直接安装：
 
 - 系统要求 **Android 6.0+**（`minSdk 23`，`targetSdk 35`）
 - debug 签名的包（不是发布签名），安装时需要允许「安装未知来源应用」
-- APK 大小约 5.16 MB，sha256 `76310f36f1e3404c6a1ee8507f535a61cf7cd5463cf2b9297c542c024fe124ee`
+- APK 大小约 5.16 MB，sha256 `c679c7b03d24ed472572588c19f8739412e61dd20acde3ccb543d6cee5e40e78`
 - 签名与 v1.0.0 起的历史版本一致，**可以直接覆盖安装**（换签名会导致「应用未安装」，见打包手册第十一节）
-- 仓库里不直接放 APK（二进制会和源码不同步），Release 上的包对应 tag `v2.9`，打包用的 `index.html` 与该 tag 下的源码逐字节一致
+- 仓库里不直接放 APK（二进制会和源码不同步），Release 上的包对应 tag `v2.9.1`，打包用的 `index.html` 与该 tag 下的源码逐字节一致
 
 不想装 App 也可以直接用浏览器打开 `MU-WORKBENCH/index.html`（除了「系统级闹钟」和「云邮」外功能都在）。
 

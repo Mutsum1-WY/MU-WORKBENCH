@@ -10066,6 +10066,7 @@ function keepAliveInit(){
     try{ tmSync(); }catch(e){}
     try{ tickClock(); }catch(e){}
     try{ kbTick(); }catch(e){}   /* 回到前台：课程倒计时/进度立刻校正一次 */
+    try{ maybeJwUpdate(); }catch(e){}
     try{ keepAliveSync(); }catch(e){}
   };
   document.addEventListener('visibilitychange', function(){ if(!document.hidden) onShow(); });
@@ -10092,6 +10093,8 @@ function init(){
   bindTabs(); bindToday(); bindProjects(); bindCalendar(); bindSettings(); bindClock(); bindModal();
   bindUcloudCard();
   renderAll();
+  /* 冷启动也顺手拉一次课表（有凭据且过期才真的发请求） */
+  setTimeout(function(){ try{ maybeJwUpdate(); }catch(e){} }, 1200);
   renderTools();
   pomoSetPhase('focus');
   tickClock();
