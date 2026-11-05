@@ -2068,6 +2068,9 @@ html[data-theme="p3r"] .sw{
 html[data-theme="p3r"] .sw::after{
   border-radius:999px;background:#fff;
   box-shadow:0 1px 4px rgba(0,6,24,.4);
+  /* P3R 把边框去掉了（border:0），track 的内盒比 P5R 大 4px；
+     滑块的 2px 内缩必须补成 4px，否则 OFF 时上 2 下 6、ON 时左 2 右 6，看着就是歪的 */
+  top:4px;left:4px;
 }
 html[data-theme="p3r"] .sw.on{background:var(--accent)}
 html[data-theme="p3r"] .sw.on::after{background:#fff}
@@ -5479,7 +5482,7 @@ function switchTab(name){
     maybeJwUpdate();
     kbRender(true);   /* 切屏进今日页：刷新课程时间，并播一次卡片入场动画 */
   }
-  if(name === 'news'){ renderNews(); maybePortalSync(); }
+  if(name === 'news'){ var ptl = $('#ptList'); if(ptl) ptl.__sig = ''; renderNews(); maybePortalSync(); }   /* 进页面重放一次入场动画，页内刷新不再重播 */
   if(name === 'course'){ crEnter(); }
 }
 
@@ -8272,6 +8275,7 @@ function ptIndexScan(kind, opt){
   var todo = (c.items[kind] || []).filter(function(it){ return !c.idx[it.id]; });
   if(!todo.length){ c.idxAt = Date.now(); return; }
   todo = todo.slice(0, opt.max || PT_IDX_PER_ROUND);
+  var idxBefore = Object.keys(c.idx).length;    /* 本轮开始前已索引条数：用来判断「这轮到底有没有进展」 */
   c.idxBusy = true;
   c.idxProg = { done:0, total:todo.length, kind:kind };
   renderNews();
@@ -8280,8 +8284,11 @@ function ptIndexScan(kind, opt){
     if(i >= todo.length){
       c.idxBusy = false; c.idxProg = null; c.idxAt = Date.now();
       save(); renderNews();
-      /* 正在搜正文、或者按周月筛选（要正文里的时间）：接着补下一批 */
-      var more = (ptQTerms(c.q).length || ptNeedDate(kind)) &&
+      /* 正在搜正文、或者按周月筛选（要正文里的时间）：接着补下一批。
+         但必须先确认这一轮真的新增了索引 —— 全是失败项时（比如门户改版）
+         旧逻辑会每 900ms 重排一轮、连带 renderNews 反复刷新页面。 */
+      var more = (Object.keys(c.idx).length > idxBefore) &&
+                 (ptQTerms(c.q).length || ptNeedDate(kind)) &&
                  (c.items[kind] || []).some(function(it){ return !c.idx[it.id] && !ptIdxFail[it.id]; });
       if(more) setTimeout(function(){ c.idxAt = 0; ptIndexScan(kind); }, 900);
       return;
@@ -9123,10 +9130,19 @@ function ptDiagHTML(){
       '<button class="btn" data-mc="close">关闭</button></div>';
 }
 
+/* 列表只在内容真的变了时才重建：同步/正文索引进度会连续调 renderNews()，
+   每次都重写 #ptList 的 innerHTML 会让卡片反复飞入、整块闪一下 ——
+   看起来就是「校内通知界面反复刷新」。 */
+function ptSetListHTML(list, html){
+  if(!list) return;
+  if(list.__sig === html) return;
+  list.__sig = html;
+  list.innerHTML = html;
+}
+
 function renderNews(){
   var seg = $('#ptSeg'), list = $('#ptList'), meta = $('#ptMeta');
-  if(!seg || !list) return;
-  var c = ptCfg(), kind = c.kind || 'notice';
+  if(!seg || !list) return;  var c = ptCfg(), kind = c.kind || 'notice';
   var terms = ptQTerms(c.q);
   $$('#ptSeg button').forEach(function(b){
     var on = b.dataset.ptkind === kind;
@@ -9194,17 +9210,17 @@ function renderNews(){
     meta.innerHTML = bits.join('<i class="pt-dot" aria-hidden="true"></i>');
   }
   if(!ptReady()){
-    list.innerHTML = '<div class="empty">网页版看不了门户内容，请在 App 版使用</div>';
+    ptSetListHTML(list, '<div class="empty">网页版看不了门户内容，请在 App 版使用</div>');
     return;
   }
   var all = c.items[kind] || [];
   if(!all.length){
-    list.innerHTML = '<div class="empty">' + (c.busy ? '正在读取…' : (c.lastError ? '读取失败，点右上角刷新重试' : '还没有内容，点右上角刷新')) + '</div>';
+    ptSetListHTML(list, '<div class="empty">' + (c.busy ? '正在读取…' : (c.lastError ? '读取失败，点右上角刷新重试' : '还没有内容，点右上角刷新')) + '</div>');
     return;
   }
   var arr = ptVisible(kind);
   if(!arr.length){
-    list.innerHTML = '<div class="empty">没有符合条件的内容<button class="btn ghost sm" data-ptreset="1">清除筛选</button></div>';
+    ptSetListHTML(list, '<div class="empty">没有符合条件的内容<button class="btn ghost sm" data-ptreset="1">清除筛选</button></div>');
     return;
   }
   var html = arr.map(function(it){ return ptItemHTML(it, kind, terms); }).join('');
@@ -9222,7 +9238,7 @@ function renderNews(){
   }else{
     html += '<div class="pt-more"><span class="pt-note">已到最后一页 · 共 ' + all.length + ' 条</span></div>';
   }
-  list.innerHTML = html;
+  ptSetListHTML(list, html);
   /* 讲座列表本身没有日期，日期在详情里。选了区间又还没抓详情的条目，
      不能直接判成「不在范围内」——先补一批详情再重筛。 */
   if(kind === 'lecture' && (f.range || 'all') !== 'all' && ptReady() && c.on && !c.idxBusy && ptRangeFilling !== kind){
