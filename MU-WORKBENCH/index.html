@@ -991,7 +991,8 @@ body.rd-on{overflow:hidden}
 .uc-item.done .uc-t{text-decoration:line-through}
 .uc-row{display:flex;align-items:center;gap:8px}
 .uc-t{flex:1;min-width:0;font-size:13.5px;font-weight:800;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.chip.uc-course{display:inline-block;max-width:9.5em;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;vertical-align:middle}
+.uc-sub{display:flex;align-items:center;gap:6px;margin-top:6px}
+.uc-sub .chip.uc-course{max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;vertical-align:middle}
 .uc-due{font-size:11.5px;color:var(--ink-3);font-weight:900;font-variant-numeric:tabular-nums;flex:none}
 .uc-detail{display:none;margin-top:12px;padding-top:12px;border-top:1.5px dashed var(--line-2)}
 .uc-item.open .uc-detail{display:block}
@@ -6741,6 +6742,8 @@ function defaultUcloud(){
            alertOn:true,          /* 出现新待办时强提醒一次（含截止时间） */
            seen:{}, seenInit:false,   /* 已经提醒过的待办 id，避免重复打扰；首次同步不报警 */
            details:{},            /* 作业正文缓存：{activityId: {content, fullMark, chapter}} */
+           courseMap:{}, courseMapAt:0,   /* 待办 → 课程名（列表接口不带课程，靠逐门课程查作业反推） */
+           courseMiss:{},         /* 试过没解析出来的待办，12 小时内不重试 */
            trace:[], items:[], done:{} };
 }
 
@@ -6944,7 +6947,19 @@ function ucLogin(opt){
           var m2 = String(loc).match(/ticket=(ST-[^&#\s]+)/);
           if(!m2){
             var body = typeof res2.data === 'string' ? res2.data : '';
-            if(/captcha/i.test(body)) throw new Error('学校要求输入验证码：请先用手机浏览器登录一次云邮再回来重试');
+            /* 登录页 HTML 里本来就带着隐藏的 captchaParent 和「验证码登录」脚本片段，
+               不能只凭 /captcha/ 就判定「要求验证码」——真实失败原因先看服务端的报错文案；
+               只有页面里真的出现 name="captcha" 输入框（或「请输入验证码」提示）才算要验证码。 */
+            var plain = body.replace(/<script[\s\S]*?<\/script>/gi, ' ')
+                            .replace(/<style[\s\S]*?<\/style>/gi, ' ')
+                            .replace(/<[^>]+>/g, ' ')
+                            .replace(/&nbsp;/gi, ' ');
+            if(/用户名或密码错误|账号或密码错误|密码错误|用户名不存在|账号不存在/.test(plain)){
+              throw new Error('统一身份认证没通过（学工号或密码不对）');
+            }
+            var needCaptcha = /name\s*=\s*["']?captcha\b/i.test(body)
+              || /(请输入验证码|验证码不正确|验证码错误)/.test(plain);
+            if(needCaptcha) throw new Error('学校要求输入验证码：请先用手机浏览器登录一次云邮再回来重试');
             if(res2.status === 401 || res2.status === 200) throw new Error('统一身份认证没通过（学工号或密码不对）');
             throw new Error('认证没返回 ticket（HTTP ' + res2.status + '）');
           }
@@ -7072,6 +7087,7 @@ function ucloudSync(){
       save();
       renderUcloud(); renderSettings();
       muBgPush();   /* 令牌与已见 id 变了，同步给原生后台任务 */
+      setTimeout(function(){ ucResolveCourses(); }, 600);   /* 列表不带课程名时，后台逐门课反推（不阻塞界面） */
       if(fresh.length && cfg.alertOn !== false && !isFirst) ucStrongAlert(fresh);
       else toast('云邮已更新：' + items.length + ' 项');
       return items;
@@ -7092,8 +7108,105 @@ function ucTypeName(t){
 }
 /* 学生端真实字段是 activityName / activityId，兼容教师端那套 undoneName / undoneId */
 function ucTitle(it){ return it.activityName || it.undoneName || it.name || '(无标题)'; }
-/* 课程名：列表接口的 siteName（详情里也有，但列表就直接带了，不用额外请求） */
-function ucCourseOf(it){ return String((it && (it.siteName || it.site)) || '').trim(); }
+/* 课程名：列表项自带就用（部分账号/平台版本有），
+   没有的话用后台解析出来的映射（见 ucResolveCourses）。
+   实测学生端 undoneList 全是 siteId=-1 / siteName=""，平台自己的待办页也不显示课程，
+   所以必须靠「逐门课程查作业列表」反推 activityId 属于哪门课。 */
+function ucCourseOf(it){
+  var own = String((it && (it.siteName || it.site)) || '').trim();
+  if(own) return own;
+  var cfg = ucCfg();
+  var id = it && ucIdOf(it);
+  var mapped = id && cfg.courseMap && cfg.courseMap[id];
+  return mapped ? String(mapped).trim() : '';
+}
+
+/* ---- 待办 → 课程名解析 ----
+   背景：/ykt-site/site/student/undone 不返回课程（siteId=-1、siteName=""），
+   但 /ykt-site/work/student/list 按 siteId 查能得到该课程的作业列表（id = activityId），
+   课程名来自 /ykt-site/site/list/student/current。于是：拿学生课程表，逐门查作业，
+   命中当前待办就记下来。26 门课 ≈ 26 个小请求，只在有缺课程名的待办时跑，结果缓存 12 小时。 */
+var ucMapping = 0;                       /* 防并发：同一时间只跑一轮 */
+var UC_COURSE_MAP_TTL = 12 * 3600 * 1000;
+var UC_COURSE_MISS_TTL = 12 * 3600 * 1000;
+function ucNeedCourse(it){
+  return !!ucIdOf(it) && !String((it.siteName || '') || '').trim();
+}
+function ucCourseTodoIds(){ return (ucCfg().items || []).filter(ucNeedCourse).map(ucIdOf); }
+/* 有没有「还没解析、也没记过失败」的待办 */
+function ucCourseMapStale(){
+  var cfg = ucCfg();
+  var ids = ucCourseTodoIds();
+  if(!ids.length) return false;
+  var now = Date.now();
+  return ids.some(function(id){
+    if(cfg.courseMap && cfg.courseMap[id]) return false;
+    var miss = cfg.courseMiss && cfg.courseMiss[id];
+    if(miss && (now - miss) < UC_COURSE_MISS_TTL) return false;   /* 试过没找到，别反复骚扰服务器 */
+    return true;
+  });
+}
+function ucResolveCourses(){
+  var cfg = ucCfg();
+  if(ucMapping || !ucReady()) return Promise.resolve();
+  var ids = ucCourseTodoIds();
+  if(!ids.length || !ucCourseMapStale()) return Promise.resolve();
+  var need = {};
+  ids.forEach(function(id){ if(!cfg.courseMap[id]) need[id] = 1; });
+  var left = Object.keys(need).length;
+  if(!left) return Promise.resolve();
+  var uid = cfg.userInfoId || cfg.userId;
+  if(!uid) return Promise.resolve();
+  ucMapping = 1;
+  cfg.courseMap = cfg.courseMap || {};
+  cfg.courseMiss = cfg.courseMiss || {};
+  var found = {};
+  var scanned = 0, total = 0;
+  var totalMissing = left;
+  ucTrace('⑤ 解析待办的课程名（缺 ' + totalMissing + ' 条，逐门课程查作业）');
+
+  function finish(err){
+    ucMapping = 0;
+    var now = Date.now();
+    Object.keys(found).forEach(function(k){ cfg.courseMap[k] = found[k]; });
+    Object.keys(need).forEach(function(k){ if(!found[k]) cfg.courseMiss[k] = now; });
+    /* 清掉已经不在待办里的缓存，别越攒越多 */
+    var alive = {};
+    (cfg.items || []).forEach(function(it){ var id = ucIdOf(it); if(id) alive[id] = 1; });
+    Object.keys(cfg.courseMap).forEach(function(k){ if(!alive[k]) delete cfg.courseMap[k]; });
+    Object.keys(cfg.courseMiss).forEach(function(k){ if(!alive[k]) delete cfg.courseMiss[k]; });
+    cfg.courseMapAt = now;
+    if(err) ucTrace('   课程名解析中断：' + (err.message || err));
+    else ucTrace('   课程名解析完成：' + Object.keys(found).length + '/' + totalMissing + ' 条（查了 ' + scanned + '/' + total + ' 门课）');
+    save(); renderUcloud();
+  }
+
+  return ucHttp({ url:'/ykt-site/site/list/student/current?size=999999&current=1&userId=' + encodeURIComponent(uid) + '&siteRoleCode=2', step:'课程列表' })
+    .then(function(res){
+      var recs = ((res.data && res.data.data) || {}).records || [];
+      total = recs.length;
+      ucTrace('   课程 ' + total + ' 门，开始逐门查作业');
+      var i = 0;
+      function next(){
+        if(!left || i >= recs.length){ finish(); return Promise.resolve(); }
+        var site = recs[i++];
+        scanned++;
+        return ucHttp({ url:'/ykt-site/work/student/list', method:'POST', step:'课程作业',
+            data:{ userId:uid, siteId:site.id, keyword:'', current:1, size:200,
+                   studentAssignmentStatus:null, status:0 } })
+          .then(function(r2){
+            var rr = ((r2.data && r2.data.data) || {}).records || [];
+            rr.forEach(function(rec){
+              var aid = String(rec.id || rec.assignmentId || '');
+              if(aid && need[aid] && !found[aid]){ found[aid] = site.siteName; left--; }
+            });
+            return new Promise(function(ok){ setTimeout(ok, 120); }).then(next);
+          });
+      }
+      return next();
+    })
+    ['catch'](function(e){ finish(e); });
+}
 function ucIdOf(it){ return it.activityId || it.undoneId || it.id || ''; }
 /* 不再按 type 过滤：实测 10 条全是 type=3，过滤了就一条都看不到 */
 function ucFiltered(){ return ucCfg().items || []; }
@@ -7374,11 +7487,11 @@ function renderUcloud(){
       return '<div class="uc-item' + (done ? ' done' : '') + (id === ucOpenId ? ' open' : '') + '" data-ucid="' + esc(id) + '">' +
         '<div class="uc-row">' +
           '<span class="chip ' + (it.type === 1 ? 'rep' : 'time') + '">' + ucTypeName(it.type) + '</span>' +
-          (course ? '<span class="chip uc-course" title="' + esc(course) + '">' + esc(course) + '</span>' : '') +
           '<div class="uc-t">' + esc(ucTitle(it)) + '</div>' +
           (focusing ? '<span class="chip tag">专注中</span>' : '') +
           '<span class="uc-due"' + (dueCol ? ' style="color:' + dueCol + '"' : '') + '>' + esc(ucDueText(it)) + '</span>' +
         '</div>' +
+        (course ? '<div class="uc-sub"><span class="chip uc-course" title="' + esc(course) + '">' + esc(course) + '</span></div>' : '') +
         ucBarHTML(it) +
         '<div class="uc-detail">' +
           ucContentView(it) +
@@ -7504,6 +7617,7 @@ try{
   window.__ucTest = {
     cfg: ucCfg, render: renderUcloud, state: function(){ return state; },
     save: save, courseOf: ucCourseOf, ready: ucReady,
+    fetchUndone: ucFetchUndone, resolveCourses: ucResolveCourses,
     renderToday: function(){ try{ renderToday(); }catch(e){} }
   };
 }catch(e){}

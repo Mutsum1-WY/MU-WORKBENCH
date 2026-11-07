@@ -307,7 +307,7 @@ public final class BgCheck {
                                 for (int i = 0; i < Math.min(2, fresh.size()); i++) {
                                     if (i > 0) t.append("、");
                                     UcItem f = fresh.get(i);
-                                    if (!f.course.isEmpty()) t.append("【").append(f.course).append("】");
+                                    if (f.course != null && !f.course.isEmpty()) t.append("【").append(f.course).append("】");
                                     t.append(f.title);
                                 }
                                 String extra = fresh.get(0).due.isEmpty() ? "" : ("（截止 " + fresh.get(0).due + "）");
@@ -545,7 +545,8 @@ public final class BgCheck {
             UcItem it = new UcItem();
             it.id = o.optString("activityId", "");
             it.title = o.optString("activityName", "未命名作业");
-            it.course = o.optString("siteName", "");
+            /* org.json 的 optString 遇到 JSON null 会返回字符串 "null"，别让它出现在通知里 */
+            it.course = o.isNull("siteName") ? "" : o.optString("siteName", "").trim();
             String et = o.optString("endTime", "");
             it.due = et.length() >= 16 ? et.substring(5, 16) : et;
             if (!it.id.isEmpty()) out.add(it);
