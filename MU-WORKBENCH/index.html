@@ -991,6 +991,7 @@ body.rd-on{overflow:hidden}
 .uc-item.done .uc-t{text-decoration:line-through}
 .uc-row{display:flex;align-items:center;gap:8px}
 .uc-t{flex:1;min-width:0;font-size:13.5px;font-weight:800;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.chip.uc-course{display:inline-block;max-width:9.5em;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;vertical-align:middle}
 .uc-due{font-size:11.5px;color:var(--ink-3);font-weight:900;font-variant-numeric:tabular-nums;flex:none}
 .uc-detail{display:none;margin-top:12px;padding-top:12px;border-top:1.5px dashed var(--line-2)}
 .uc-item.open .uc-detail{display:block}
@@ -7091,6 +7092,8 @@ function ucTypeName(t){
 }
 /* 学生端真实字段是 activityName / activityId，兼容教师端那套 undoneName / undoneId */
 function ucTitle(it){ return it.activityName || it.undoneName || it.name || '(无标题)'; }
+/* 课程名：列表接口的 siteName（详情里也有，但列表就直接带了，不用额外请求） */
+function ucCourseOf(it){ return String((it && (it.siteName || it.site)) || '').trim(); }
 function ucIdOf(it){ return it.activityId || it.undoneId || it.id || ''; }
 /* 不再按 type 过滤：实测 10 条全是 type=3，过滤了就一条都看不到 */
 function ucFiltered(){ return ucCfg().items || []; }
@@ -7363,6 +7366,7 @@ function renderUcloud(){
     body = list.map(function(it){
       var id = ucIdOf(it);
       var done = !!cfg.done[id];
+      var course = ucCourseOf(it);
       var fields = ucFieldRows(it);
       var sp = ucSpan(it);
       var dueCol = sp.due ? ucDdlColor(sp.urgent, 40) : '';
@@ -7370,6 +7374,7 @@ function renderUcloud(){
       return '<div class="uc-item' + (done ? ' done' : '') + (id === ucOpenId ? ' open' : '') + '" data-ucid="' + esc(id) + '">' +
         '<div class="uc-row">' +
           '<span class="chip ' + (it.type === 1 ? 'rep' : 'time') + '">' + ucTypeName(it.type) + '</span>' +
+          (course ? '<span class="chip uc-course" title="' + esc(course) + '">' + esc(course) + '</span>' : '') +
           '<div class="uc-t">' + esc(ucTitle(it)) + '</div>' +
           (focusing ? '<span class="chip tag">专注中</span>' : '') +
           '<span class="uc-due"' + (dueCol ? ' style="color:' + dueCol + '"' : '') + '>' + esc(ucDueText(it)) + '</span>' +
@@ -7406,7 +7411,8 @@ function ucNotifyNow(items){
   var LN = capPlugin('LocalNotifications');
   if(!LN || !state.settings.notify) return;
   var body = items.slice(0, 3).map(function(it){
-    return '· ' + ucTitle(it) + (ucDueText(it) ? ('（截止 ' + ucDueText(it) + '）') : '');
+    var c = ucCourseOf(it);
+    return '· ' + (c ? ('【' + c + '】') : '') + ucTitle(it) + (ucDueText(it) ? ('（截止 ' + ucDueText(it) + '）') : '');
   }).join('\n');
   try{
     LN.schedule({ notifications: [{
@@ -7433,8 +7439,10 @@ function ucStrongAlert(items){
       items.map(function(it){
         var spx = ucSpan(it);
         var dc = spx.due ? ucDdlColor(spx.urgent, 38) : '';
+        var ucc = ucCourseOf(it);
         return '<div class="uc-new">' +
           '<span class="chip ' + (it.type === 1 ? 'rep' : 'time') + '">' + ucTypeName(it.type) + '</span>' +
+          (ucc ? '<span class="chip uc-course" title="' + esc(ucc) + '">' + esc(ucc) + '</span>' : '') +
           '<div class="uc-new-t">' + esc(ucTitle(it)) + '</div>' +
           '<div class="uc-new-d"' + (dc ? ' style="color:' + dc + '"' : '') + '>' +
             (spx.due ? ('截止 ' + esc(ucDueText(it)) + ' · ' + esc(ucLeftText(spx))) : '没有截止时间') + '</div>' +
@@ -7490,6 +7498,15 @@ function bindUcloudCard(){
     }
   };
 }
+
+/* 调试 / 自动化测试钩子（和 __muJw / __scTest 同一套模式，不影响正常使用） */
+try{
+  window.__ucTest = {
+    cfg: ucCfg, render: renderUcloud, state: function(){ return state; },
+    save: save, courseOf: ucCourseOf, ready: ucReady,
+    renderToday: function(){ try{ renderToday(); }catch(e){} }
+  };
+}catch(e){}
 
 /* ====================== [11b] 信息门户（校内通知 + 学术讲座，只在 App 版启用） ======================
    数据源：my.bupt.edu.cn（Visual SiteBuilder 9 建的站）

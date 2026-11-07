@@ -306,7 +306,9 @@ public final class BgCheck {
                                 StringBuilder t = new StringBuilder();
                                 for (int i = 0; i < Math.min(2, fresh.size()); i++) {
                                     if (i > 0) t.append("、");
-                                    t.append(fresh.get(i).title);
+                                    UcItem f = fresh.get(i);
+                                    if (!f.course.isEmpty()) t.append("【").append(f.course).append("】");
+                                    t.append(f.title);
                                 }
                                 String extra = fresh.get(0).due.isEmpty() ? "" : ("（截止 " + fresh.get(0).due + "）");
                                 lines.add("云邮新待办 " + fresh.size() + " 项：" + t + extra);
@@ -489,7 +491,7 @@ public final class BgCheck {
     }
 
     private static final class UcItem {
-        String id, title, due;
+        String id, title, due, course;
     }
 
     /** 令牌还有效就直接用；过期了用 refresh_token 换（不碰密码、不计登录失败次数） */
@@ -543,6 +545,7 @@ public final class BgCheck {
             UcItem it = new UcItem();
             it.id = o.optString("activityId", "");
             it.title = o.optString("activityName", "未命名作业");
+            it.course = o.optString("siteName", "");
             String et = o.optString("endTime", "");
             it.due = et.length() >= 16 ? et.substring(5, 16) : et;
             if (!it.id.isEmpty()) out.add(it);
