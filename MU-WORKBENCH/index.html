@@ -661,6 +661,15 @@ select.input{
 }
 .wk-grid button:hover{background:var(--paper-2)}
 .wk-grid button.on{background:var(--accent);color:var(--paper);border-color:var(--ink)}
+/* 每月几号：1–31 的小按钮，一行 7 个 */
+.md-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:6px}
+.md-grid button{
+  padding:8px 0;border-radius:0;border:var(--bw) solid var(--ink);
+  background:var(--surface-1);font-size:13px;font-weight:800;color:var(--ink-2);
+  transition:background var(--t),color var(--t);
+}
+.md-grid button:hover{background:var(--paper-2)}
+.md-grid button.on{background:var(--accent);color:var(--paper);border-color:var(--ink)}
 .time-row{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
 .time-row .input{width:126px;flex:none}
 
@@ -3891,9 +3900,16 @@ function migrate(o){
     }
     delete t.repeat;
     if(!Array.isArray(t.weekdays)) t.weekdays = [];
+    if(!Array.isArray(t.mdays)) t.mdays = [];       /* 每月几号：1–31 的多选 */
     if(t.interval == null) t.interval = 2;
     if(typeof t.time !== 'string') t.time = '';   /* 每条待办自己的提醒时间，空=不单独提醒 */
-    if(['once','daily','workday','restday','custom','interval'].indexOf(t.type) < 0) t.type = 'once';
+    if(['once','daily','workday','restday','custom','monthly','interval'].indexOf(t.type) < 0) t.type = 'once';
+    if(t.type === 'monthly'){
+      t.mdays = t.mdays.map(Number)
+        .filter(function(n){ return n >= 1 && n <= 31; })
+        .filter(function(n, i, a){ return a.indexOf(n) === i; })
+        .sort(function(a, b){ return a - b; });
+    }
   });
   o.projects.forEach(function(p){
     if(!Array.isArray(p.items)) p.items = [];
@@ -3934,6 +3950,7 @@ var TODO_TYPES = [
   { k:'workday',  n:'工作日',      d:'跳过法定节假日' },
   { k:'restday',  n:'休息日',      d:'周末与法定节假日' },
   { k:'custom',   n:'自定义星期',  d:'勾选周几' },
+  { k:'monthly',  n:'每月几号',    d:'选每月哪几天' },
   { k:'interval', n:'每 N 天',     d:'每隔 N 天一次' }
 ];
 var WEEK_CN = '日一二三四五六';
@@ -3953,6 +3970,12 @@ function ruleText(t){
       return w.map(function(i){ return '周' + WEEK_CN.charAt(i); }).join(' ');
     }
     case 'interval': return '每 ' + (Number(t.interval)||2) + ' 天';
+    case 'monthly':{
+      var ds = (t.mdays||[]).map(Number).filter(function(n){ return n >= 1 && n <= 31; })
+        .sort(function(a,b){ return a - b; });
+      if(!ds.length) return '每月几号（未选）';
+      return '每月 ' + ds.join('、') + ' 号';
+    }
     default:         return t.date ? t.date.slice(5) : '';
   }
 }
@@ -3995,6 +4018,12 @@ function occursOn(t,key){
     case 'workday': return isWorkday(key);
     case 'restday': return isRestday(key);
     case 'custom':  return (t.weekdays||[]).indexOf(fromKey(key).getDay()) >= 0;
+    case 'monthly':{
+      /* 选 31 号时，没有 31 号的月份（2、4、6、9、11 月）自动跳过，不做「月末」代替 */
+      var ds = t.mdays || [];
+      if(!ds.length) return false;
+      return ds.indexOf(fromKey(key).getDate()) >= 0;
+    }
     case 'interval':{
       var n = Math.max(1, Number(t.interval) || 2);
       var diff = dayDiff(key, t.date);
@@ -5800,7 +5829,7 @@ function openTaskModal(id, presetDate, presetType){
   else{
     draft = {
       id:uid(), title:'', date:presetDate || todayKey(), type:presetType || 'once',
-      weekdays:[], interval:2,
+      weekdays:[], interval:2, mdays:[],
       time:(state.settings.remind || '08:00'),      /* 默认跟全局默认提醒时间 */
       priority:'mid', tag:'学习', subs:[], done:false, doneDates:[], createdAt:Date.now()
     };
@@ -5891,6 +5920,19 @@ function openTaskModal(id, presetDate, presetType){
             '<input class="input" type="number" id="fInterval" min="2" max="60" value="' + (Number(draft.interval)||2) + '" style="width:78px">' +
             '<span class="muted small">天一次</span>' +
           '</div></div>' + pickerHTML('从哪一天开始', false);
+    }else if(draft.type === 'monthly'){
+      h = '<div class="field"><span>每月哪几天</span>' +
+          '<div class="md-grid" id="mdGrid">' +
+          (function(){
+            var picked = draft.mdays || [];
+            var out = '';
+            for(var d = 1; d <= 31; d++){
+              out += '<button data-md="' + d + '" class="' + (picked.indexOf(d)>=0?'on':'') + '">' + d + '</button>';
+            }
+            return out;
+          })() + '</div>' +
+          '<div class="muted small" style="margin-top:8px">可以多选。没有这一天的月份会跳过（比如 31 号只在 1、3、5 月出现）；在 App 里会逐次排系统闹钟。</div>' +
+          '</div>';
     }else if(draft.type === 'custom'){
       h = '<div class="field"><span>每周哪几天</span><div class="wk-grid" id="wkGrid">' +
           [0,1,2,3,4,5,6].map(function(i){
@@ -5940,6 +5982,17 @@ function openTaskModal(id, presetDate, presetType){
         b.classList.toggle('on', i < 0);
       };
     }
+    var mgrid = $('#mdGrid');
+    if(mgrid){
+      mgrid.onclick = function(e){
+        var b = e.target.closest('[data-md]'); if(!b) return;
+        var d = Number(b.dataset.md);
+        draft.mdays = draft.mdays || [];
+        var i = draft.mdays.indexOf(d);
+        if(i >= 0) draft.mdays.splice(i,1); else draft.mdays.push(d);
+        b.classList.toggle('on', i < 0);
+      };
+    }
   }
   renderTypeFields();
 
@@ -5948,6 +6001,7 @@ function openTaskModal(id, presetDate, presetType){
     draft.type = b.dataset.type;
     if(draft.type === 'once' && !draft.date) draft.date = todayKey();
     if(draft.type === 'custom' && !(draft.weekdays||[]).length) draft.weekdays = [fromKey(draft.date || todayKey()).getDay()];
+    if(draft.type === 'monthly' && !(draft.mdays||[]).length) draft.mdays = [fromKey(draft.date || todayKey()).getDate()];
     $$('#typeList button').forEach(function(x){ x.classList.toggle('on', x === b); });
     renderTypeFields();
   };
@@ -6003,6 +6057,7 @@ function openTaskModal(id, presetDate, presetType){
         var title = $('#fTitle').value.trim();
         if(!title){ toast('先写点内容吧'); $('#fTitle').focus(); return; }
         if(draft.type === 'custom' && !(draft.weekdays||[]).length){ toast('至少勾一个星期'); return; }
+        if(draft.type === 'monthly' && !(draft.mdays||[]).length){ toast('至少选一个日期'); return; }
         draft.title = title;
         draft.time = $('#fTime').value || '';
         /* 日期由自制月历直接写进 draft.date，这里只补默认值 */
@@ -6010,6 +6065,13 @@ function openTaskModal(id, presetDate, presetType){
         else if(draft.type === 'interval'){
           draft.date = draft.date || todayKey();
           draft.interval = clamp(Number($('#fInterval').value) || 2, 2, 60);
+        }
+        else if(draft.type === 'monthly'){
+          draft.date = draft.date || todayKey();
+          draft.mdays = (draft.mdays || []).map(Number)
+            .filter(function(n){ return n >= 1 && n <= 31; })
+            .filter(function(n, i, a){ return a.indexOf(n) === i; })
+            .sort(function(a, b){ return a - b; });
         }
         else{ draft.date = draft.date || todayKey(); }   /* 重复类型：以创建日为起点 */
         draft.tag = $('#fTag').value;
@@ -6532,8 +6594,8 @@ function fireTodayReminder(text, onlyNoTime){
      所以网页版的行为和以前完全一样（可以只维护这一份 index.html）。
    · App 版把**每条待办的提醒**注册成系统闹钟：App 关掉、手机重启都还在。
    · 每日 / 自定义星期 → 用「系统级重复闹钟」，永不过期；
-     单次 / 工作日 / 休息日 / 每 N 天 → 往后排 21 天的具体时刻（工作日要按节假日逐天算，
-     系统闹钟表达不了「跳过某个节假日」，所以只能逐日排，打开 App 会自动续排）。
+     单次 / 工作日 / 休息日 / 每 N 天 / 每月几号 → 往后排 21 天的具体时刻（工作日要按节假日逐天算、
+     每月几号要按当月实际天数算，系统闹钟表达不了，所以只能逐日排，打开 App 会自动续排）。
    · 系统闹钟不会实时读数据，所以通知文案是「排程那一刻的快照」，数据一变就重排。
    ================================================================================= */
 var NATIVE_SUMMARY_ID = 1001;      /* 汇总兜底提醒 */
