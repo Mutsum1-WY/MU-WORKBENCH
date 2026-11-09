@@ -1493,6 +1493,10 @@ html.sc-lock{overflow:hidden}
 .scwin-line{position:absolute;left:15%;right:15%;top:14%;height:2px;background:linear-gradient(90deg,transparent,var(--accent),transparent);box-shadow:0 0 12px var(--accent);pointer-events:none;display:none}
 .scwin-view[data-scanning="1"] .scwin-line{display:block;animation:scSweep 2.4s linear infinite}
 @keyframes scSweep{0%{top:14%}50%{top:86%}100%{top:14%}}
+.scwin-zoom{position:absolute;left:50%;bottom:10px;transform:translateX(-50%);display:flex;align-items:center;gap:8px;padding:4px 6px;border-radius:999px;background:rgba(0,0,0,.55);border:1.5px solid rgba(255,255,255,.35);z-index:3}
+.scwin-zbtn{width:30px;height:30px;padding:0;border:0;border-radius:999px;background:rgba(255,255,255,.16);color:#fff;font-size:17px;font-weight:900;line-height:1;cursor:pointer}
+.scwin-zbtn:disabled{opacity:.32}
+.scwin-zlbl{min-width:34px;text-align:center;color:#fff;font-size:12px;font-weight:900;font-variant-numeric:tabular-nums}
 .scwin-badge{position:absolute;left:10px;top:10px;font-size:10px;font-weight:900;letter-spacing:.1em;padding:3px 9px;background:rgba(5,7,10,.72);color:#fff;border:1px solid rgba(255,255,255,.3);display:none}
 .scwin-view[data-scanning="1"] .scwin-badge{display:block}
 .scwin-result{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:7px;padding:24px;text-align:center;background:rgba(5,8,14,.88);backdrop-filter:blur(2px)}
@@ -12305,7 +12309,12 @@ function crSwitchSub(k){
    非 checkwork 的二维码仍按「最可能的形状」排队试，并把每次接口原文摊在页面上。 */
 var SC_API_SIGN = '/ykt-site/attendancedetailinfo/sign';
 var scStream = null, scDetector = null, scTicking = 0, scBusy = false;
-var scCanvas = null, scCtx = null, scDecodeAt = 0;   /* 内置 jsQR 兜底解码用的画布 */
+var scCanvas = null, scCtx = null, scDecodeAt = 0;   /* 解码用的画布（按变焦裁剪中心区域） */
+/* 扫码距离：默认尽量要高分辨率；再给一个 1–4× 变焦。
+   有相机硬件变焦就用硬件（画质最好），没有就数字变焦（CSS 放大预览 + 裁剪中心解码）。 */
+var SC_ZOOM_MAX = 4;
+var scZoom = 1, scTrack = null, scCamZoom = null;
+var scBdFails = 0;   /* 系统识别不接受 canvas 的次数：连续失败就退回内置 jsQR */
 var scQR = '', scResult = null, scHint = '', scCamOn = false, scPaused = false, scManual = false;
 var scRoot = null, scBound = false;
 
@@ -12459,6 +12468,11 @@ function scShell(root){
         '<div class="scwin-frame"><i></i><i></i><i></i><i></i></div>' +
         '<div class="scwin-line"></div>' +
         '<div class="scwin-badge">扫描中…</div>' +
+        '<div class="scwin-zoom" data-sc="zoom" hidden>' +
+          '<button class="scwin-zbtn" data-sc-act="zoomout" aria-label="缩小">－</button>' +
+          '<span class="scwin-zlbl" data-sc="zlbl">1×</span>' +
+          '<button class="scwin-zbtn" data-sc-act="zoomin" aria-label="放大">＋</button>' +
+        '</div>' +
         '<div class="scwin-result" data-sc="result" hidden></div>' +
       '</div>' +
       '<div class="scwin-ctl">' +
@@ -12481,6 +12495,12 @@ function scStop(){
   scPaused = false;
   scReqStop();
   scDetector = null;
+  scTrack = null;
+  scCamZoom = null;
+  scZoom = 1;
+  var _rv = scActiveRoot();
+  var _rvv = _rv && _rv.querySelector('[data-sc="video"]');
+  if(_rvv){ try{ _rvv.style.transform = ''; }catch(e){} }
   if(scStream){
     try{ scStream.getTracks().forEach(function(t){ t.stop(); }); }catch(e){}
     scStream = null;
@@ -12505,18 +12525,35 @@ function scRearm(){
     if(v) scLoop(v);
   }
 }
-/* 把一帧画面缩到 400px 宽再解，别拿全分辨率进 jsQR（手机 CPU 扛不住） */
-function scDecodeSource(el){
+/* 把画面中心 1/zoom 的区域画到解码画布上：等价于数字变焦，
+   远处的二维码在小图里只有几十像素，裁剪 + 放大后才有足够像素给解码器。
+   分辨率上限 720（jsQR 再大就慢了），最多允许 3× 数字放大。 */
+function scDecodeCanvas(el, zoom){
+  var vw = el.videoWidth || el.naturalWidth || el.width || 0;
+  var vh = el.videoHeight || el.naturalHeight || el.height || 0;
+  if(!vw || !vh) return null;
+  var z = Math.max(1, Number(zoom) || 1);
+  var cw = Math.max(1, Math.round(vw / z)), ch = Math.max(1, Math.round(vh / z));
+  var sx = Math.round((vw - cw) / 2), sy = Math.round((vh - ch) / 2);
+  var target = 720;
+  var scale = Math.min(target / Math.max(cw, ch), 3);
+  var W = Math.max(1, Math.round(cw * scale)), H = Math.max(1, Math.round(ch * scale));
   try{
-    var vw = el.videoWidth || el.naturalWidth || el.width || 0;
-    var vh = el.videoHeight || el.naturalHeight || el.height || 0;
-    if(!vw || !vh || !window.jsQR) return '';
     if(!scCanvas){ scCanvas = document.createElement('canvas'); scCtx = scCanvas.getContext('2d', { willReadFrequently: true }); }
-    var W = 400, H = Math.max(1, Math.round(vh * W / vw));
     scCanvas.width = W; scCanvas.height = H;
-    scCtx.drawImage(el, 0, 0, W, H);
-    var img = scCtx.getImageData(0, 0, W, H);
-    var res = window.jsQR(img.data, W, H, { inversionAttempts: 'attemptBoth' });
+    try{ scCtx.imageSmoothingEnabled = false; }catch(e){}   /* 放大时保持二维码边缘锐利，别糊成一团 */
+    scCtx.drawImage(el, sx, sy, cw, ch, 0, 0, W, H);
+    return { canvas: scCanvas, w: W, h: H, zoom: z };
+  }catch(e){ return null; }
+}
+function scDecodeFrameZoom(){ return scCamZoom ? 1 : scZoom; }   /* 硬件变焦时不再重复裁 */
+function scDecodeSource(el, zoom){
+  try{
+    if(!window.jsQR) return '';
+    var fr = scDecodeCanvas(el, zoom || scDecodeFrameZoom());
+    if(!fr) return '';
+    var img = scCtx.getImageData(0, 0, fr.w, fr.h);
+    var res = window.jsQR(img.data, fr.w, fr.h, { inversionAttempts: 'attemptBoth' });
     return (res && res.data) ? res.data : '';
   }catch(e){ return ''; }
 }
@@ -12525,23 +12562,33 @@ function scLoop(v){
   var tick = function(){
     if(!scCamOn) return;
     if(!scPaused && !scBusy){
-      if(scDetector){
-        scDetector.detect(v).then(function(codes){
-          if(codes && codes.length && codes[0].rawValue && !scPaused && !scBusy){
-            scOnCode(codes[0].rawValue);
+      var now = Date.now();
+      if(now - scDecodeAt >= 150){
+        scDecodeAt = now;
+        var fr = scDecodeCanvas(v, scDecodeFrameZoom());
+        if(fr){
+          if(scDetector){
+            scDetector.detect(fr.canvas).then(function(codes){
+              scBdFails = 0;
+              if(codes && codes.length && codes[0].rawValue && !scPaused && !scBusy){
+                scOnCode(codes[0].rawValue);
+              }
+              if(scCamOn) scTicking = requestAnimationFrame(tick);
+            }, function(){
+              /* 少数 WebView 的 BarcodeDetector 不吃 canvas：连续失败就退回内置 jsQR（同样带变焦裁剪） */
+              scBdFails++;
+              if(scBdFails >= 3 && window.jsQR) scDetector = null;
+              if(scCamOn) scTicking = requestAnimationFrame(tick);
+            });
+            return;
           }
-          if(scCamOn) scTicking = requestAnimationFrame(tick);
-        }, function(){
-          if(scCamOn) scTicking = requestAnimationFrame(tick);
-        });
-        return;
-      }
-      if(window.jsQR){
-        var now = Date.now();
-        if(now - scDecodeAt >= 180){
-          scDecodeAt = now;
-          var txt = scDecodeSource(v);
-          if(txt) scOnCode(txt);
+          if(window.jsQR){
+            try{
+              var img = scCtx.getImageData(0, 0, fr.w, fr.h);
+              var res = window.jsQR(img.data, fr.w, fr.h, { inversionAttempts: 'attemptBoth' });
+              if(res && res.data) scOnCode(res.data);
+            }catch(e){}
+          }
         }
       }
     }
@@ -12558,6 +12605,34 @@ function scOnCode(text){
   renderScan();
   ucSignRun(t);
 }
+/* 应用变焦：优先硬件（画质好），不行就 CSS 放大预览 + 解码时裁剪 */
+function scApplyZoom(){
+  var root = scActiveRoot();
+  var v = root && root.querySelector('[data-sc="video"]');
+  if(scCamZoom && scTrack){
+    var t = (scZoom - 1) / (SC_ZOOM_MAX - 1);
+    var z = scCamZoom.min + (scCamZoom.max - scCamZoom.min) * t;
+    try{ scTrack.applyConstraints({ advanced: [{ zoom: z }] })['catch'](function(){}); }catch(e){}
+    if(v) v.style.transform = '';
+  }else if(v){
+    v.style.transform = scZoom > 1 ? ('scale(' + scZoom + ')') : '';
+    v.style.transformOrigin = '50% 50%';
+  }
+}
+function scSetZoom(z){
+  scZoom = Math.max(1, Math.min(SC_ZOOM_MAX, Math.round(Number(z) || 1)));
+  scApplyZoom();
+  renderScan();
+}
+function scResetZoom(){
+  scZoom = 1;
+  var root = scActiveRoot();
+  var v = root && root.querySelector('[data-sc="video"]');
+  if(v){ v.style.transform = ''; }
+  if(scCamZoom && scTrack){
+    try{ scTrack.applyConstraints({ advanced: [{ zoom: scCamZoom.min }] })['catch'](function(){}); }catch(e){}
+  }
+}
 function scStart(){
   var root = scActiveRoot();
   if(!root) return;
@@ -12573,11 +12648,33 @@ function scStart(){
     return;
   }
   scHint = '';
-  md.getUserMedia({ video: { facingMode: { ideal: 'environment' } }, audio: false })
+  /* 尽量要高分辨率：远景二维码在小分辨率下只有几十像素，根本解不出来。
+     全部用 ideal，机器不支持就自动降级，不会因为约束失败打不开相机。 */
+  md.getUserMedia({ video: {
+      facingMode: { ideal: 'environment' },
+      width: { ideal: 1920 },
+      height: { ideal: 1080 }
+    }, audio: false })
     .then(function(st){
       scStream = st;
       scCamOn = true;
       scPaused = false;
+      scZoom = 1;
+      try{ v.style.transform = ''; }catch(e){}
+      scTrack = (st.getVideoTracks && st.getVideoTracks()[0]) || null;
+      scCamZoom = null;
+      scBdFails = 0;
+      try{
+        if(scTrack){
+          var caps = scTrack.getCapabilities ? (scTrack.getCapabilities() || {}) : {};
+          if(caps.zoom && typeof caps.zoom.min === 'number' && typeof caps.zoom.max === 'number' && caps.zoom.max > caps.zoom.min){
+            scCamZoom = { min: caps.zoom.min, max: caps.zoom.max };
+          }
+          if(caps.focusMode && caps.focusMode.indexOf && caps.focusMode.indexOf('continuous') >= 0){
+            try{ scTrack.applyConstraints({ advanced: [{ focusMode: 'continuous' }] })['catch'](function(){}); }catch(e){}
+          }
+        }
+      }catch(e){ scTrack = null; scCamZoom = null; }
       try{ v.srcObject = st; }catch(e){}
       var p = v.play && v.play();
       if(p && p['catch']) p['catch'](function(){});
@@ -12675,6 +12772,15 @@ function renderScan(){
   main.textContent = !scCamOn ? '开始扫描' : scBusy ? '正在提交…' : scPaused ? '再扫一次' : '重新扫描';
   main.disabled = false;
 
+  var zoomWrap = root.querySelector('[data-sc="zoom"]');
+  var zlbl = root.querySelector('[data-sc="zlbl"]');
+  var zIn = root.querySelector('[data-sc-act="zoomin"]');
+  var zOut = root.querySelector('[data-sc-act="zoomout"]');
+  if(zoomWrap) zoomWrap.hidden = !scCamOn;
+  if(zlbl) zlbl.textContent = scZoom + '×';
+  if(zIn) zIn.disabled = scZoom >= SC_ZOOM_MAX;
+  if(zOut) zOut.disabled = scZoom <= 1;
+
   if(stopBtn){ stopBtn.hidden = !scCamOn; stopBtn.disabled = false; }
   if(manBtn){ manBtn.textContent = scManual ? '收起手动输入' : '手动输入'; }
   manualWrap.hidden = !scManual;
@@ -12708,6 +12814,7 @@ function renderScan(){
       '<ul class="sc-help">' +
       '<li>扫码用本机相机，不需要微信；识别优先用系统 BarcodeDetector，没有的机型（很多国产 ROM）自动用内置的纯 JS 解码器，不依赖 Google 服务。</li>' +
       '<li>扫完一次会停在结果上：点「再扫一次」继续扫，点「关闭相机」释放摄像头。</li>' +
+      '<li>离得远扫不到？点取景框下方的 <b>＋</b> 放大（1–4×）：有相机硬件变焦就用硬件，没有就用数字变焦，识别的是放大后的中心区域，二维码越小越该放大；同时会自动请求 1080p 取景，别用手指挡住镜头。</li>' +
       '<li>签到接口：<code>apiucloud.bupt.edu.cn' + SC_API_SIGN + '</code>，带云邮令牌。</li>' +
       '<li>课堂签到码形如 <code>checkwork|id=…&amp;siteId=…&amp;createTime=…&amp;classLessonId=…</code>，按微教学官方格式提交；其它二维码仍按 URL / JSON / 常见字段名逐个试。</li>' +
       '<li>提示「同学，请老实去上课」通常是码过期或不在签到时间窗：课堂现场重新扫老师当下的码。</li>' +
@@ -12757,6 +12864,8 @@ function scBindScan(){
       toast('重新扫描');
       return;
     }
+    if(what === 'zoomin'){ scSetZoom(scZoom + 1); return; }
+    if(what === 'zoomout'){ scSetZoom(scZoom - 1); return; }
     if(what === 'stop'){ scStop(); return; }
     if(what === 'manual'){ scManual = !scManual; renderScan(); return; }
     if(what === 'submit'){
@@ -12780,6 +12889,8 @@ try{
     render: renderScan,
     setPost: function(fn){ ucSignPost = fn; },
     decode: scDecodeSource,
+    setZoom: scSetZoom,
+    zoomInfo: function(){ return { zoom: scZoom, max: SC_ZOOM_MAX, hw: scCamZoom }; },
     setUc: function(token, userId, identity){
       var c = ucCfg(); c.token = token || 'test-token'; c.userId = userId || 'U1'; c.identity = identity || '测试身份';
       try{ renderScan(); }catch(e){}
