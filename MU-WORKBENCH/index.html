@@ -7782,6 +7782,7 @@ try{
    并发 4 个请求，约 5–10 秒，结果缓存 6 小时。
    ================================================================================ */
 var HW_TTL = 6 * 3600 * 1000;
+var HW_VIEW_VER = 2;      /* 批改情况缓存版本：加了「批改时间」后，旧缓存要重抓一次 */
 var HW_CONTENT_MAX = 4000;
 var hwOpen = {};        /* termId -> 展开状态（内存，不落盘） */
 var hwOpenItem = {};    /* assignmentId -> 展开状态 */
@@ -7789,7 +7790,7 @@ var hwOpenEx = {};      /* audiencesId -> 优秀作业正文展开 */
 var hwBound = false;
 
 function hwDefaultTerm(){
-  return { at:0, busy:0, err:'', phase:'', pi:0, pn:0, items:[], views:{}, files:{}, excellent:{} };
+  return { at:0, ver:0, busy:0, err:'', phase:'', pi:0, pn:0, items:[], views:{}, files:{}, excellent:{} };
 }
 function hwState(){
   if(!state.hw) state.hw = {};
@@ -7907,11 +7908,13 @@ function hwLoadTerm(termId, force){
   var h = hwState();
   var d = hwTermData(termId, true);
   if(d.busy) return Promise.resolve();
-  if(!force && d.at && Date.now() - d.at < HW_TTL) return Promise.resolve();
+  /* 缓存版本变了（比如这次新增「批改时间」）：旧的批改情况要重抓一遍 */
+  var stale = (d.ver !== HW_VIEW_VER);
+  if(!force && !stale && d.at && Date.now() - d.at < HW_TTL) return Promise.resolve();
   if(!hwReady()) return Promise.resolve();
   var courses = hwCoursesForTerm(termId);
   if(!courses.length){
-    d.items = []; d.at = Date.now(); hwOpen[termId] = true; save(); hwRender();
+    d.items = []; d.at = Date.now(); d.ver = HW_VIEW_VER; hwOpen[termId] = true; save(); hwRender();
     return Promise.resolve();
   }
   var uid = hwUid();
@@ -7974,7 +7977,11 @@ function hwLoadTerm(termId, force){
             content: hwClamp(hwStripHTML(v.assignmentContent || ''), HW_CONTENT_MAX),
             attachmentIds: v.attachmentIds || [],
             evaluationAverageScore: v.evaluationAverageScore || 0,
-            evaluationInfos: v.evaluationInfos || []
+            evaluationInfos: v.evaluationInfos || [],
+            /* 批改时间：后端不同版本的字段名不统一，按优先级取第一个有值的；
+               都没有时退回 updateTime（已批改的记录基本就停在老师批改那一刻） */
+            gradeTime: hwPickTime(v, ['correctTime','correctAt','gradeTime','gradedAt','remarkTime','remarkAt',
+              'reviewTime','assignmentCorrectTime','assignmentUpdateTime','correctDate','updateTime','modifyTime'])
           };
         }, function(e){
           d.views[it.id] = { err: (e && (e.message || e.msg)) || '批改情况读取失败' };
@@ -7985,7 +7992,7 @@ function hwLoadTerm(termId, force){
         });
     });
   }).then(function(){
-    d.busy = 0; d.phase = ''; d.at = Date.now();
+    d.busy = 0; d.phase = ''; d.at = Date.now(); d.ver = HW_VIEW_VER;
     hwTrimCache(); save(); hwRender();
   })['catch'](function(e){
     d.busy = 0; d.phase = '';
@@ -8239,6 +8246,33 @@ function hwStatusOf(v){
 function hwKv(k, v){
   return '<div class="hw-kv"><span>' + esc(k) + '</span><b>' + esc(String(v == null ? '' : v)) + '</b></div>';
 }
+/* 从接口返回里挑「批改时间」：候选字段名按优先级；返回规范化后的字符串（YYYY-MM-DD HH:mm[:ss]） */
+function hwPickTime(obj, keys){
+  if(!obj || typeof obj !== 'object') return '';
+  for(var i = 0; i < keys.length; i++){
+    var v = obj[keys[i]];
+    if(v == null || v === '') continue;
+    var s = String(v).trim();
+    if(!s) continue;
+    return hwFmtTime(s);
+  }
+  return '';
+}
+function hwFmtTime(s){
+  s = String(s || '').trim();
+  if(!s) return '';
+  /* 2026-11-11T09:30:00 / 2026-11-11 09:30:00 / 2026-11-11T09:30:00.000+08:00 都收成 2026-11-11 09:30 */
+  var m = s.match(/^(\d{4}-\d{1,2}-\d{1,2})[T\s](\d{1,2}:\d{2})/);
+  if(m){
+    var d = m[1].split('-');
+    return d[0] + '-' + (d[1].length < 2 ? '0' + d[1] : d[1]) + '-' + (d[2].length < 2 ? '0' + d[2] : d[2]) + ' ' + m[2];
+  }
+  return s.slice(0, 16);
+}
+function hwShortTime(s){
+  var t = hwFmtTime(s);
+  return t ? t.slice(5).replace(/^0/, '') : '';
+}
 function hwSec(title, inner){
   return '<div class="hw-sec"><div class="hw-sec-h">' + esc(title) + '</div>' + inner + '</div>';
 }
@@ -8321,6 +8355,7 @@ function hwDetailHTML(termId, it, d){
     g += hwKv('状态', st.text + (v.assignmentStatus === 2 ? '（可以重新提交）' : ''));
     if(v.assignmentStatus === 1){
       g += hwKv('教师评分', String(v.score != null ? v.score : '—') + ' 分');
+      if(v.gradeTime) g += hwKv('批改时间', v.gradeTime);
     }
     if(v.groupScore != null && Number(v.groupScore) > 0) g += hwKv('小组得分', v.groupScore + ' 分');
     if(v.evaluationAverageScore && Number(v.evaluationAverageScore) > 0) g += hwKv('互评均分', v.evaluationAverageScore);
@@ -8361,7 +8396,8 @@ function hwItemHTML(termId, it, d){
   if(v.status === 2 && v.assignmentStatus !== 99) tags += '';
   var h = '<div class="hw-item' + (open ? ' open' : '') + '" data-hwitem="' + esc(it.id) + '" data-hwtermid="' + esc(termId) + '">' +
     '<div class="hw-item-top"><div class="hw-t">' + esc(it.title) + '</div>' + scoreHtml + '</div>' +
-    '<div class="hw-item-sub"><span class="t">提交 ' + esc(String(it.submitTime || '').slice(5, 16)) + '</span>' + tags +
+    '<div class="hw-item-sub"><span class="t">提交 ' + esc(String(it.submitTime || '').slice(5, 16)) + '</span>' +
+      (v.assignmentStatus === 1 && v.gradeTime ? '<span class="t">批改 ' + esc(hwShortTime(v.gradeTime)) + '</span>' : '') + tags +
       (it.dups > 1 ? '<span class="hw-tag">已合并 ' + it.dups + ' 份</span>' : '') +
       (it.chapter ? '<span class="hw-tag">' + esc(it.chapter) + '</span>' : '') + '</div>';
   if(open) h += '<div class="hw-detail">' + hwDetailHTML(termId, it, d) + '</div>';
@@ -8382,7 +8418,10 @@ function hwGroupsHTML(termId, d){
 function hwTermCardHTML(termId, isCurrent){
   var h = hwState();
   var d = h.byTerm[termId];
-  var open = hwOpen[termId] !== undefined ? !!hwOpen[termId] : !!isCurrent;
+  /* 第一次渲染就把「当前学期默认展开」写进 hwOpen：否则点它时
+     wantOpen = !undefined = true，会被当成「要打开」，看起来就是点不动 */
+  if(hwOpen[termId] === undefined) hwOpen[termId] = !!isCurrent;
+  var open = !!hwOpen[termId];
   var count = 0, graded = 0;
   if(d && d.items && d.items.length){
     count = d.items.length;
@@ -8526,7 +8565,8 @@ function hwBind(){
       var wantOpen = !hwOpen[tid];
       if(el.dataset.hwforce) wantOpen = true;
       hwOpen[tid] = wantOpen;
-      if(wantOpen){ hwLoadTerm(tid, !!el.dataset.hwforce); } else { hwRender(); }
+      if(wantOpen){ hwLoadTerm(tid, !!el.dataset.hwforce); }
+      hwRender();          /* 命中缓存时 hwLoadTerm 直接返回、不会重绘，这里补一次 */
       return;
     }
     if((el = t.closest('[data-hwprev]'))){
