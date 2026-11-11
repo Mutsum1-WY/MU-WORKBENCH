@@ -1551,6 +1551,72 @@ html.sc-lock{overflow:hidden}
 .sc-help{margin:0;padding-left:15px;font-size:10px;color:var(--ink-2);line-height:1.7}
 .sc-help code{font-size:9.5px;color:var(--ink-3)}
 
+/* ====================== 10c. 作业档案（云邮教学空间） ====================== */
+#crPaneHw{padding-bottom:8px}
+#crPaneHw:not([hidden]){animation:p5In 180ms var(--ease)}
+.hw-wrap{display:flex;flex-direction:column;gap:10px}
+.hw-note{border:1.5px solid var(--ink-2);background:var(--paper-2);padding:12px 13px;font-size:11.5px;line-height:1.7;color:var(--ink-2)}
+.hw-bar{display:flex;align-items:center;flex-wrap:wrap;gap:8px}
+.hw-bar .hw-sum{font-size:10.5px;color:var(--ink-3);font-weight:700;line-height:1.5}
+.hw-bar .btn{margin-left:auto}
+.hw-term{border:var(--bw) solid var(--ink);background:var(--surface-1)}
+.hw-term-h{display:flex;align-items:center;gap:7px;padding:10px 12px;background:var(--paper-2);cursor:pointer;border-bottom:1.5px solid var(--line-2)}
+.hw-term.open .hw-term-h{border-bottom-color:var(--ink)}
+.hw-term-h b{font-size:13.5px;font-weight:900}
+.hw-term-h .hw-term-n{margin-left:auto;font-size:10px;font-weight:800;color:var(--ink-3);font-variant-numeric:tabular-nums;white-space:nowrap}
+.hw-term-h .hw-arrow{flex:none;width:18px;text-align:center;font-size:13px;font-weight:900;color:var(--accent-ink)}
+.hw-term-b{padding:2px 0 10px}
+.hw-term-b[hidden]{display:none}
+.hw-loading{padding:12px;font-size:11px;color:var(--ink-3);line-height:1.6}
+.hw-err{padding:12px;font-size:11px;color:var(--danger);line-height:1.6;word-break:break-all}
+.hw-retry{margin:0 12px 10px}
+.hw-course{margin:0 10px}
+.hw-course-h{display:flex;align-items:baseline;gap:6px;padding:10px 2px 4px;font-size:10.5px;font-weight:900;letter-spacing:.02em;color:var(--ink-3);border-bottom:1.5px solid var(--line-2)}
+.hw-course-h span{font-weight:800;color:var(--ink-3);font-variant-numeric:tabular-nums}
+.hw-item{border:1.5px solid var(--ink-2);background:var(--surface-1);margin-top:7px;cursor:pointer;transition:border-color var(--t)}
+.hw-item.open{border-color:var(--accent)}
+.hw-item-top{display:flex;align-items:center;gap:8px;padding:9px 10px 0}
+.hw-t{flex:1;min-width:0;font-size:12.5px;font-weight:800;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.hw-score{flex:none;font-size:12.5px;font-weight:900;font-variant-numeric:tabular-nums;color:var(--ink-3)}
+.hw-score.got{color:var(--ok)}
+.hw-score.bad{color:var(--danger)}
+.hw-item-sub{display:flex;align-items:center;flex-wrap:wrap;gap:6px;padding:5px 10px 9px}
+.hw-item-sub .t{font-size:10px;color:var(--ink-3);font-weight:700;font-variant-numeric:tabular-nums}
+.hw-tag{font-size:9.5px;font-weight:900;letter-spacing:.02em;padding:1.5px 6px;border:1.5px solid var(--line-2);background:var(--paper-2);color:var(--ink-2);white-space:nowrap}
+.hw-tag.ok{border-color:transparent;background:var(--ok);color:#fff}
+.hw-tag.warn{border-color:transparent;background:var(--warn);color:#0b0b0c}
+.hw-tag.bad{border-color:transparent;background:var(--danger);color:#fff}
+.hw-tag.ex{border-color:transparent;background:var(--accent);color:var(--paper)}
+.hw-detail{border-top:1.5px dashed var(--line-2);margin-top:2px;padding:8px 10px 10px}
+.hw-detail[hidden]{display:none}
+.hw-sec{margin-top:8px}
+.hw-sec:first-child{margin-top:2px}
+.hw-sec-h{display:flex;align-items:center;gap:6px;font-size:10px;font-weight:900;letter-spacing:.08em;color:var(--ink-3);text-transform:uppercase;margin-bottom:4px}
+.hw-sec-h .btn{margin-left:auto;padding:2px 7px;font-size:10px}
+.hw-kv{display:flex;justify-content:space-between;gap:12px;font-size:11.5px;padding:2px 0}
+.hw-kv span{color:var(--ink-3);flex:none}
+.hw-kv b{font-weight:700;text-align:right;word-break:break-all}
+.hw-comment{margin-top:5px;padding:7px 9px;border:1.5px solid var(--line-2);background:var(--paper-2);font-size:11px;line-height:1.7;color:var(--ink-2);white-space:pre-wrap;word-break:break-word;max-height:180px;overflow:auto}
+.hw-body-text{margin-top:5px;padding:7px 9px;border:1.5px solid var(--line-2);background:var(--paper-2);font-size:11px;line-height:1.7;color:var(--ink-2);white-space:pre-wrap;word-break:break-word;max-height:200px;overflow:auto}
+.hw-files{display:flex;flex-direction:column;gap:3px;margin-top:5px}
+.hw-file{display:flex;align-items:baseline;gap:6px;font-size:10.5px;color:var(--ink-2);line-height:1.5}
+.hw-file i{flex:none;font-style:normal;font-weight:900;font-size:9px;color:var(--ink-3);border:1px solid var(--line-2);padding:0 3px}
+.hw-file b{font-weight:700;word-break:break-all}
+.hw-file span{flex:none;color:var(--ink-3);font-variant-numeric:tabular-nums}
+.hw-ex-list{display:flex;flex-direction:column;gap:4px}
+.hw-ex{display:flex;align-items:baseline;gap:6px;padding:5px 7px;border:1.5px solid var(--line-2);background:var(--paper-2);font-size:10.5px;cursor:pointer}
+.hw-ex.open{border-color:var(--accent)}
+.hw-ex b{font-weight:900;color:var(--ink);flex:none}
+.hw-ex .a{color:var(--ink-3);font-variant-numeric:tabular-nums;flex:none}
+.hw-ex .c{color:var(--ink-2);flex:none}
+.hw-ex .s{margin-left:auto;font-weight:900;color:var(--ok);font-variant-numeric:tabular-nums;flex:none}
+.hw-ex .tm{color:var(--ink-3);font-variant-numeric:tabular-nums;flex:none}
+.hw-ex-detail{margin:2px 0 6px;padding:7px 9px;border:1.5px dashed var(--accent);background:var(--surface-1)}
+.hw-mine{font-size:10px;font-weight:900;color:var(--ok)}
+.hw-link{display:inline-block;margin-top:7px;font-size:10px;font-weight:800;color:var(--accent-ink);text-decoration:underline;text-underline-offset:2px}
+html[data-theme="p3r"] .hw-term{border-width:1px;border-color:var(--line-2)}
+html[data-theme="p3r"] .hw-term-h{background:var(--surface-2)}
+
 /* ====================== 12. 动效（掌牌式 / 按下位移） ====================== */
 @media (prefers-reduced-motion: reduce){
   *,*::before,*::after{animation-duration:.001ms !important;animation-iteration-count:1 !important;transition-duration:.001ms !important;scroll-behavior:auto !important}
@@ -3047,6 +3113,7 @@ html[data-theme="p3r"] .yg-panel{border-radius:5px;background:var(--surface-2)}
         <button class="on" data-crsub="course">课程性价比</button>
         <button data-crsub="bonus">课外加分</button>
         <button data-crsub="scan">扫码签到</button>
+        <button data-crsub="hw">作业档案</button>
         <button data-crsub="zz">综测</button>
       </div>
 
@@ -3151,6 +3218,8 @@ html[data-theme="p3r"] .yg-panel{border-radius:5px;background:var(--surface-2)}
       <div id="crPaneScan" hidden></div>
 <!--[ZZ_HTML_BEGIN]-->
 <!-- ============ 子页 4：综测（综合素质评价） ============ -->
+      <div id="crPaneHw" hidden></div>
+
       <div id="crPaneZz" hidden>
 
         <div class="zz-hero">
@@ -7687,6 +7756,619 @@ try{
     renderToday: function(){ try{ renderToday(); }catch(e){} }
   };
 }catch(e){}
+
+/* ====================== [6g] 作业档案（云邮教学空间 · 每学期已提交的作业） ======================
+   学生端接口实测（2026-11）：
+     学期        GET  /ykt-site/base-term/list?size=9999            {records:[{id,termName,isCurrent}]}
+     课程        GET  /ykt-site/site/list/student/current?...&siteRoleCode=2   {records:[{id,siteName,termId,termName}]}
+                 GET  /ykt-site/site/list/student/history?...             历史课程（同样带 termId）
+     课程作业    POST /ykt-site/work/student/list  {siteId,userId,keyword,chapterId,nodeId,current,size,status,sortType}
+                 → records[]：id / assignmentTitle / chapterName / submitTime / assignmentEndTime /
+                   status（作业生命周期 2=进行中 3=已结束）/ assignmentStatus / isOverTime
+                 注意：列表**不带分数**，只带「有没有提交」（submitTime 为空=没交）
+     我的提交+批改 GET /ykt-site/work/submit-view?assignmentId=       → assignmentScore / assignmentComment /
+                 assignmentStatus（实测 0=待批改 1=已批改 2=被驳回 99=未提交）/ status / groupScore /
+                 evaluationAverageScore / evaluationInfos / assignmentContent / attachmentIds
+     优秀作业    POST /ykt-site/work/all-assignment {assignmentId,current,size,excellence:1}
+                 → records[]：account / realName / name(班级) / score / submitTime / userId / audiencesId
+     优秀作业正文 POST /ykt-site/work/excellenceDetail {audiencesId}（小组作业用 {assignmentId,teamId}）
+                 → assignmentContent / fileList[{resourceId,resourceName,resourceType}] / score / assignmentComment
+     我的附件    GET  /blade-source/resource/list/byId?resourceIds=<逗号分隔> → [{name,fileSizeUnit,ext}]
+   因为「批改情况」必须逐条查 submit-view，所以按学期整体拉一次：26 门课 + N 条已提交，
+   并发 4 个请求，约 5–10 秒，结果缓存 6 小时。
+   ================================================================================ */
+var HW_TTL = 6 * 3600 * 1000;
+var HW_CONTENT_MAX = 4000;
+var hwOpen = {};        /* termId -> 展开状态（内存，不落盘） */
+var hwOpenItem = {};    /* assignmentId -> 展开状态 */
+var hwOpenEx = {};      /* audiencesId -> 优秀作业正文展开 */
+var hwBound = false;
+
+function hwDefaultTerm(){
+  return { at:0, busy:0, err:'', phase:'', pi:0, pn:0, items:[], views:{}, files:{}, excellent:{} };
+}
+function hwState(){
+  if(!state.hw) state.hw = {};
+  var h = state.hw;
+  if(!Array.isArray(h.terms)) h.terms = [];
+  h.termsAt = h.termsAt || 0;
+  h.indexBusy = h.indexBusy || 0;
+  h.indexErr = h.indexErr || '';
+  if(!Array.isArray(h.courses)) h.courses = [];
+  h.coursesAt = h.coursesAt || 0;
+  if(!h.byTerm || typeof h.byTerm !== 'object') h.byTerm = {};
+  return h;
+}
+function hwTermData(termId, create){
+  var h = hwState();
+  var d = h.byTerm[termId];
+  if(!d && create){ d = h.byTerm[termId] = hwDefaultTerm(); }
+  if(d){
+    if(!Array.isArray(d.items)) d.items = [];
+    if(!d.views || typeof d.views !== 'object') d.views = {};
+    if(!d.files || typeof d.files !== 'object') d.files = {};
+    if(!d.excellent || typeof d.excellent !== 'object') d.excellent = {};
+  }
+  return d;
+}
+function hwReady(){ return ucReady() && !!ucCfg().token; }
+function hwClamp(s, n){
+  s = String(s == null ? '' : s);
+  return s.length > n ? s.slice(0, n) + '\n…（已截断）' : s;
+}
+function hwStripHTML(s){ try{ return ucStripHTML(s || ''); }catch(e){ return String(s || ''); } }
+function hwPool(list, limit, fn){
+  return new Promise(function(resolve){
+    var i = 0, active = 0, done = 0, n = list.length;
+    if(!n) return resolve();
+    function fin(){ active--; done++; if(done >= n) resolve(); else pump(); }
+    function pump(){
+      while(active < limit && i < n){
+        var idx = i++; active++;
+        (function(j){
+          Promise.resolve().then(function(){ return fn(list[j]); })['then'](fin, fin);
+        })(idx);
+      }
+    }
+    pump();
+  });
+}
+function hwUid(){ var c = ucCfg(); return String(c.userInfoId || c.userId || ''); }
+function hwTermOrderMap(){
+  var h = hwState(), map = {};
+  (h.terms || []).forEach(function(t, i){ map[String(t.id)] = i; });
+  return map;
+}
+function hwTermName(termId){
+  var h = hwState();
+  for(var i = 0; i < h.terms.length; i++){
+    if(String(h.terms[i].id) === String(termId)) return h.terms[i].termName || h.terms[i].name || '学期';
+  }
+  return '学期';
+}
+function hwCoursesForTerm(termId){
+  return (hwState().courses || []).filter(function(s){ return String(s.termId) === String(termId); });
+}
+function hwTrimCache(){
+  var h = hwState();
+  var keys = Object.keys(h.byTerm || {});
+  if(keys.length <= 8) return;
+  keys.sort(function(a, b){ return (h.byTerm[a].at || 0) - (h.byTerm[b].at || 0); });
+  keys.slice(0, keys.length - 8).forEach(function(k){
+    if(h.byTerm[k] && !h.byTerm[k].busy) delete h.byTerm[k];
+  });
+}
+
+/* ---------- 拉数据 ---------- */
+function hwLoadIndex(force){
+  var h = hwState();
+  if(h.indexBusy) return Promise.resolve();
+  if(!force && h.termsAt && Date.now() - h.termsAt < HW_TTL && h.terms.length && h.courses.length) return Promise.resolve();
+  if(!hwReady()) return Promise.resolve();
+  var uid = hwUid();
+  if(!uid) return Promise.resolve();
+  h.indexBusy = 1; h.indexErr = '';
+  hwRender();
+  var curCourses = [];
+  return ucHttp({ url:'/ykt-site/base-term/list?size=9999', step:'学期列表' })
+    .then(function(r){
+      var recs = ((r.data && r.data.data) || {}).records || [];
+      h.terms = recs;
+      return ucHttp({ url:'/ykt-site/site/list/student/current?size=99999&current=1&userId=' + encodeURIComponent(uid) + '&siteRoleCode=2', step:'课程列表' });
+    })
+    .then(function(r){
+      curCourses = ((r.data && r.data.data) || {}).records || [];
+      var seen = {};
+      curCourses.forEach(function(s){ if(s && s.id) seen[String(s.id)] = 1; });
+      h.courses = curCourses.slice();
+      return ucHttp({ url:'/ykt-site/site/list/student/history?size=99999&current=1&userId=' + encodeURIComponent(uid) + '&siteRoleCode=2', step:'历史课程' })
+        .then(function(r2){
+          var recs = ((r2.data && r2.data.data) || {}).records || [];
+          recs.forEach(function(s){
+            if(s && s.id && !seen[String(s.id)]){ seen[String(s.id)] = 1; h.courses.push(s); }
+          });
+        }, function(){ /* 历史课程拿不到不影响当前学期 */ });
+    })
+    .then(function(){
+      h.termsAt = Date.now(); h.coursesAt = Date.now(); h.indexBusy = 0;
+      save(); hwRender();
+    })
+    ['catch'](function(e){
+      h.indexBusy = 0;
+      h.indexErr = (e && (e.message || e.msg)) || String(e);
+      hwRender();
+    });
+}
+function hwLoadTerm(termId, force){
+  var h = hwState();
+  var d = hwTermData(termId, true);
+  if(d.busy) return Promise.resolve();
+  if(!force && d.at && Date.now() - d.at < HW_TTL) return Promise.resolve();
+  if(!hwReady()) return Promise.resolve();
+  var courses = hwCoursesForTerm(termId);
+  if(!courses.length){
+    d.items = []; d.at = Date.now(); hwOpen[termId] = true; save(); hwRender();
+    return Promise.resolve();
+  }
+  var uid = hwUid();
+  d.busy = 1; d.err = ''; d.phase = 'courses'; d.pi = 0; d.pn = courses.length;
+  d.items = []; d.views = {}; d.files = {}; d.excellent = {}; d.at = 0;
+  hwOpen[termId] = true;
+  hwRender();
+  var out = [], seen = {}, i = 0;
+  function nextCourse(){
+    if(i >= courses.length) return Promise.resolve();
+    var s = courses[i++];
+    d.pi = i;
+    if(i === 1 || i % 2 === 0) hwRender();
+    return ucHttp({ url:'/ykt-site/work/student/list', method:'POST', data:{
+        siteId:s.id, userId:uid, keyword:'', chapterId:'', nodeId:'',
+        current:1, size:500, studentAssignmentStatus:null, status:0, sortType:null
+      }, step:'课程作业' })
+      .then(function(r){
+        var recs = ((r.data && r.data.data) || {}).records || [];
+        recs.forEach(function(x){
+          if(!x || !x.id || !x.submitTime) return;      /* 只要已提交的 */
+          var id = String(x.id);
+          if(seen[id]) return;
+          seen[id] = 1;
+          out.push({
+            id:id, siteId:s.id, siteName:s.siteName || '', title:x.assignmentTitle || '',
+            chapter:x.chapterName || '', submitTime:x.submitTime || '',
+            endTime:x.assignmentEndTime || '', isOverTime:!!x.isOverTime,
+            status:x.status, assignmentStatus:x.assignmentStatus
+          });
+        });
+        return nextCourse();
+      }, function(){ return nextCourse(); });   /* 单门课失败不影响其它课 */
+  }
+  return nextCourse().then(function(){
+    out.sort(function(a, b){ return String(b.submitTime).localeCompare(String(a.submitTime)); });
+    d.items = out;
+    d.phase = 'views'; d.pi = 0; d.pn = out.length;
+    hwRender();
+    var done = 0;
+    return hwPool(out, 4, function(it){
+      return ucHttp({ url:'/ykt-site/work/submit-view?assignmentId=' + encodeURIComponent(it.id), step:'批改情况' })
+        .then(function(r){
+          var v = (r.data && r.data.data) || {};
+          d.views[it.id] = {
+            score: (v.assignmentScore != null ? v.assignmentScore : (v.score != null ? v.score : null)),
+            comment: String(v.assignmentComment || ''),
+            status: v.status,
+            assignmentStatus: v.assignmentStatus,
+            groupScore: v.groupScore,
+            content: hwClamp(hwStripHTML(v.assignmentContent || ''), HW_CONTENT_MAX),
+            attachmentIds: v.attachmentIds || [],
+            evaluationAverageScore: v.evaluationAverageScore || 0,
+            evaluationInfos: v.evaluationInfos || []
+          };
+        }, function(e){
+          d.views[it.id] = { err: (e && (e.message || e.msg)) || '批改情况读取失败' };
+        })
+        .then(function(){
+          done++; d.pi = done;
+          if(done % 3 === 0) hwRender();
+        });
+    });
+  }).then(function(){
+    d.busy = 0; d.phase = ''; d.at = Date.now();
+    hwTrimCache(); save(); hwRender();
+  })['catch'](function(e){
+    d.busy = 0; d.phase = '';
+    d.err = (e && (e.message || e.msg)) || String(e);
+    save(); hwRender();
+  });
+}
+function hwLoadExcellent(termId, it){
+  var d = hwTermData(termId, true);
+  var ex = d.excellent[it.id];
+  if(!ex) ex = d.excellent[it.id] = { at:0, busy:0, err:'', list:[], detail:{} };
+  if(ex.busy) return Promise.resolve();
+  if(ex.at && Date.now() - ex.at < HW_TTL) return Promise.resolve();
+  if(!hwReady()) return Promise.resolve();
+  ex.busy = 1; ex.err = '';
+  hwRender();
+  return ucHttp({ url:'/ykt-site/work/all-assignment', method:'POST', data:{
+      assignmentId: it.id, current:1, size:999, sortColumn:'', sortType:null, excellence:1
+    }, step:'优秀作业' })
+    .then(function(r){
+      var dd = (r.data && r.data.data) || {};
+      ex.list = dd.records || [];
+      ex.at = Date.now(); ex.busy = 0;
+      save(); hwRender();
+    }, function(e){
+      ex.busy = 0; ex.err = (e && (e.message || e.msg)) || '优秀作业读取失败';
+      hwRender();
+    });
+}
+function hwLoadExDetail(termId, it, rec){
+  var d = hwTermData(termId, true);
+  var ex = d.excellent[it.id];
+  if(!ex) return Promise.resolve();
+  var key = String(rec.audiencesId || ('t' + rec.teamId));
+  if(ex.detail[key] && ex.detail[key].busy) return Promise.resolve();
+  if(ex.detail[key] && ex.detail[key].at) return Promise.resolve();
+  ex.detail[key] = { busy:1 };
+  hwRender();
+  var data = (rec.teamId && Number(rec.teamId) > 0)
+    ? { assignmentId: it.id, teamId: rec.teamId }
+    : { audiencesId: rec.audiencesId };
+  return ucHttp({ url:'/ykt-site/work/excellenceDetail', method:'POST', data:data, step:'优秀作业正文' })
+    .then(function(r){
+      var v = (r.data && r.data.data) || {};
+      ex.detail[key] = {
+        at: Date.now(),
+        content: hwClamp(hwStripHTML(v.assignmentContent || ''), HW_CONTENT_MAX),
+        files: v.fileList || [],
+        comment: String(v.assignmentComment || v.tecAssignmentComment || ''),
+        score: v.score
+      };
+      save(); hwRender();
+    }, function(e){
+      ex.detail[key] = { err: (e && (e.message || e.msg)) || '正文读取失败' };
+      hwRender();
+    });
+}
+function hwLoadFiles(termId, itemId, ids){
+  var d = hwTermData(termId, true);
+  d.files[itemId] = { loading:1, list:[] };
+  return ucHttp({ url:'/blade-source/resource/list/byId?resourceIds=' + encodeURIComponent(ids.join(',')), step:'附件' })
+    .then(function(r){
+      var arr = (r.data && r.data.data) || [];
+      d.files[itemId] = { list: (arr || []).map(function(a){
+        return { name: a.name || a.resourceName || '附件', size: a.fileSizeUnit || '', ext: a.ext || '' };
+      }) };
+      save(); hwRender();
+    }, function(e){
+      d.files[itemId] = { err: (e && (e.message || e.msg)) || '附件读取失败' };
+      hwRender();
+    });
+}
+
+/* ---------- 渲染 ---------- */
+function hwStatusOf(v){
+  if(!v) return { cls:'', text:'读取中' };
+  if(v.err) return { cls:'warn', text:'批改读取失败' };
+  if(v.assignmentStatus === 2) return { cls:'bad', text:'被驳回' };
+  if(v.assignmentStatus === 1) return { cls:'ok', text:'已批改' };
+  if(v.assignmentStatus === 99) return { cls:'', text:'未提交' };
+  return { cls:'', text:'待批改' };
+}
+function hwKv(k, v){
+  return '<div class="hw-kv"><span>' + esc(k) + '</span><b>' + esc(String(v == null ? '' : v)) + '</b></div>';
+}
+function hwSec(title, inner){
+  return '<div class="hw-sec"><div class="hw-sec-h">' + esc(title) + '</div>' + inner + '</div>';
+}
+function hwFilesHTML(fsVal){
+  if(!fsVal) return '';
+  if(fsVal.loading) return '<div class="hw-file"><span>附件读取中…</span></div>';
+  if(fsVal.err) return '<div class="hw-file"><span>附件读取失败</span></div>';
+  if(!fsVal.list || !fsVal.list.length) return '';
+  return '<div class="hw-files">' + fsVal.list.map(function(f){
+    return '<div class="hw-file"><i>' + esc(String(f.ext || 'FILE').toUpperCase().slice(0, 5)) + '</i><b>' + esc(f.name) + '</b><span>' + esc(f.size) + '</span></div>';
+  }).join('') + '</div>';
+}
+function hwExcellentHTML(termId, it, d){
+  var ex = d.excellent[it.id];
+  var h = '<div class="hw-sec"><div class="hw-sec-h">优秀作业' +
+    (ex && ex.at ? '<button class="btn ghost sm" data-hwrex="' + esc(it.id) + '">刷新</button>' : '') + '</div>';
+  if(!ex || ex.busy) return h + '<div class="hw-loading">正在读取优秀作业…</div></div>';
+  if(ex.err) return h + '<div class="hw-err">' + esc(ex.err) + '</div></div>';
+  if(!ex.list || !ex.list.length) return h + '<div class="hw-loading">老师还没设置优秀作业</div></div>';
+  var myUid = hwUid();
+  h += '<div class="hw-ex-list">';
+  ex.list.forEach(function(rec){
+    var key = String(rec.audiencesId || ('t' + rec.teamId));
+    var open = hwOpenEx[key] || hwOpenEx[it.id + ':' + key];
+    var mine = String(rec.userId || '') === myUid;
+    h += '<div class="hw-ex' + (open ? ' open' : '') + '" data-hwex="' + esc(it.id) + '" data-hwexkey="' + esc(key) + '">' +
+      '<b>' + esc(rec.realName || '—') + '</b>' +
+      '<span class="a">' + esc(rec.account || '') + '</span>' +
+      '<span class="c">' + esc(rec.name || '') + '</span>' +
+      '<span class="s">' + (rec.score != null && Number(rec.score) >= 0 ? esc(String(rec.score)) + ' 分' : '—') + '</span>' +
+      '<span class="tm">' + esc(String(rec.submitTime || '').slice(5, 16)) + '</span>' +
+      (mine ? '<span class="hw-mine">你</span>' : '') +
+    '</div>';
+    if(open){
+      var det = ex.detail[key];
+      h += '<div class="hw-ex-detail">';
+      if(!det) h += '<div class="hw-loading">点开读取中…</div>';
+      else if(det.busy) h += '<div class="hw-loading">正在读取正文…</div>';
+      else if(det.err) h += '<div class="hw-err">' + esc(det.err) + '</div>';
+      else {
+        if(det.content) h += '<div class="hw-body-text">' + esc(det.content) + '</div>';
+        else h += '<div class="hw-loading">没有文字内容</div>';
+        if(det.comment) h += '<div class="hw-comment">评语：' + esc(det.comment) + '</div>';
+        if(det.files && det.files.length){
+          h += '<div class="hw-files">' + det.files.map(function(f){
+            return '<div class="hw-file"><i>' + esc(String(f.resourceType || 'FILE').toUpperCase().slice(0, 5)) + '</i><b>' + esc(f.resourceName || '附件') + '</b></div>';
+          }).join('') + '</div>';
+        }
+      }
+      h += '</div>';
+    }
+  });
+  return h + '</div></div>';
+}
+function hwDetailHTML(termId, it, d){
+  var v = d.views[it.id] || {};
+  var parts = [];
+  /* 批改情况 */
+  var g = '';
+  if(v.err){
+    g += '<div class="hw-err" style="padding:0 0 6px">' + esc(v.err) + '</div>';
+  }else{
+    var st = hwStatusOf(v);
+    g += hwKv('状态', st.text + (v.assignmentStatus === 2 ? '（可以重新提交）' : ''));
+    if(v.assignmentStatus === 1){
+      g += hwKv('教师评分', String(v.score != null ? v.score : '—') + ' 分');
+    }
+    if(v.groupScore != null && Number(v.groupScore) > 0) g += hwKv('小组得分', v.groupScore + ' 分');
+    if(v.evaluationAverageScore && Number(v.evaluationAverageScore) > 0) g += hwKv('互评均分', v.evaluationAverageScore);
+    if(v.comment) g += '<div class="hw-comment">' + esc(v.comment) + '</div>';
+    if(v.evaluationInfos && v.evaluationInfos.length){
+      var el = v.evaluationInfos.map(function(e){ return (e.evaluation || '') + (e.score ? '（' + e.score + '）' : ''); }).join('；');
+      if(el) g += '<div class="hw-comment">互评：' + esc(el) + '</div>';
+    }
+  }
+  parts.push(hwSec('批改情况', g));
+  /* 我的作业 */
+  var my = hwKv('提交时间', it.submitTime || '—');
+  if(it.endTime) my += hwKv('截止时间', it.endTime);
+  if(v.content) my += '<div class="hw-body-text">' + esc(v.content) + '</div>';
+  else if(!v.err) my += '<div class="hw-body-text">没有文字内容（可能只交了附件）</div>';
+  my += hwFilesHTML(d.files[it.id]);
+  if(v.attachmentIds && v.attachmentIds.length && !d.files[it.id]){
+    my += '<div class="hw-file"><span>附件 ' + v.attachmentIds.length + ' 个，读取中…</span></div>';
+  }
+  my += '<a class="hw-link" href="https://ucloud.bupt.edu.cn/uclass/course.html#/student/assignmentDetails_fullpage?activeTabName=first&amp;assignmentId=' + encodeURIComponent(it.id) + '" target="_blank" rel="noopener">在云邮中打开这次作业</a>';
+  parts.push(hwSec('我的作业', my));
+  /* 优秀作业 */
+  parts.push(hwExcellentHTML(termId, it, d));
+  return parts.join('');
+}
+function hwItemHTML(termId, it, d){
+  var v = d.views[it.id] || {};
+  var st = hwStatusOf(v);
+  var open = !!hwOpenItem[it.id];
+  var scoreHtml = '';
+  if(!v.err && v.assignmentStatus === 1 && v.score != null && Number(v.score) >= 0){
+    scoreHtml = '<span class="hw-score got">' + esc(String(v.score)) + ' 分</span>';
+  }else if(!v.err && v.assignmentStatus === 2){
+    scoreHtml = '<span class="hw-score bad">驳回</span>';
+  }
+  var tags = '<span class="hw-tag ' + st.cls + '">' + esc(st.text) + '</span>';
+  if(it.isOverTime) tags += '<span class="hw-tag warn">逾期</span>';
+  if(v.status === 2 && v.assignmentStatus !== 99) tags += '';
+  var h = '<div class="hw-item' + (open ? ' open' : '') + '" data-hwitem="' + esc(it.id) + '" data-hwtermid="' + esc(termId) + '">' +
+    '<div class="hw-item-top"><div class="hw-t">' + esc(it.title) + '</div>' + scoreHtml + '</div>' +
+    '<div class="hw-item-sub"><span class="t">提交 ' + esc(String(it.submitTime || '').slice(5, 16)) + '</span>' + tags +
+      (it.chapter ? '<span class="hw-tag">' + esc(it.chapter) + '</span>' : '') + '</div>';
+  if(open) h += '<div class="hw-detail">' + hwDetailHTML(termId, it, d) + '</div>';
+  return h + '</div>';
+}
+function hwGroupsHTML(termId, d){
+  var groups = [], map = {};
+  d.items.forEach(function(it){
+    var k = it.siteName || '未分课程';
+    if(!map[k]){ map[k] = { name:k, items:[] }; groups.push(map[k]); }
+    map[k].items.push(it);
+  });
+  return groups.map(function(g){
+    return '<div class="hw-course"><div class="hw-course-h">' + esc(g.name) + '<span>' + g.items.length + '</span></div>' +
+      g.items.map(function(it){ return hwItemHTML(termId, it, d); }).join('') + '</div>';
+  }).join('');
+}
+function hwTermCardHTML(termId, isCurrent){
+  var h = hwState();
+  var d = h.byTerm[termId];
+  var open = hwOpen[termId] !== undefined ? !!hwOpen[termId] : !!isCurrent;
+  var count = 0, graded = 0;
+  if(d && d.items && d.items.length){
+    count = d.items.length;
+    d.items.forEach(function(it){
+      var v = d.views[it.id];
+      if(v && v.assignmentStatus === 1) graded++;
+    });
+  }
+  var body = '';
+  if(open){
+    if(!d || (!d.at && !d.busy && !d.err)) body = '<div class="hw-loading">点开加载这个学期的作业…</div>';
+    else if(d.busy){
+      var label = d.phase === 'courses'
+        ? ('正在查课程 ' + d.pi + '/' + d.pn + ' 门…')
+        : ('正在读批改情况 ' + d.pi + '/' + d.pn + ' 条…');
+      body = '<div class="hw-loading">' + esc(label) + '</div>';
+    }else if(d.err){
+      body = '<div class="hw-err">' + esc(d.err) + '</div>' +
+        '<button class="btn ghost sm hw-retry" data-hwterm="' + esc(termId) + '" data-hwforce="1">重试</button>';
+    }else if(!d.items.length){
+      body = '<div class="hw-loading">这个学期没有已提交的作业。</div>';
+    }else{
+      body = hwGroupsHTML(termId, d);
+    }
+  }
+  return '<div class="hw-term' + (open ? ' open' : '') + '" data-hwtermcard="' + esc(termId) + '">' +
+    '<div class="hw-term-h" data-hwterm="' + esc(termId) + '">' +
+      '<b>' + esc(hwTermName(termId)) + '</b>' +
+      (isCurrent ? '<span class="hw-tag ex">当前</span>' : '') +
+      '<span class="hw-term-n">' + (count ? ('已提交 ' + count + (graded ? (' · 已批 ' + graded) : '')) : '') + '</span>' +
+      '<span class="hw-arrow">' + (open ? '−' : '+') + '</span>' +
+    '</div>' +
+    '<div class="hw-term-b"' + (open ? '' : ' hidden') + '>' + body + '</div>' +
+  '</div>';
+}
+function hwRender(){
+  var host = document.getElementById('crPaneHw');
+  if(!host || host.hidden) return;
+  hwBind();
+  var h = hwState();
+  if(!hwReady()){
+    host.innerHTML = '<div class="hw-wrap"><div class="hw-note">' +
+      (ucReady() ? '先在「设置 → 云邮账号」里登录，再回来看作业档案。' : '只能在 App 版里用：网页版没有原生网络能力。') +
+      '</div></div>';
+    return;
+  }
+  if(!h.termsAt && !h.indexBusy && !h.indexErr) setTimeout(function(){ hwLoadIndex(); }, 0);
+  var scrollY = window.scrollY || window.pageYOffset || 0;
+  var html = '<div class="hw-wrap">';
+  var termIds = [], curId = '';
+  if(h.indexBusy && !h.terms.length){
+    html += '<div class="hw-loading">正在读学期和课程列表…</div>';
+  }else if(h.indexErr){
+    html += '<div class="hw-err">' + esc(h.indexErr) + '</div>' +
+      '<button class="btn ghost sm hw-retry" data-hwreindex="1">重试</button>';
+  }
+  if(h.terms.length){
+    var seen = {};
+    (h.courses || []).forEach(function(s){
+      if(!s || !s.termId) return;
+      var k = String(s.termId);
+      if(seen[k]) return;
+      seen[k] = 1; termIds.push(k);
+    });
+    if(!termIds.length){
+      var cur = null;
+      (h.terms || []).forEach(function(t){ if(t.isCurrent) cur = String(t.id); });
+      if(!cur && h.terms.length) cur = String(h.terms[0].id);
+      if(cur) termIds.push(cur);
+    }
+    var order = hwTermOrderMap();
+    termIds.sort(function(a, b){ return (order[a] == null ? 999 : order[a]) - (order[b] == null ? 999 : order[b]); });
+    (h.terms || []).forEach(function(t){ if(t.isCurrent) curId = String(t.id); });
+    var total = 0, totalGraded = 0, scoreSum = 0;
+    termIds.forEach(function(id){
+      var d = h.byTerm[id];
+      if(d && d.items){
+        total += d.items.length;
+        d.items.forEach(function(it){
+          var v = d.views[it.id];
+          if(v && v.assignmentStatus === 1){ totalGraded++; scoreSum += Number(v.score) || 0; }
+        });
+      }
+    });
+    html += '<div class="hw-bar"><span class="hw-sum">' +
+      termIds.length + ' 个学期 · 已提交 ' + total + ' 项' +
+      (totalGraded ? (' · 已批改 ' + totalGraded + '（平均 ' + Math.round(scoreSum / totalGraded) + ' 分）') : '') +
+      '</span><button class="btn ghost sm" data-hwreindex="1" data-hwforce="1">刷新</button></div>';
+    termIds.forEach(function(id){
+      html += hwTermCardHTML(id, id === curId);
+    });
+  }
+  html += '</div>';
+  host.innerHTML = html;
+  try{ window.scrollTo(0, scrollY); }catch(e){}
+  /* 展开的学期 / 作业 / 附件 / 优秀作业：按需自动加载 */
+  termIds.forEach(function(id){
+    var d = h.byTerm[id];
+    var open = hwOpen[id] !== undefined ? !!hwOpen[id] : (id === curId);
+    if(!open) return;
+    if(!d || (!d.at && !d.busy && !d.err)) setTimeout(function(){ hwLoadTerm(id); }, 0);
+    if(!d || !d.items) return;
+    d.items.forEach(function(it){
+      if(!hwOpenItem[it.id]) return;
+      var v = d.views[it.id];
+      if(v && v.attachmentIds && v.attachmentIds.length && !d.files[it.id]){
+        d.files[it.id] = { loading:1, list:[] };
+        setTimeout(function(){ hwLoadFiles(id, it.id, v.attachmentIds); }, 0);
+      }
+      if(!d.excellent[it.id]) setTimeout(function(){ hwLoadExcellent(id, it); }, 0);
+    });
+  });
+}
+function hwFindItem(termId, itemId){
+  var d = hwTermData(termId, false);
+  if(!d || !d.items) return null;
+  for(var i = 0; i < d.items.length; i++){ if(d.items[i].id === itemId) return d.items[i]; }
+  return null;
+}
+function hwBind(){
+  if(hwBound) return;
+  var host = document.getElementById('crPaneHw');
+  if(!host) return;
+  hwBound = true;
+  host.onclick = function(e){
+    var t = e.target;
+    var el;
+    if((el = t.closest('[data-hwreindex]'))){
+      var force = !!el.dataset.hwforce;
+      var h = hwState();
+      if(force){
+        h.termsAt = 0; h.coursesAt = 0; h.indexErr = '';
+        Object.keys(h.byTerm || {}).forEach(function(k){ h.byTerm[k].at = 0; h.byTerm[k].items = []; h.byTerm[k].views = {}; h.byTerm[k].files = {}; h.byTerm[k].excellent = {}; });
+        hwOpen = {}; hwOpenItem = {}; hwOpenEx = {};
+      }
+      hwLoadIndex(true);
+      return;
+    }
+    if((el = t.closest('[data-hwterm]'))){
+      var tid = el.dataset.hwterm;
+      var wantOpen = !hwOpen[tid];
+      if(el.dataset.hwforce) wantOpen = true;
+      hwOpen[tid] = wantOpen;
+      if(wantOpen){ hwLoadTerm(tid, !!el.dataset.hwforce); } else { hwRender(); }
+      return;
+    }
+    if((el = t.closest('[data-hwex]'))){
+      var itemId = el.dataset.hwex, key = el.dataset.hwexkey;
+      hwOpenEx[key] = !hwOpenEx[key];
+      var d = null, it = null, selTerm = '';
+      var h2 = hwState();
+      Object.keys(h2.byTerm).forEach(function(tid2){
+        var dd = h2.byTerm[tid2];
+        if(dd && dd.items){
+          dd.items.forEach(function(x){ if(x.id === itemId){ d = dd; it = x; selTerm = tid2; } });
+        }
+      });
+      if(d && it && hwOpenEx[key]){
+        var ex = d.excellent[itemId];
+        var rec = ex && ex.list ? ex.list.filter(function(r){ return String(r.audiencesId || ('t' + r.teamId)) === String(key); })[0] : null;
+        if(rec) hwLoadExDetail(selTerm, it, rec);
+      }
+      hwRender();
+      return;
+    }
+    if((el = t.closest('[data-hwitem]'))){
+      var iid = el.dataset.hwitem;
+      hwOpenItem[iid] = !hwOpenItem[iid];
+      hwRender();
+      return;
+    }
+    if((el = t.closest('[data-hwrex]'))){
+      var aid = el.dataset.hwrex;
+      var h3 = hwState();
+      Object.keys(h3.byTerm).forEach(function(tid3){
+        var dd = h3.byTerm[tid3];
+        if(!dd || !dd.items) return;
+        var it3 = dd.items.filter(function(x){ return x.id === aid; })[0];
+        if(it3){ dd.excellent[aid] = null; delete dd.excellent[aid]; hwLoadExcellent(tid3, it3); }
+      });
+      return;
+    }
+  };
+}
 
 /* ====================== [11b] 信息门户（校内通知 + 学术讲座，只在 App 版启用） ======================
    数据源：my.bupt.edu.cn（Visual SiteBuilder 9 建的站）
@@ -12279,6 +12961,8 @@ function crSwitchSub(k){
   if(s) s.hidden = (k !== 'scan');
   var zzPane = document.getElementById('crPaneZz');
   if(zzPane) zzPane.hidden = (k !== 'zz');
+  var hwPane = document.getElementById('crPaneHw');
+  if(hwPane) hwPane.hidden = (k !== 'hw');
   if(k === 'scan'){
     renderScan();
     setTimeout(function(){ try{ scStart(); }catch(e){} }, 40);   /* 进来自动开相机 */
@@ -12286,6 +12970,7 @@ function crSwitchSub(k){
     scStop();   /* 离开扫码页就关相机，别偷偷占着 */
   }
   if(k === 'bonus') cbRender();
+  if(k === 'hw') hwRender();
   if(k === 'zz') zzEnter();
   window.scrollTo(0, 0);
 }
@@ -12899,6 +13584,14 @@ try{
       return { cam: scCamOn, paused: scPaused, busy: scBusy, manual: scManual, qr: scQR,
                result: scResult ? { ok: scResult.ok, tried: (scResult.tried || []).length } : null };
     }
+  };
+}catch(e){}
+
+/* 作业档案的测试钩子（和 __muJw / __scTest 同一套模式） */
+try{
+  window.__hwTest = {
+    state: hwState, render: hwRender, loadIndex: hwLoadIndex, loadTerm: hwLoadTerm,
+    loadExcellent: hwLoadExcellent, termName: hwTermName, coursesForTerm: hwCoursesForTerm
   };
 }catch(e){}
 
