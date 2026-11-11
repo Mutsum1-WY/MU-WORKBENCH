@@ -1601,8 +1601,12 @@ html.sc-lock{overflow:hidden}
 .hw-files{display:flex;flex-direction:column;gap:3px;margin-top:5px}
 .hw-file{display:flex;align-items:baseline;gap:6px;font-size:10.5px;color:var(--ink-2);line-height:1.5}
 .hw-file i{flex:none;font-style:normal;font-weight:900;font-size:9px;color:var(--ink-3);border:1px solid var(--line-2);padding:0 3px}
-.hw-file b{font-weight:700;word-break:break-all}
-.hw-file span{flex:none;color:var(--ink-3);font-variant-numeric:tabular-nums}
+.hw-file{flex-wrap:wrap}
+.hw-file b.nm{flex:1;min-width:0;font-weight:700;word-break:break-all}
+.hw-file span.sz{flex:none;color:var(--ink-3);font-variant-numeric:tabular-nums}
+.hw-file .btn.hw-fbtn{padding:2px 7px;min-height:22px;font-size:10px;box-shadow:1px 1px 0 var(--ink)}
+.hw-file .hw-fbtn.on{font-size:9.5px;font-weight:900;color:var(--ink-3);border:1.5px solid var(--line-2);padding:1px 6px}
+.hw-file .hw-file-msg{width:100%;font-size:9.5px;color:var(--danger);word-break:break-all}
 .hw-ex-list{display:flex;flex-direction:column;gap:4px}
 .hw-ex{display:flex;align-items:baseline;gap:6px;padding:5px 7px;border:1.5px solid var(--line-2);background:var(--paper-2);font-size:10.5px;cursor:pointer}
 .hw-ex.open{border-color:var(--accent)}
@@ -7944,11 +7948,20 @@ function hwLoadTerm(termId, force){
   }
   return nextCourse().then(function(){
     out.sort(function(a, b){ return String(b.submitTime).localeCompare(String(a.submitTime)); });
-    d.items = out;
-    d.phase = 'views'; d.pi = 0; d.pn = out.length;
+    /* 按课程去重：同名课程可能有多个教学班站点，同一份作业会各出现一次；
+       同「课程 + 标题」只留提交时间最新的一份，并记下合并了几份 */
+    var merged = [], byKey = {};
+    out.forEach(function(x){
+      var key = String(x.siteName || '') + '\u0001' + String(x.title || '');
+      var prev = byKey[key];
+      if(!prev){ byKey[key] = x; x.dups = 1; merged.push(x); return; }
+      prev.dups++;
+    });
+    d.items = merged;
+    d.phase = 'views'; d.pi = 0; d.pn = merged.length;
     hwRender();
     var done = 0;
-    return hwPool(out, 4, function(it){
+    return hwPool(merged, 4, function(it){
       return ucHttp({ url:'/ykt-site/work/submit-view?assignmentId=' + encodeURIComponent(it.id), step:'批改情况' })
         .then(function(r){
           var v = (r.data && r.data.data) || {};
@@ -8037,7 +8050,8 @@ function hwLoadFiles(termId, itemId, ids){
     .then(function(r){
       var arr = (r.data && r.data.data) || [];
       d.files[itemId] = { list: (arr || []).map(function(a){
-        return { name: a.name || a.resourceName || '附件', size: a.fileSizeUnit || '', ext: a.ext || '' };
+        return { id: String(a.id || a.resourceId || ''), name: a.name || a.resourceName || '附件',
+                 size: a.fileSizeUnit || '', ext: a.ext || '', recordFlag: a.recordFlag };
       }) };
       save(); hwRender();
     }, function(e){
@@ -8045,6 +8059,173 @@ function hwLoadFiles(termId, itemId, ids){
       hwRender();
     });
 }
+
+/* ---------- 附件：预览 / 下载 ----------
+   预览：GET /blade-source/resource/preview-url?resourceId=
+         → { previewUrl(签名直链), onlinePreview(在线预览器) }
+         浏览器里打开 onlinePreview + encodeURIComponent(previewUrl)；音视频走 uclass/yunfile.html
+   下载：/blade-source/resource/(download|download-large)?resourceId=<id>&oauthKey=<md5(id+盐)>
+         盐是平台前端写死的（course.html 里 createOauthKey），带 oauthKey 就不用认证头，
+         所以可以直接交给系统浏览器 / 原生下载桥。 */
+var HW_OAUTH_SALT = 'gZTwLteBkHIxHhXFMcQvUMjosqYWPuzTcQwYKpFidkFcradHFm';
+var hwDl = {};               /* resourceId -> { st:'load'|'ok'|'err', pct, uri, msg } */
+var hwDlSeq = 0, hwDlMap = {};
+/* 精简 MD5（平台 oauthKey 用），输入按 UTF-8 */
+function hwMd5(str){
+  var i, j, bytes = [], h = [0x67452301, 0xefcdab89, 0x98badcfe, 0x10325476];
+  var k = [], r = [7,12,17,22,7,12,17,22,7,12,17,22,7,12,17,22,
+                   5,9,14,20,5,9,14,20,5,9,14,20,5,9,14,20,
+                   4,11,16,23,4,11,16,23,4,11,16,23,4,11,16,23,
+                   6,10,15,21,6,10,15,21,6,10,15,21,6,10,15,21];
+  for(i = 0; i < 64; i++) k[i] = Math.floor(Math.abs(Math.sin(i + 1)) * 4294967296) | 0;
+  var s = unescape(encodeURIComponent(String(str == null ? '' : str)));
+  for(i = 0; i < s.length; i++) bytes.push(s.charCodeAt(i) & 0xff);
+  var len = bytes.length;
+  bytes.push(0x80);
+  while(bytes.length % 64 !== 56) bytes.push(0);
+  var bits = len * 8, hi = Math.floor(bits / 4294967296), lo = bits >>> 0;
+  for(i = 0; i < 4; i++) bytes.push((lo >>> (8 * i)) & 0xff);
+  for(i = 0; i < 4; i++) bytes.push((hi >>> (8 * i)) & 0xff);
+  for(i = 0; i < bytes.length; i += 64){
+    var w = [];
+    for(j = 0; j < 16; j++){
+      w[j] = bytes[i + j * 4] | (bytes[i + j * 4 + 1] << 8) | (bytes[i + j * 4 + 2] << 16) | (bytes[i + j * 4 + 3] << 24);
+    }
+    var a = h[0], b = h[1], c = h[2], d = h[3];
+    for(j = 0; j < 64; j++){
+      var f, g;
+      if(j < 16){ f = (b & c) | (~b & d); g = j; }
+      else if(j < 32){ f = (d & b) | (~d & c); g = (5 * j + 1) % 16; }
+      else if(j < 48){ f = b ^ c ^ d; g = (3 * j + 5) % 16; }
+      else { f = c ^ (b | ~d); g = (7 * j) % 16; }
+      var tmp = d;
+      d = c; c = b;
+      var sum = (a + f + k[j] + w[g]) | 0;
+      b = (b + ((sum << r[j]) | (sum >>> (32 - r[j])))) | 0;
+      a = tmp;
+    }
+    h[0] = (h[0] + a) | 0; h[1] = (h[1] + b) | 0; h[2] = (h[2] + c) | 0; h[3] = (h[3] + d) | 0;
+  }
+  var hex = '';
+  for(i = 0; i < 4; i++){
+    for(j = 0; j < 4; j++){
+      var bt = (h[i] >>> (8 * j)) & 0xff;
+      hex += (bt < 16 ? '0' : '') + bt.toString(16);
+    }
+  }
+  return hex;
+}
+function hwOauthKey(resourceId){ return hwMd5(String(resourceId) + HW_OAUTH_SALT); }
+function hwFileOf(termId, itemId, rid){
+  var d = hwTermData(termId, false);
+  if(!d) return null;
+  var fs = d.files[itemId];
+  if(fs && fs.list){
+    for(var i = 0; i < fs.list.length; i++){ if(String(fs.list[i].id) === String(rid)) return fs.list[i]; }
+  }
+  var ex = d.excellent[itemId];
+  if(ex && ex.detail){
+    var keys = Object.keys(ex.detail);
+    for(var k = 0; k < keys.length; k++){
+      var det = ex.detail[keys[k]];
+      if(det && det.files){
+        for(var j = 0; j < det.files.length; j++){
+          var f = det.files[j];
+          if(String(f.resourceId) === String(rid)){
+            return { id:String(rid), name: f.resourceName || '附件', ext: f.resourceType || '', size:'', recordFlag:0 };
+          }
+        }
+      }
+    }
+  }
+  return null;
+}
+function hwOpenDownloaded(rid){
+  var s = hwDl[rid] || {};
+  var nat = window.MuNative;
+  if(!s.uri || !nat || typeof nat.open !== 'function'){ toast('文件还没下载好'); return; }
+  try{ nat.open(s.uri, ''); }catch(e){ toast('这个文件打不开'); }
+}
+function hwDownload(termId, itemId, rid){
+  rid = String(rid || '');
+  if(!rid) return;
+  var f = hwFileOf(termId, itemId, rid) || { name:'附件', recordFlag:0 };
+  var cur = hwDl[rid] || {};
+  if(cur.st === 'load') return;
+  if(cur.st === 'ok' && cur.uri){ hwOpenDownloaded(rid); return; }
+  var url = 'https://apiucloud.bupt.edu.cn/blade-source/resource/' +
+    (f.recordFlag ? 'download-large' : 'download') +
+    '?resourceId=' + encodeURIComponent(rid) + '&oauthKey=' + hwOauthKey(rid);
+  var nat = (window.MuNative && typeof window.MuNative.download === 'function') ? window.MuNative : null;
+  if(!nat){
+    toast('这个版本不能直接存文件，交给浏览器下载');
+    rdOpenBrowser(url);
+    return;
+  }
+  var id = 'h' + (++hwDlSeq);
+  hwDlMap[id] = rid;
+  hwDl[rid] = { st:'load', pct:0 };
+  hwRender();
+  try{
+    nat.download(id, url, '', f.name || '附件', 'https://ucloud.bupt.edu.cn/uclass/');
+  }catch(e){
+    delete hwDlMap[id];
+    hwDl[rid] = { st:'err', msg:'调用系统下载失败' };
+    hwRender();
+  }
+}
+function hwPreview(rid, name){
+  rid = String(rid || '');
+  if(!rid) return;
+  var key = 'p' + rid;
+  if(hwDl[key]) return;
+  hwDl[key] = { st:'load' };
+  toast('正在打开预览…', 2200);
+  ucHttp({ url:'/blade-source/resource/preview-url?resourceId=' + encodeURIComponent(rid), step:'附件预览' })
+    .then(function(r){
+      delete hwDl[key];
+      var d = (r.data && r.data.data) || {};
+      var pv = (typeof d === 'string') ? d : String(d.previewUrl || '');
+      var viewer = (typeof d === 'object' && d) ? String(d.onlinePreview || '') : '';
+      var ext = (/\.([a-z0-9]{1,6})$/i.exec(String(name || '')) || [])[1] || '';
+      ext = ext.toLowerCase();
+      var url = '';
+      if(pv && (ext === 'mp4')){
+        url = 'https://ucloud.bupt.edu.cn/uclass/yunfile.html#/viewVideo?url=' + encodeURIComponent(pv);
+      }else if(pv && (ext === 'mp3' || ext === 'm4a')){
+        url = 'https://ucloud.bupt.edu.cn/uclass/yunfile.html#/viewAudio?url=' + encodeURIComponent(pv);
+      }else if(pv && viewer){
+        url = viewer + encodeURIComponent(pv);
+      }else{
+        url = pv;
+      }
+      if(!url){ toast('这个附件没有可用的预览地址'); return; }
+      rdOpenBrowser(url);
+    })['catch'](function(e){
+      delete hwDl[key];
+      toast('预览失败：' + ((e && (e.message || e.msg)) || e), 3600);
+    });
+}
+/* 原生下载回调（挂在 __muDl 里，见 portal 下载那段） */
+function hwDlNative(p){
+  if(!p || !p.id || String(p.id).charAt(0) !== 'h') return false;
+  var rid = hwDlMap[p.id];
+  if(!rid) return false;
+  if(p.act === 'progress'){
+    if(hwDl[rid] && hwDl[rid].st === 'load'){ hwDl[rid].pct = p.pct | 0; hwRender(); }
+    return true;
+  }
+  if(p.ok){
+    hwDl[rid] = { st:'ok', uri:p.uri || '', name:p.name || '' };
+    toast('已保存到 下载/MU WORKBENCH');
+  }else{
+    hwDl[rid] = { st:'err', msg:p.msg || '下载失败' };
+  }
+  delete hwDlMap[p.id];
+  hwRender();
+  return true;
+}
+try{ window.__hwDl = hwDlNative; }catch(e){}
 
 /* ---------- 渲染 ---------- */
 function hwStatusOf(v){
@@ -8061,13 +8242,29 @@ function hwKv(k, v){
 function hwSec(title, inner){
   return '<div class="hw-sec"><div class="hw-sec-h">' + esc(title) + '</div>' + inner + '</div>';
 }
-function hwFilesHTML(fsVal){
+function hwFileRowHTML(termId, itemId, f){
+  var rid = String(f.id || f.resourceId || '');
+  var st = hwDl[rid] || {};
+  var act;
+  if(st.st === 'load') act = '<span class="hw-fbtn on">' + (st.pct ? st.pct + '%' : '下载中…') + '</span>';
+  else if(st.st === 'ok') act = '<button class="btn ghost sm hw-fbtn" data-hwopen="' + esc(rid) + '">打开</button>';
+  else act = '<button class="btn ghost sm hw-fbtn" data-hwdl="' + esc(rid) + '" data-hwtermid="' + esc(termId) + '" data-hwitemid="' + esc(itemId) + '">' + (st.st === 'err' ? '重试' : '下载') + '</button>';
+  return '<div class="hw-file">' +
+    '<i>' + esc(String(f.ext || 'FILE').toUpperCase().slice(0, 5)) + '</i>' +
+    '<b class="nm">' + esc(f.name || '附件') + '</b>' +
+    (f.size ? '<span class="sz">' + esc(f.size) + '</span>' : '') +
+    '<button class="btn ghost sm hw-fbtn" data-hwprev="' + esc(rid) + '" data-hwprevname="' + esc(f.name || '') + '">预览</button>' +
+    act +
+    (st.st === 'err' && st.msg ? '<span class="hw-file-msg">' + esc(st.msg) + '</span>' : '') +
+  '</div>';
+}
+function hwFilesHTML(termId, itemId, fsVal){
   if(!fsVal) return '';
   if(fsVal.loading) return '<div class="hw-file"><span>附件读取中…</span></div>';
   if(fsVal.err) return '<div class="hw-file"><span>附件读取失败</span></div>';
   if(!fsVal.list || !fsVal.list.length) return '';
   return '<div class="hw-files">' + fsVal.list.map(function(f){
-    return '<div class="hw-file"><i>' + esc(String(f.ext || 'FILE').toUpperCase().slice(0, 5)) + '</i><b>' + esc(f.name) + '</b><span>' + esc(f.size) + '</span></div>';
+    return hwFileRowHTML(termId, itemId, f);
   }).join('') + '</div>';
 }
 function hwExcellentHTML(termId, it, d){
@@ -8103,7 +8300,7 @@ function hwExcellentHTML(termId, it, d){
         if(det.comment) h += '<div class="hw-comment">评语：' + esc(det.comment) + '</div>';
         if(det.files && det.files.length){
           h += '<div class="hw-files">' + det.files.map(function(f){
-            return '<div class="hw-file"><i>' + esc(String(f.resourceType || 'FILE').toUpperCase().slice(0, 5)) + '</i><b>' + esc(f.resourceName || '附件') + '</b></div>';
+            return hwFileRowHTML(termId, it.id, { id: f.resourceId, name: f.resourceName || '附件', ext: f.resourceType || '' });
           }).join('') + '</div>';
         }
       }
@@ -8139,7 +8336,7 @@ function hwDetailHTML(termId, it, d){
   if(it.endTime) my += hwKv('截止时间', it.endTime);
   if(v.content) my += '<div class="hw-body-text">' + esc(v.content) + '</div>';
   else if(!v.err) my += '<div class="hw-body-text">没有文字内容（可能只交了附件）</div>';
-  my += hwFilesHTML(d.files[it.id]);
+  my += hwFilesHTML(termId, it.id, d.files[it.id]);
   if(v.attachmentIds && v.attachmentIds.length && !d.files[it.id]){
     my += '<div class="hw-file"><span>附件 ' + v.attachmentIds.length + ' 个，读取中…</span></div>';
   }
@@ -8165,6 +8362,7 @@ function hwItemHTML(termId, it, d){
   var h = '<div class="hw-item' + (open ? ' open' : '') + '" data-hwitem="' + esc(it.id) + '" data-hwtermid="' + esc(termId) + '">' +
     '<div class="hw-item-top"><div class="hw-t">' + esc(it.title) + '</div>' + scoreHtml + '</div>' +
     '<div class="hw-item-sub"><span class="t">提交 ' + esc(String(it.submitTime || '').slice(5, 16)) + '</span>' + tags +
+      (it.dups > 1 ? '<span class="hw-tag">已合并 ' + it.dups + ' 份</span>' : '') +
       (it.chapter ? '<span class="hw-tag">' + esc(it.chapter) + '</span>' : '') + '</div>';
   if(open) h += '<div class="hw-detail">' + hwDetailHTML(termId, it, d) + '</div>';
   return h + '</div>';
@@ -8258,20 +8456,20 @@ function hwRender(){
     var order = hwTermOrderMap();
     termIds.sort(function(a, b){ return (order[a] == null ? 999 : order[a]) - (order[b] == null ? 999 : order[b]); });
     (h.terms || []).forEach(function(t){ if(t.isCurrent) curId = String(t.id); });
-    var total = 0, totalGraded = 0, scoreSum = 0;
+    var total = 0, totalGraded = 0;
     termIds.forEach(function(id){
       var d = h.byTerm[id];
       if(d && d.items){
         total += d.items.length;
         d.items.forEach(function(it){
           var v = d.views[it.id];
-          if(v && v.assignmentStatus === 1){ totalGraded++; scoreSum += Number(v.score) || 0; }
+          if(v && v.assignmentStatus === 1) totalGraded++;
         });
       }
     });
     html += '<div class="hw-bar"><span class="hw-sum">' +
       termIds.length + ' 个学期 · 已提交 ' + total + ' 项' +
-      (totalGraded ? (' · 已批改 ' + totalGraded + '（平均 ' + Math.round(scoreSum / totalGraded) + ' 分）') : '') +
+      (totalGraded ? (' · 已批改 ' + totalGraded) : '') +
       '</span><button class="btn ghost sm" data-hwreindex="1" data-hwforce="1">刷新</button></div>';
     termIds.forEach(function(id){
       html += hwTermCardHTML(id, id === curId);
@@ -8329,6 +8527,18 @@ function hwBind(){
       if(el.dataset.hwforce) wantOpen = true;
       hwOpen[tid] = wantOpen;
       if(wantOpen){ hwLoadTerm(tid, !!el.dataset.hwforce); } else { hwRender(); }
+      return;
+    }
+    if((el = t.closest('[data-hwprev]'))){
+      hwPreview(el.dataset.hwprev, el.dataset.hwprevname || '');
+      return;
+    }
+    if((el = t.closest('[data-hwdl]'))){
+      hwDownload(el.dataset.hwtermid, el.dataset.hwitemid, el.dataset.hwdl);
+      return;
+    }
+    if((el = t.closest('[data-hwopen]'))){
+      hwOpenDownloaded(el.dataset.hwopen);
       return;
     }
     if((el = t.closest('[data-hwex]'))){
@@ -9616,6 +9826,7 @@ window.__muDl = function(payload){
   var p = payload;
   if(typeof p === 'string'){ try{ p = JSON.parse(p); }catch(e){ return; } }
   if(!p || !p.id) return;
+  if(typeof window.__hwDl === 'function'){ try{ if(window.__hwDl(p)) return; }catch(e){} }
   var u = dlMap[p.id];
   if(!u) return;
   if(p.act === 'progress'){
@@ -13591,7 +13802,8 @@ try{
 try{
   window.__hwTest = {
     state: hwState, render: hwRender, loadIndex: hwLoadIndex, loadTerm: hwLoadTerm,
-    loadExcellent: hwLoadExcellent, termName: hwTermName, coursesForTerm: hwCoursesForTerm
+    loadExcellent: hwLoadExcellent, termName: hwTermName, coursesForTerm: hwCoursesForTerm,
+    md5: hwMd5, oauthKey: hwOauthKey, preview: hwPreview, download: hwDownload, dlState: function(){ return hwDl; }
   };
 }catch(e){}
 
