@@ -237,6 +237,8 @@ button{cursor:pointer}
   background:var(--accent);border:2px solid var(--chrome);display:none;
 }
 #bellDot.on{display:block}
+/* 顶栏两个图标按钮：点区补到 44×44（负外边距抵掉多出来的 8px，不撑高顶栏） */
+.top-actions .icon-btn{width:44px;height:44px;margin:-4px 0}
 
 .main{flex:1;width:100%;max-width:780px;margin:0 auto;padding:14px 14px 112px}
 .view{display:none}
@@ -249,7 +251,7 @@ button{cursor:pointer}
 /* 底栏：黑底 + 选中红斜块 */
 .tabbar{
   position:fixed;left:0;right:0;bottom:0;z-index:40;
-  display:grid;grid-template-columns:repeat(7,1fr);gap:0;
+  display:grid;grid-template-columns:repeat(5,1fr);gap:0;
   padding:5px 6px calc(5px + env(safe-area-inset-bottom));
   background:var(--chrome);
   border-top:var(--bw) solid var(--accent);
@@ -460,6 +462,17 @@ select.input{
 .seg button.on{background:var(--accent);color:var(--chrome-ink)}
 .seg button[data-pri].on{background:var(--c);color:var(--chrome)}
 
+/* 专注页顶部分段：时钟 / 项目（两个按钮等宽，点区 ≥ 44px） */
+.seg-switch{display:flex;gap:2px;padding:2px;margin-bottom:12px;background:var(--chrome);border:var(--bw) solid var(--chrome)}
+.seg-switch button{
+  flex:1 1 0;min-width:0;min-height:44px;border:none;background:transparent;border-radius:0;
+  font:inherit;font-size:13px;font-weight:900;letter-spacing:.04em;
+  color:var(--chrome-soft);cursor:pointer;
+  transition:background var(--t),color var(--t);
+}
+.seg-switch button.on{background:var(--accent);color:var(--chrome-ink)}
+.seg-switch+.view-head{margin-top:0}
+
 /* 表单 */
 .field{display:block;margin-bottom:14px}
 .field>span{display:block;font-size:12px;font-weight:800;color:var(--ink-2);margin-bottom:7px;letter-spacing:.02em}
@@ -470,6 +483,21 @@ select.input{
 .set-t{font-size:13.5px;font-weight:800;line-height:1.4}
 .set-d{font-size:11.5px;color:var(--ink-3);margin-top:2px;line-height:1.45}
 .input.time{width:118px;flex:none}
+
+/* 设置页页头：‹ 返回 + 标题（设置从底栏挪到顶栏齿轮后，得有一条回得去的路） */
+.set-head{display:flex;align-items:center;gap:12px;margin:2px 0 14px}
+.set-back{
+  display:inline-flex;align-items:center;justify-content:center;
+  min-width:44px;min-height:44px;padding:0 14px;
+  border:var(--bw) solid var(--ink);background:var(--surface-1);color:var(--ink);
+  border-radius:0;box-shadow:3px 3px 0 var(--ink);
+  font:inherit;font-size:13px;font-weight:900;line-height:1;
+  cursor:pointer;
+  transition:background var(--t),color var(--t),box-shadow var(--t);
+}
+.set-back:hover{background:var(--accent);color:var(--chrome-ink)}
+.set-back:active{background:var(--accent);color:var(--chrome-ink);box-shadow:1px 1px 0 var(--ink)}
+.set-title{font-size:17px;font-weight:900;letter-spacing:.02em;color:var(--ink);margin:0}
 
 .rng{-webkit-appearance:none;appearance:none;width:100%;height:6px;border-radius:0;background:var(--paper-2);border:1.5px solid var(--ink);outline:none;margin:8px 0 0}
 .rng::-webkit-slider-thumb{-webkit-appearance:none;width:16px;height:16px;border-radius:0;background:var(--accent);border:var(--bw) solid var(--ink);cursor:pointer}
@@ -581,22 +609,68 @@ select.input{
 .banner.done .bicon{stroke:var(--chrome-ink)}
 @keyframes p5Banner{from{opacity:0;transform:translateX(-16px) skewX(-8deg)}to{opacity:1;transform:skewX(-2deg)}}
 
-/* 待办条目：纸片 + 左侧编号栏（CSS 计数器，不改 JS） */
+/* 待办条目：纸片 + 左侧编号栏（CSS 计数器，不改 JS）
+   手势层：.task 只当画框（描边 / 硬投影 / 序号条都在它身上），
+   .task-fg 前景跟手左右移动，.task-bg 背景绝对定位铺满、放「完成 / 明天 / 删除」。 */
 .task{
   position:relative;
-  display:flex;align-items:flex-start;gap:12px;
-  padding:12px 14px 12px 40px;
+  display:block;
+  padding:0;
   background:var(--surface-1);
   border:var(--bw) solid var(--ink);border-radius:0;
   box-shadow:3px 3px 0 var(--ink);
   margin-bottom:10px;
   counter-increment:p5task;
+  overflow:hidden;              /* 前景滑出去不要露到卡片外；自身硬投影不受影响 */
+  isolation:isolate;            /* 手势层的 z-index 只在卡片内部生效 */
+  touch-action:pan-y;           /* 横滑自己接管，纵向仍交给页面滚动 */
   transition:transform 90ms var(--ease),box-shadow 90ms var(--ease),background var(--t);
 }
 #todayList{counter-reset:p5task}
+/* 前景：原来的 .cb + .tmain + .x 都包在这里，padding 也搬过来 */
+.task-fg{
+  position:relative;z-index:1;
+  display:flex;align-items:flex-start;gap:12px;
+  padding:12px 14px 12px 40px;
+  background:var(--surface-1);
+  transition:transform 180ms var(--ease);
+  -webkit-user-select:none;user-select:none;   /* 鼠标拖动时别顺手选中文字 */
+}
+/* 背景：左侧「完成」提示 + 右侧 72px 的「明天 / 删除」 */
+.task-bg{
+  position:absolute;inset:0;z-index:0;
+  display:flex;align-items:stretch;justify-content:space-between;
+  background:var(--surface-3);
+  overflow:hidden;
+}
+.task-bg .bg-hint{
+  flex:none;width:120px;
+  display:flex;align-items:center;gap:7px;
+  padding-left:34px;            /* 让开 26px 序号条 */
+  color:var(--ink-3);
+  font-size:13px;font-weight:900;letter-spacing:.02em;white-space:nowrap;
+  transition:background var(--t),color var(--t);
+}
+.task-bg .bg-hint svg{
+  width:20px;height:20px;flex:none;fill:none;stroke:currentColor;stroke-width:2.8;
+  stroke-linecap:square;stroke-linejoin:miter;
+}
+.task-bg.armed .bg-hint{background:var(--accent);color:var(--chrome-ink)}
+.task-bg .bg-acts{flex:none;display:flex;align-items:stretch;margin-left:auto}
+.task-bg .bg-btn{
+  width:72px;min-width:72px;height:auto;min-height:44px;
+  margin:0;padding:0 4px;border:0;border-left:var(--bw) solid var(--ink);border-radius:0;
+  font:inherit;font-size:13px;font-weight:900;letter-spacing:.06em;
+  color:var(--paper);background:var(--ink);
+  cursor:pointer;
+  transition:filter 120ms var(--ease);
+}
+.task-bg .bg-btn.bg-del{background:var(--accent);color:var(--paper)}
+.task-bg .bg-btn:active{filter:brightness(.9)}
 .task::before{
   content:counter(p5task,decimal-leading-zero);
   position:absolute;left:0;top:0;bottom:0;width:26px;
+  z-index:2;                    /* 序号条盖在前景上：静止时和原来一模一样 */
   display:grid;place-items:center;
   background:var(--ink);color:var(--paper);
   font-size:11px;font-weight:900;font-style:italic;letter-spacing:-.02em;
@@ -608,6 +682,7 @@ select.input{
 .ttitle{font-size:14px;font-weight:800;line-height:1.45;word-break:break-word;color:var(--ink)}
 /* 已完成：不整卡降透明度（否则网点透出、正文对比度掉到 3.5:1），改为灰纸 + 灰编号 */
 .task.done{background:var(--paper-2)}
+.task.done>.task-fg{background:var(--paper-2)}
 .task.done .ttitle{color:var(--ink-3);text-decoration:line-through}
 .task.done::before{background:var(--ink-3)}
 .task.done .tmeta{opacity:.9}
@@ -638,21 +713,90 @@ select.input{
 .about-card .card-title{color:var(--accent-ink)}
 
 /* ====================== 5b. 专注窗口（新建/编辑待办） ====================== */
-.type-list{display:grid;grid-template-columns:1fr 1fr;gap:8px}
-.type-list button{
-  position:relative;display:block;text-align:left;width:100%;
-  padding:10px 12px;border-radius:0;border:var(--bw) solid var(--ink);background:var(--surface-1);
-  transition:background var(--t),box-shadow 90ms var(--ease),transform 90ms var(--ease);
-  box-shadow:2px 2px 0 var(--ink);
+/* 类型：一行横向滚动的紧凑 chip（只写类型名，说明放在下面一行） */
+.type-list{
+  display:flex;align-items:center;gap:8px;
+  overflow-x:auto;overflow-y:hidden;
+  margin:0 -2px;padding:3px 2px 5px;
+  scrollbar-width:none;-ms-overflow-style:none;
+  -webkit-overflow-scrolling:touch;
+  scroll-behavior:smooth;
 }
-.type-list button:hover{background:var(--paper-2)}
-.type-list button:active{transform:translate(2px,2px);box-shadow:0 0 0 var(--ink)}
-.type-list button.on{background:var(--accent);box-shadow:2px 2px 0 var(--ink)}
-.type-list button.on .tn,.type-list button.on .td{color:var(--paper)}
-.type-list .tn{display:block;font-size:13px;font-weight:900;line-height:1.35;color:var(--ink);letter-spacing:.01em}
-.type-list .td{display:block;font-size:11px;color:var(--ink-3);margin-top:2px;line-height:1.35}
-.type-list .tick{position:absolute;top:8px;right:9px;margin:0;color:var(--paper);font-weight:900;font-size:12px;opacity:0}
-.type-list button.on .tick{opacity:1}
+.type-list::-webkit-scrollbar{display:none;width:0;height:0}
+.tf-chip{
+  position:relative;flex:0 0 auto;
+  display:inline-flex;align-items:center;justify-content:center;
+  height:38px;padding:0 14px;
+  border:var(--bw) solid var(--ink);border-radius:0;
+  background:var(--surface-1);color:var(--ink);
+  font:inherit;font-size:13px;font-weight:900;line-height:1;letter-spacing:.01em;
+  white-space:nowrap;cursor:pointer;
+  box-shadow:2px 2px 0 var(--ink);
+  transition:background var(--t),color var(--t),border-color var(--t),box-shadow 90ms var(--ease),transform 90ms var(--ease);
+}
+/* 视觉高度 38px，点区上下各补 3px，实际 ≥44px */
+.tf-chip::after{content:'';position:absolute;left:0;right:0;top:-3px;bottom:-3px}
+.tf-chip:hover{background:var(--paper-2)}
+.tf-chip:active{transform:translate(2px,2px);box-shadow:0 0 0 var(--ink)}
+.tf-chip.on{background:var(--accent);border-color:var(--ink);color:var(--paper)}
+.tf-chip.on:hover{background:var(--accent)}
+/* chip 下方的一行类型说明 */
+.tf-tdesc{
+  margin-top:1px;min-height:17px;
+  font-size:11.5px;line-height:1.5;font-weight:700;color:var(--ink-3);
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+}
+/* 日期快捷 chip：同样一行横滑，滚动条隐藏 */
+.tf-dates{
+  display:flex;align-items:center;gap:8px;
+  overflow-x:auto;overflow-y:hidden;
+  margin:0 -2px 6px;padding:3px 2px 5px;
+  scrollbar-width:none;-ms-overflow-style:none;-webkit-overflow-scrolling:touch;
+}
+.tf-dates::-webkit-scrollbar{display:none;width:0;height:0}
+.tf-date{font-size:12px;font-weight:800;color:var(--ink-2);margin:0 0 2px}
+/* 迷你月历：外层负责折叠（本身没有内边距，收起时高度真正为 0），内层画框。
+   展开 / 收起用高度过渡 190ms（reduced-motion 由全局规则关掉）。 */
+.tf-cal{
+  max-height:0;overflow:hidden;opacity:0;visibility:hidden;
+  transition:max-height 190ms var(--ease),opacity 150ms var(--ease),visibility 0s linear 190ms;
+}
+.tf-cal.on{
+  max-height:520px;opacity:1;visibility:visible;
+  transition:max-height 190ms var(--ease),opacity 150ms var(--ease),visibility 0s linear 0s;
+}
+.tf-cal #fCalBox{border:var(--bw) solid var(--ink);background:var(--paper-2);padding:10px}
+/* 「更多选项」折叠区：整行按钮 + 右侧摘要 + 箭头 */
+.tf-more{margin:2px 0 4px}
+.tf-more-btn{
+  display:flex;align-items:center;gap:10px;width:100%;min-height:48px;
+  padding:9px 12px;border:var(--bw) solid var(--ink);border-radius:0;
+  background:var(--surface-1);color:var(--ink);
+  font:inherit;font-size:13px;font-weight:900;letter-spacing:.02em;
+  text-align:left;cursor:pointer;
+  box-shadow:3px 3px 0 var(--ink);
+  transition:background var(--t),border-color var(--t),box-shadow 90ms var(--ease),transform 90ms var(--ease);
+}
+.tf-more-btn:hover{background:var(--paper-2)}
+.tf-more-btn:active{transform:translate(2px,2px);box-shadow:1px 1px 0 var(--ink)}
+.tf-more-t{flex:none}
+.tf-sum{
+  flex:1;min-width:0;
+  font-size:11.5px;font-weight:700;color:var(--ink-3);text-align:right;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+}
+.tf-arrow{flex:none;font-size:10px;line-height:1;color:var(--ink-2);transition:transform 160ms var(--ease)}
+.tf-more-btn.on .tf-arrow{transform:rotate(180deg)}
+.tf-more-body{
+  display:grid;grid-template-rows:0fr;visibility:hidden;
+  transition:grid-template-rows 190ms var(--ease),visibility 0s linear 190ms;
+}
+.tf-more-body.on{
+  grid-template-rows:1fr;visibility:visible;
+  transition:grid-template-rows 190ms var(--ease),visibility 0s linear 0s;
+}
+.tf-more-body>div{min-height:0;overflow:hidden}
+.tf-more-body>div>.field:first-child{padding-top:15px}
 .wk-grid{display:flex;gap:6px;flex-wrap:wrap}
 .wk-grid button{
   flex:1;min-width:40px;padding:9px 0;border-radius:0;border:var(--bw) solid var(--ink);
@@ -1030,12 +1174,15 @@ body.rd-on{overflow:hidden}
 /* ====================== 9. 弹窗 / 提示 ====================== */
 .modal-wrap{
   position:fixed;inset:0;z-index:60;display:none;align-items:flex-end;justify-content:center;
-  background:rgba(11,11,12,.62);
+  --sheet-dim:.62;                 /* 遮罩浓度：下滑时由 JS 调低，P3R 在自己的规则里改成 .7 */
+  background:rgba(11,11,12,var(--sheet-dim));
   transition:opacity 130ms var(--ease),display 130ms allow-discrete;
   opacity:0;
 }
 .modal-wrap.on{display:flex;animation:fadeIn 140ms linear;opacity:1}
 .modal-wrap:not(.on){opacity:0}
+/* 关闭中：遮罩随卡片一起淡出（用 class 而不是内联 opacity，免得被入场动画盖掉） */
+.modal-wrap.closing{display:flex;animation:none;opacity:0;transition:opacity 160ms var(--ease)}
 @starting-style{.modal-wrap.on{opacity:0}}
 @keyframes fadeIn{from{opacity:0}to{opacity:1}}
 .modal{
@@ -1046,10 +1193,24 @@ body.rd-on{overflow:hidden}
   border-right:var(--bw) solid var(--ink);
   border-radius:0;padding:18px;
   box-shadow:0 -5px 0 var(--accent);
-  animation:p5ModalIn 200ms var(--ease);
   padding-bottom:calc(18px + env(safe-area-inset-bottom));
 }
+/* 入场动画只挂在 .enter 上：openModal 时重播一次；拖动 / 弹回 / 关闭时移除，
+   免得改动画属性把入场动画又触发一遍（fill 结束后 animation-name 还在，会重播）。 */
+.modal.enter{animation:p5ModalIn 200ms var(--ease)}
 @keyframes p5ModalIn{from{transform:translateY(28px) skewX(-4deg);opacity:.5}to{transform:none;opacity:1}}
+/* 底部弹窗的拖动把手：外层 26px 高的可拖区（≥24px），里面 44×5 的横条。
+   拖动中用 .dragging 关掉入场动画与过渡，让卡片严格跟手；
+   松手弹回 / 关闭分别用 .settling / .sheet-closing，时长都控制在 200ms 内。 */
+.sheet-grip{
+  display:flex;align-items:center;justify-content:center;
+  height:26px;margin:-8px 0 10px;
+  cursor:grab;touch-action:none;
+}
+.sheet-grip i{display:block;width:44px;height:5px;background:var(--ink);border-radius:0;pointer-events:none}
+.modal.dragging{animation:none !important;transition:none !important;cursor:grabbing;-webkit-user-select:none;user-select:none}
+.modal.settling{animation:none !important;transition:transform 180ms var(--ease),opacity 160ms var(--ease)}
+.modal.sheet-closing{animation:none !important;transition:transform 180ms var(--ease),opacity 160ms var(--ease);pointer-events:none}
 .modal::before{
   content:'';display:block;height:8px;margin:-6px 0 14px;
   background:repeating-linear-gradient(115deg,var(--accent) 0 10px,var(--ink) 10px 14px);
@@ -1083,6 +1244,20 @@ body.rd-on{overflow:hidden}
   display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;
 }
 .toast.on{opacity:1;transform:none}
+/* 带操作按钮的 toast：容器仍不拦点击，只有这一条恢复 pointer-events；
+   文案照旧最多两行，右侧按钮点击区 ≥ 44×44。 */
+.toast.toast-act{display:flex;align-items:center;gap:10px;pointer-events:auto;padding:8px 8px 8px 14px}
+.toast-act .toast-msg{flex:1;min-width:0;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.toast-btn{
+  flex:none;min-width:44px;min-height:44px;padding:0 10px;
+  display:inline-flex;align-items:center;justify-content:center;
+  background:transparent;border:0;border-left:1.5px solid var(--accent-mid);border-radius:0;
+  /* toast 底色始终是深色（P5R 用 ink / 深色下 surface-3，P3R 用深蓝渐变），
+     所以操作按钮用亮一档的 accent-2，保证两套皮肤、明暗模式下都看得清 */
+  color:var(--accent-2);font-weight:900;font-size:13px;letter-spacing:.02em;line-height:1.2;
+  cursor:pointer;
+}
+.toast-btn:active{background:var(--accent-soft);color:var(--accent-ink)}
 @media(min-width:900px){.toast-wrap{bottom:28px}}
 
 /* ====================== 9b. 应用内确认浮层（替代系统 confirm） ====================== */
@@ -1246,8 +1421,21 @@ body.rd-on{overflow:hidden}
   .cr-list{display:grid;grid-template-columns:1fr 1fr;gap:10px;align-items:start}
   .cr-selects{grid-template-columns:repeat(3,minmax(0,150px))}
 }
-.cr-tabs{display:flex;gap:2px;padding:2px;margin-bottom:14px;background:var(--chrome);border:var(--bw) solid var(--chrome)}
-.cr-tabs button{flex:1;border:none;background:transparent;color:var(--chrome-soft);font:inherit;font-size:12.5px;font-weight:900;padding:9px 10px;cursor:pointer;transition:background var(--t),color var(--t)}
+/* 课程子页签：吸在顶栏下方（顶栏是 sticky，高度由 JS 量到 --mu-topbar-h），
+   内容长了可以横向滑，滚动条藏起来；当前页签由 crSwitchSub 滚到中间 */
+.cr-tabs{
+  display:flex;gap:2px;padding:2px;margin-bottom:14px;
+  background:var(--chrome);border:var(--bw) solid var(--chrome);
+  position:sticky;top:var(--mu-topbar-h,58px);z-index:20;
+  overflow-x:auto;overflow-y:hidden;-webkit-overflow-scrolling:touch;
+  scrollbar-width:none;-ms-overflow-style:none;
+}
+.cr-tabs::-webkit-scrollbar{display:none}
+.cr-tabs button{
+  flex:1 0 auto;min-height:40px;border:none;background:transparent;color:var(--chrome-soft);
+  font:inherit;font-size:12.5px;font-weight:900;padding:9px 10px;cursor:pointer;white-space:nowrap;
+  transition:background var(--t),color var(--t);
+}
 .cr-tabs button.on{background:var(--accent);color:var(--chrome-ink)}
 
 /* ================== 课外加分 ================== */
@@ -2222,9 +2410,17 @@ html[data-theme="p3r"] .task::before{
 html[data-theme="p3r"] .task:hover{transform:none;box-shadow:0 12px 26px rgba(3,31,100,.12)}
 html[data-theme="p3r"] .task:active{transform:none;box-shadow:0 6px 16px rgba(3,31,100,.1)}
 html[data-theme="p3r"] .task.done{background:var(--surface-2)}
+html[data-theme="p3r"] .task.done>.task-fg{background:var(--surface-2)}
 html[data-theme="p3r"] .task.done::before{background:var(--line-2);color:var(--surface-1)}
 html[data-theme="p3r"] .task.overdue{border-color:color-mix(in srgb,var(--danger) 60%,transparent);box-shadow:0 8px 22px color-mix(in srgb,var(--danger) 20%,transparent)}
 html[data-theme="p3r"] .task.overdue::before{background:var(--danger)}
+/* —— 待办行手势背景：蓝白风格（细线、直角、斜体拉丁） —— */
+html[data-theme="p3r"] .task-bg{background:var(--surface-3)}
+html[data-theme="p3r"] .task-bg .bg-hint{padding-left:36px;color:var(--ink-3);font-weight:900;letter-spacing:.06em}
+html[data-theme="p3r"] .task-bg.armed .bg-hint{background:var(--accent);color:#ffffff}
+html[data-theme="p3r"] .task-bg .bg-btn{border-left:1px solid var(--line-2);border-radius:0;letter-spacing:.08em}
+html[data-theme="p3r"] .task-bg .bg-btn.bg-tomorrow{background:var(--ink);color:var(--paper)}
+html[data-theme="p3r"] .task-bg .bg-btn.bg-del{background:var(--danger-solid);color:#ffffff}
 /* —— 列表卡片（课程/项目/资讯/云邮） —— */
 html[data-theme="p3r"] .kb-item,
 html[data-theme="p3r"] .pcard,
@@ -2285,7 +2481,7 @@ html[data-theme="p3r"] .cell.today{border:2px solid var(--accent)}
 html[data-theme="p3r"] .cell .cdots i{border-radius:0;transform:none;width:5px;height:3px}
 html[data-theme="p3r"] .minical{border:1px solid var(--line);border-radius:var(--r);background:var(--surface-2)}
 /* —— 弹窗 / 横幅 / toast / 空状态 / 浮动按钮 —— */
-html[data-theme="p3r"] .modal-wrap{background:rgba(2,10,30,.7);backdrop-filter:blur(3px)}
+html[data-theme="p3r"] .modal-wrap{--sheet-dim:.7;background:rgba(2,10,30,var(--sheet-dim));backdrop-filter:blur(3px)}
 html[data-theme="p3r"] .modal{
   border:1px solid var(--line);border-radius:10px;
   background:var(--surface-1);
@@ -2296,6 +2492,10 @@ html[data-theme="p3r"] .modal::before{
   background:linear-gradient(90deg,var(--p3-cyan),var(--p3-mint),transparent);
 }
 html[data-theme="p3r"] .modal-foot{border-top:1px solid var(--line);background:var(--surface-1);border-radius:0 0 10px 10px}
+/* P3R：把手用半透明圆角横条，toast 操作按钮用亮一档的主色（深蓝底上才看得清） */
+html[data-theme="p3r"] .sheet-grip i{background:var(--ink-3);opacity:.55;border-radius:var(--r-pill)}
+html[data-theme="p3r"] .toast-btn{color:var(--accent-2);border-left-color:rgba(255,255,255,.28)}
+html[data-theme="p3r"] .toast-btn:active{background:rgba(255,255,255,.18);color:#fff}
 html[data-theme="p3r"] .p5-confirm{border:1px solid var(--line);border-radius:8px;transform:none;box-shadow:0 24px 56px rgba(0,6,24,.5)}
 html[data-theme="p3r"] .banner{
   transform:none;border-radius:6px;height:auto;min-height:50px;padding:10px 12px;
@@ -2692,6 +2892,7 @@ html[data-theme="p3r"] .kb-prog{height:8px}
 html[data-theme="p3r"] .kb-foot{border-top:1px dashed var(--line-2);color:var(--ink-3)}
 html[data-theme="p3r"] .kb-past{opacity:.6}
 /* —— 课程性价比 / 课外加分 / 扫码 / 综测 —— */
+/* 吸顶时底色必须不透明（var(--p3-deep)），否则下面的课程列表会透上来 */
 html[data-theme="p3r"] .cr-tabs{
   padding:3px;gap:3px;border-radius:6px;border:0;
   background:var(--p3-deep);
@@ -2703,6 +2904,24 @@ html[data-theme="p3r"] .cr-tabs button.on{
   clip-path:polygon(6px 0,100% 0,calc(100% - 6px) 100%,0 100%);
   box-shadow:none;
 }
+/* 专注页的「时钟 / 项目」分段：和课程子页签同一套暂停菜单风 */
+html[data-theme="p3r"] .seg-switch{
+  padding:3px;gap:3px;border-radius:6px;border:0;
+  background:var(--p3-deep);
+  box-shadow:inset 0 0 0 1px rgba(255,255,255,.12);
+}
+html[data-theme="p3r"] .seg-switch button{border-radius:0;color:rgba(255,255,255,.72);font-weight:900}
+html[data-theme="p3r"] .seg-switch button.on{
+  background:#ffffff;color:var(--p3-deep);
+  clip-path:polygon(6px 0,100% 0,calc(100% - 6px) 100%,0 100%);
+}
+/* 设置页页头：P3R 细线 + 圆角，去掉 P5R 的硬投影 */
+html[data-theme="p3r"] .set-back{
+  border:1px solid var(--line-2);border-radius:4px;background:var(--surface-1);
+  color:var(--ink);box-shadow:none;
+}
+html[data-theme="p3r"] .set-back:hover{background:var(--accent);color:#fff;border-color:var(--accent)}
+html[data-theme="p3r"] .set-back:active{background:var(--accent);color:#fff;border-color:var(--accent);box-shadow:none}
 html[data-theme="p3r"] .cr-search{border:1px solid var(--line-2);border-radius:5px;background:var(--surface-2)}
 html[data-theme="p3r"] .cr-search:focus-within{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}
 html[data-theme="p3r"] select,
@@ -2931,10 +3150,34 @@ html[data-theme="p3r"] .yg-panel{border-radius:5px;background:var(--surface-2)}
   html[data-theme="p3r"] .card{box-shadow:0 12px 26px rgba(0,4,18,.5)}
   html[data-theme="p3r"] .cell{background:var(--surface-2)}
   html[data-theme="p3r"] .seg,
+  html[data-theme="p3r"] .seg-switch,
   html[data-theme="p3r"] .pt-range,
   html[data-theme="p3r"] .cr-tabs{background:#03102a;box-shadow:inset 0 0 0 1px rgba(140,195,255,.22)}
   html[data-theme="p3r"] .btn.ghost{border-color:var(--line-2)}
 }
+/* —— 待办表单：类型 / 日期 chip + 更多选项（蓝白细线风，去掉 P5R 硬投影） —— */
+html[data-theme="p3r"] .tf-chip{
+  border:1px solid var(--line-2);border-radius:0;background:var(--surface-2);color:var(--ink-2);
+  box-shadow:none;
+}
+html[data-theme="p3r"] .tf-chip:hover{background:var(--accent-soft);border-color:var(--accent-mid);color:var(--accent-ink)}
+html[data-theme="p3r"] .tf-chip:active{transform:none}
+html[data-theme="p3r"] .tf-chip.on{background:var(--accent);border-color:transparent;color:#fff}
+html[data-theme="p3r"] .tf-chip.on:hover{background:var(--accent);color:#fff}
+html[data-theme="p3r"] .tf-tdesc,
+html[data-theme="p3r"] .tf-date{color:var(--ink-3)}
+html[data-theme="p3r"] .tf-cal #fCalBox{
+  border:1px solid var(--line);border-radius:var(--r);background:var(--surface-2);
+}
+html[data-theme="p3r"] .tf-more-btn{
+  border:1px solid var(--line-2);border-radius:5px;background:var(--surface-1);color:var(--ink);
+  box-shadow:none;font-family:var(--font-lat);font-weight:900;
+}
+html[data-theme="p3r"] .tf-more-btn:hover{background:var(--surface-3);border-color:var(--accent-mid)}
+html[data-theme="p3r"] .tf-more-btn:active{transform:none;box-shadow:none}
+html[data-theme="p3r"] .tf-more-btn.on{border-color:var(--accent-mid)}
+html[data-theme="p3r"] .tf-sum,
+html[data-theme="p3r"] .tf-arrow{color:var(--ink-3)}
 </style>
 </head>
 <body>
@@ -2950,6 +3193,7 @@ html[data-theme="p3r"] .yg-panel{border-radius:5px;background:var(--surface-2)}
       </div>
     </div>
     <div class="top-actions">
+      <button class="icon-btn" id="btnSettings" title="设置" aria-label="设置"><svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3.1"/><path d="M12 3.2v2.4M12 18.4v2.4M4.8 12H2.4M21.6 12h-2.4M6.9 6.9 5.2 5.2M18.8 18.8l-1.7-1.7M6.9 17.1l-1.7 1.7M18.8 5.2l-1.7 1.7"/></svg></button>
       <button class="icon-btn" id="btnScan" title="扫码签到" aria-label="扫码签到"><svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8V5.5A1.5 1.5 0 0 1 5.5 4H8"/><path d="M16 4h2.5A1.5 1.5 0 0 1 20 5.5V8"/><path d="M20 16v2.5a1.5 1.5 0 0 1-1.5 1.5H16"/><path d="M8 20H5.5A1.5 1.5 0 0 1 4 18.5V16"/><rect x="8.4" y="8.4" width="7.2" height="7.2" rx="1.2"/></svg></button>
     </div>
   </header>
@@ -2989,6 +3233,10 @@ html[data-theme="p3r"] .yg-panel{border-radius:5px;background:var(--surface-2)}
 
     <!-- ============ 时钟 ============ -->
     <section class="view" id="view-clock">
+      <div class="seg-switch" role="group" aria-label="专注页切换">
+        <button type="button" data-focus-sub="clock" aria-pressed="true" class="on">时钟</button>
+        <button type="button" data-focus-sub="projects" aria-pressed="false">项目</button>
+      </div>
       <div class="card clock-card">
         <svg class="dial" id="dial" viewBox="0 0 200 200" aria-label="可视化时钟">
           <defs>
@@ -3050,6 +3298,10 @@ html[data-theme="p3r"] .yg-panel{border-radius:5px;background:var(--surface-2)}
 
     <!-- ============ 项目 ============ -->
     <section class="view" id="view-projects">
+      <div class="seg-switch" role="group" aria-label="专注页切换">
+        <button type="button" data-focus-sub="clock" aria-pressed="false">时钟</button>
+        <button type="button" data-focus-sub="projects" aria-pressed="true" class="on">项目</button>
+      </div>
       <div class="view-head">
         <h2>项目进度卡片</h2>
         <button class="btn primary sm" id="addProject">＋ 新建卡片</button>
@@ -3312,6 +3564,10 @@ html[data-theme="p3r"] .yg-panel{border-radius:5px;background:var(--surface-2)}
 <!--[COURSE_HTML_END]-->
 
     <section class="view" id="view-settings">
+      <div class="set-head">
+        <button class="set-back" id="btnSetBack" type="button" aria-label="返回上一页">‹ 返回</button>
+        <h2 class="set-title">设置</h2>
+      </div>
       <div class="card">
         <div class="card-title"><i class="dotmark"></i>提醒</div>
         <div class="set-row">
@@ -3549,20 +3805,17 @@ html[data-theme="p3r"] .yg-panel{border-radius:5px;background:var(--surface-2)}
 
   </main>
 
-  <!-- ============ 底部导航 ============ -->
+  <!-- ============ 底部导航（5 格：时钟 / 项目合进「专注」，设置挪到顶栏齿轮） ============ -->
   <nav class="tabbar">
     <button class="tab on" data-tab="today">
       <svg viewBox="0 0 24 24"><path d="M4 12.5 9.5 18 20 6.5"/></svg><span>今日</span>
       <i class="tab-badge" id="tabBadgeToday"></i>
     </button>
-    <button class="tab" data-tab="clock">
-      <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.4V12l3.2 2"/></svg><span>时钟</span>
-    </button>
-    <button class="tab" data-tab="projects">
-      <svg viewBox="0 0 24 24"><rect x="3.5" y="4" width="17" height="6" rx="2"/><rect x="3.5" y="14" width="10.5" height="6" rx="2"/><path d="M18 14v6M15 17h6"/></svg><span>项目</span>
-    </button>
     <button class="tab" data-tab="todos">
       <svg viewBox="0 0 24 24"><rect x="3.5" y="5" width="17" height="15.5" rx="2.5"/><path d="M3.5 9.6h17M8 3.2v3.6M16 3.2v3.6"/></svg><span>日历</span>
+    </button>
+    <button class="tab" data-tab="focus">
+      <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.4V12l3.2 2"/></svg><span>专注</span>
     </button>
     <button class="tab" data-tab="news">
       <svg viewBox="0 0 24 24"><path d="M4 5.5h12.5a2 2 0 0 1 2 2v11H6a2 2 0 0 1-2-2z"/><path d="M18.5 9.5H21v7a2 2 0 0 1-2 2"/><path d="M7 9h6M7 12.5h6M7 16h4"/></svg><span>资讯</span>
@@ -3570,9 +3823,6 @@ html[data-theme="p3r"] .yg-panel{border-radius:5px;background:var(--surface-2)}
     </button>
     <button class="tab" data-tab="course">
       <svg viewBox="0 0 24 24"><path d="M4 5.2h7.2v14.6H4z"/><path d="M11.2 5.2H20v14.6h-8.8"/><path d="M6.6 9h2.2M6.6 12.4h2.2M14.4 9h3M14.4 12.4h3"/></svg><span>课程</span>
-    </button>
-    <button class="tab" data-tab="settings">
-      <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3.1"/><path d="M12 3.2v2.4M12 18.4v2.4M4.8 12H2.4M21.6 12h-2.4M6.9 6.9 5.2 5.2M18.8 18.8l-1.7-1.7M6.9 17.1l-1.7 1.7M18.8 5.2l-1.7 1.7"/></svg><span>设置</span>
     </button>
   </nav>
 </div>
@@ -4153,6 +4403,7 @@ function projectProgress(p){
 
 /* ====================== [4] 渲染 ====================== */
 var currentTab = 'today';
+var prevTabBeforeSettings = 'today';   /* 进设置前停在哪一页：设置页「‹ 返回」和系统返回键都回这里 */
 var selKey = todayKey();
 var calCursor = new Date();
 var calLongPressAt = 0;   /* 长按日期后短时间内忽略随后的 click，避免又走一次「选中」 */
@@ -5175,28 +5426,46 @@ function renderToday(){
   var bd = document.getElementById('bellDot'); if(bd) bd.classList.toggle('on', pending > 0);
 }
 
+/* 左滑背景：左侧「完成」提示 + 右侧「明天 / 删除」两个 72px 按钮（占满行高）。
+   done=true 时提示语变成「撤销完成」。按钮的 data-act 交给 bindToday 的委托。 */
+function taskBgHTML(done){
+  return '<div class="task-bg" aria-hidden="true">' +
+    '<div class="bg-hint">' +
+      '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12.5 9.5 18 20 6.5"/></svg>' +
+      '<span>' + (done ? '撤销完成' : '完成') + '</span>' +
+    '</div>' +
+    '<div class="bg-acts">' +
+      '<button type="button" class="bg-btn bg-tomorrow" data-act="tomorrow" tabindex="-1">明天</button>' +
+      '<button type="button" class="bg-btn bg-del" data-act="del" tabindex="-1">删除</button>' +
+    '</div>' +
+  '</div>';
+}
+
 function taskRow(t, key, overdueDays){
   var done = isDoneOn(t, key);
   var pr = PRI[t.priority] || PRI.mid;
   var subs = t.subs || [];
   var doneSubs = subs.filter(function(s){ return s.done; }).length;
   return '<div class="task' + (done?' done':'') + (overdueDays>0?' overdue':'') + '" data-id="' + t.id + '" data-key="' + key + '">' +
-    '<button class="cb' + (done?' on':'') + '" data-act="toggle" aria-label="完成"></button>' +
-    '<div class="tmain" data-act="edit">' +
-      '<div class="ttitle' + (done?' strike':'') + '">' + esc(t.title) + '</div>' +
-      '<div class="tmeta">' +
-        (overdueDays > 0 ? '<span class="chip bad">逾期 ' + overdueDays + ' 天</span>' : '') +
-        '<span class="chip pri" style="--c:' + pr.c + '">' + pr.t + '</span>' +
-        (t.time ? '<span class="chip time">' + esc(t.time) + '</span>' : '') +
-        '<span class="chip rep">' + esc(ruleText(t)) + '</span>' +
-        (t.tag ? '<span class="chip tag">' + esc(t.tag) + '</span>' : '') +
-        (subs.length ? '<span class="chip sub">步骤 ' + doneSubs + '/' + subs.length + '</span>' : '') +
+    '<div class="task-fg">' +
+      '<button class="cb' + (done?' on':'') + '" data-act="toggle" aria-label="完成"></button>' +
+      '<div class="tmain" data-act="edit">' +
+        '<div class="ttitle' + (done?' strike':'') + '">' + esc(t.title) + '</div>' +
+        '<div class="tmeta">' +
+          (overdueDays > 0 ? '<span class="chip bad">逾期 ' + overdueDays + ' 天</span>' : '') +
+          '<span class="chip pri" style="--c:' + pr.c + '">' + pr.t + '</span>' +
+          (t.time ? '<span class="chip time">' + esc(t.time) + '</span>' : '') +
+          '<span class="chip rep">' + esc(ruleText(t)) + '</span>' +
+          (t.tag ? '<span class="chip tag">' + esc(t.tag) + '</span>' : '') +
+          (subs.length ? '<span class="chip sub">步骤 ' + doneSubs + '/' + subs.length + '</span>' : '') +
+        '</div>' +
+        (subs.length ? '<div class="subs-mini">' + subs.map(function(s){
+            return '<span class="' + (s.done?'done':'') + '">' + esc(s.title) + '</span>';
+          }).join('') + '</div>' : '') +
       '</div>' +
-      (subs.length ? '<div class="subs-mini">' + subs.map(function(s){
-          return '<span class="' + (s.done?'done':'') + '">' + esc(s.title) + '</span>';
-        }).join('') + '</div>' : '') +
+      '<button class="x" data-act="del" aria-label="删除">×</button>' +
     '</div>' +
-    '<button class="x" data-act="del" aria-label="删除">×</button>' +
+    taskBgHTML(done) +
   '</div>';
 }
 
@@ -5461,15 +5730,18 @@ function renderDayList(){
   $('#inboxList').innerHTML = inbox.length ? inbox.map(function(t){
     var pr = PRI[t.priority] || PRI.mid;
     return '<div class="task" data-id="' + t.id + '" data-key="">' +
-      '<button class="cb" data-act="toggle" aria-label="完成"></button>' +
-      '<div class="tmain" data-act="edit">' +
-        '<div class="ttitle">' + esc(t.title) + '</div>' +
-        '<div class="tmeta"><span class="chip" style="--c:' + pr.c + '">' + pr.t + '</span>' +
-        (t.tag ? '<span class="chip tag">' + esc(t.tag) + '</span>' : '') +
-        '<span class="chip">未安排日期</span></div>' +
+      '<div class="task-fg">' +
+        '<button class="cb" data-act="toggle" aria-label="完成"></button>' +
+        '<div class="tmain" data-act="edit">' +
+          '<div class="ttitle">' + esc(t.title) + '</div>' +
+          '<div class="tmeta"><span class="chip" style="--c:' + pr.c + '">' + pr.t + '</span>' +
+          (t.tag ? '<span class="chip tag">' + esc(t.tag) + '</span>' : '') +
+          '<span class="chip">未安排日期</span></div>' +
+        '</div>' +
+        '<button class="btn ghost sm" data-act="toDay">放到选中日</button>' +
+        '<button class="x" data-act="del" aria-label="删除">×</button>' +
       '</div>' +
-      '<button class="btn ghost sm" data-act="toDay">放到选中日</button>' +
-      '<button class="x" data-act="del" aria-label="删除">×</button>' +
+      taskBgHTML(false) +
     '</div>';
   }).join('') : '<div class="empty">收集箱是空的</div>';
 
@@ -5478,17 +5750,28 @@ function renderDayList(){
   $('#doneList').innerHTML = doneList.length ? doneList.map(function(t){
     if(isRepeatType(t)){
       var n = (t.doneDates||[]).length;
-      return '<div class="task done" data-id="' + t.id + '"><span class="cb on" style="opacity:.6"></span>' +
-        '<div class="tmain"><div class="ttitle strike">' + esc(t.title) + '</div>' +
-        '<div class="tmeta"><span class="chip rep">' + esc(ruleText(t)) + '</span>' +
-        (t.time ? '<span class="chip time">' + esc(t.time) + '</span>' : '') +
-        '<span class="chip sub">已完成 ' + n + ' 次</span></div></div></div>';
+      var doneToday = isDoneOn(t, todayKey());
+      /* 重复待办这里是汇总行：给它今天这个 key，右滑就是「今天这次完成 / 取消」 */
+      return '<div class="task done" data-id="' + t.id + '" data-key="' + todayKey() + '">' +
+        '<div class="task-fg">' +
+          '<span class="cb on" style="opacity:.6"></span>' +
+          '<div class="tmain"><div class="ttitle strike">' + esc(t.title) + '</div>' +
+          '<div class="tmeta"><span class="chip rep">' + esc(ruleText(t)) + '</span>' +
+          (t.time ? '<span class="chip time">' + esc(t.time) + '</span>' : '') +
+          '<span class="chip sub">已完成 ' + n + ' 次</span></div></div>' +
+        '</div>' +
+        taskBgHTML(doneToday) +
+      '</div>';
     }
     return '<div class="task done" data-id="' + t.id + '" data-key="' + (t.date||'') + '">' +
-      '<button class="cb on" data-act="toggle" aria-label="取消完成"></button>' +
-      '<div class="tmain" data-act="edit"><div class="ttitle strike">' + esc(t.title) + '</div>' +
-      '<div class="tmeta"><span class="chip">' + (t.date ? t.date.slice(5) : '未安排') + '</span></div></div>' +
-      '<button class="x" data-act="del" aria-label="删除">×</button></div>';
+      '<div class="task-fg">' +
+        '<button class="cb on" data-act="toggle" aria-label="取消完成"></button>' +
+        '<div class="tmain" data-act="edit"><div class="ttitle strike">' + esc(t.title) + '</div>' +
+        '<div class="tmeta"><span class="chip">' + (t.date ? t.date.slice(5) : '未安排') + '</span></div></div>' +
+        '<button class="x" data-act="del" aria-label="删除">×</button>' +
+      '</div>' +
+      taskBgHTML(true) +
+    '</div>';
   }).join('') : '<div class="empty">还没有完成记录</div>';
 }
 
@@ -5622,11 +5905,50 @@ function renderSettings(){
 }
 
 /* ---- 导航 ---- */
+/* 专注页（时钟 / 项目）共用底栏同一个入口：上次停在哪个子页记在 localStorage['mu.focusSub'] */
+function muFocusSub(){
+  var v = '';
+  try{ v = localStorage.getItem('mu.focusSub') || ''; }catch(e){}
+  return (v === 'projects') ? 'projects' : 'clock';   /* 只认这两个值，其余一律回时钟 */
+}
+function muSetFocusSub(k){
+  if(k !== 'clock' && k !== 'projects') return;
+  try{ localStorage.setItem('mu.focusSub', k); }catch(e){}
+}
+/* 时钟 / 项目两页顶部各有一个同样的分段控件：跟着当前页一起高亮 */
+function muSyncFocusSeg(name){
+  $$('.seg-switch [data-focus-sub]').forEach(function(b){
+    var on = b.dataset.focusSub === name;
+    b.classList.toggle('on', on);
+    b.setAttribute('aria-pressed', on ? 'true' : 'false');
+  });
+}
+/* 离开设置页：回进入设置之前的那一页（没有记录 / 记成了设置自己就回今日） */
+function muLeaveSettings(){
+  var back = prevTabBeforeSettings;
+  if(!back || back === 'settings') back = 'today';
+  switchTab(back);
+}
+/* 顶栏是 sticky 的：课程页吸顶的子页签要正好贴在它下面，所以把顶栏实际高度写进 --mu-topbar-h */
+function muSyncTopbarH(){
+  var tb = document.querySelector('.topbar');
+  if(!tb) return;
+  var h = Math.round(tb.getBoundingClientRect().height);
+  if(h > 0) document.documentElement.style.setProperty('--mu-topbar-h', h + 'px');
+}
 function switchTab(name){
+  /* 底栏「专注」是个入口名，不是视图：换成它记住的子页再走 */
+  if(name === 'focus') name = muFocusSub();
+  /* 进设置前记下从哪一页来的（顶栏齿轮、以后任何 switchTab('settings') 都算） */
+  if(name === 'settings' && currentTab !== 'settings') prevTabBeforeSettings = currentTab;
   currentTab = name;
   $$('.view').forEach(function(v){ v.classList.toggle('on', v.id === 'view-' + name); });
-  $$('.tab').forEach(function(b){ b.classList.toggle('on', b.dataset.tab === name); });
+  /* 底栏映射：clock / projects 都高亮「专注」；settings 不在底栏，谁也不高亮 */
+  var navKey = (name === 'clock' || name === 'projects') ? 'focus' : name;
+  if(name === 'settings') navKey = '';
+  $$('.tab').forEach(function(b){ b.classList.toggle('on', !!navKey && b.dataset.tab === navKey); });
   window.scrollTo(0,0);
+  if(name === 'clock' || name === 'projects'){ muSetFocusSub(name); muSyncFocusSeg(name); }
   if(name === 'clock'){ refreshPomoLink(); tickClock(); }
   if(name === 'today'){
     maybeUcloudSync();
@@ -5639,14 +5961,219 @@ function switchTab(name){
 }
 
 /* ====================== [5] 弹窗：待办 / 项目 ====================== */
-function openModal(html){ $('#modalCard').innerHTML = html; $('#modalWrap').classList.add('on'); }
-function closeModal(){ $('#modalWrap').classList.remove('on'); $('#modalCard').innerHTML = ''; }
+/* 底部弹窗下滑关闭：openModal 在 #modalCard 顶部塞一根拖动把手；
+   用 Pointer Events 跟手（鼠标也能拖），松手位移 > 100px 或速度 > 0.5px/ms 就关闭。
+   closeModal 先播 180ms 下滑淡出，再移除 .on、清空内容；
+   动画期间如果又 openModal（很多地方是 close 完立刻 open），取消待清空，别把新内容清掉。 */
+var sheetCloseTimer = null;      /* closeModal 的收尾定时器 */
+var sheetSnapTimer = null;       /* 弹回原位后清样式的定时器 */
+var sheetDrag = null;            /* 当前这次下滑手势 */
+var SHEET_CLOSE_MS = 180;        /* 关闭动画时长：≤ 200ms */
+
+function sheetReducedMotion(){
+  try{ return !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches); }catch(e){ return false; }
+}
+function sheetResetCard(){
+  var card = $('#modalCard'), wrap = $('#modalWrap');
+  if(card){
+    card.classList.remove('enter', 'dragging', 'settling', 'sheet-closing');
+    card.style.transition = '';
+    card.style.transform = '';
+    card.style.opacity = '';
+  }
+  if(wrap){
+    wrap.classList.remove('closing');
+    wrap.style.opacity = '';
+    wrap.style.removeProperty('--sheet-dim');
+  }
+}
+function openModal(html){
+  /* 上一个弹窗的收尾还没跑：取消它，否则 180ms 后会把刚写进去的新内容清空 */
+  if(sheetCloseTimer){ clearTimeout(sheetCloseTimer); sheetCloseTimer = null; }
+  if(sheetSnapTimer){ clearTimeout(sheetSnapTimer); sheetSnapTimer = null; }
+  sheetDrag = null;
+  sheetResetCard();
+  var card = $('#modalCard');
+  /* 拖动把手：外层是 26px 高的可拖区，里面 44×5 的横条 */
+  card.innerHTML = '<div class="sheet-grip" aria-hidden="true"><i></i></div>' + html;
+  card.scrollTop = 0;                       /* 新内容从头开始，别继承上一个弹窗的滚动位置 */
+  void card.offsetWidth;                    /* 强制回流，让入场动画每次打开都重播 */
+  card.classList.add('enter');
+  $('#modalWrap').classList.add('on');
+}
+function closeModal(){
+  var card = $('#modalCard'), wrap = $('#modalWrap');
+  if(!wrap || !wrap.classList.contains('on') || wrap.classList.contains('closing')) return;
+  if(sheetSnapTimer){ clearTimeout(sheetSnapTimer); sheetSnapTimer = null; }
+  sheetDrag = null;
+  if(sheetReducedMotion()){
+    if(sheetCloseTimer){ clearTimeout(sheetCloseTimer); sheetCloseTimer = null; }
+    wrap.classList.remove('on');
+    card.innerHTML = '';
+    sheetResetCard();
+    return;
+  }
+  if(sheetCloseTimer) clearTimeout(sheetCloseTimer);
+  card.classList.remove('dragging', 'settling');
+  card.classList.add('sheet-closing');
+  card.style.transform = 'translateY(100%)';
+  card.style.opacity = '0';
+  wrap.classList.add('closing');            /* 遮罩和卡片一起淡出 */
+  sheetCloseTimer = setTimeout(function(){
+    sheetCloseTimer = null;
+    wrap.classList.remove('on');
+    card.innerHTML = '';
+    sheetResetCard();
+  }, SHEET_CLOSE_MS);
+}
+
+/* 下滑手势：只在把手、.modal-head，或内容已经滚到顶时在卡片任意位置生效。
+   输入框 / textarea / select / range 上按下不拖，免得抢走选字和滑块。 */
+function bindModalSheet(){
+  var card = $('#modalCard'), wrap = $('#modalWrap');
+  if(!card || !wrap || card.__sheetBound) return;
+  card.__sheetBound = true;
+
+  function canStart(e){
+    if(!wrap.classList.contains('on') || sheetCloseTimer) return false;
+    var t = e.target;
+    if(!t || !t.closest) return false;
+    if(t.closest('input,textarea,select,option,[type="range"],.rng,.rng-wrap')) return false;
+    if(t.closest('.sheet-grip') || t.closest('.modal-head')) return true;
+    return (card.scrollTop || 0) <= 0;
+  }
+  function dragEnd(e){
+    var d = sheetDrag;
+    if(!d || (e && e.pointerId !== d.id)) return;
+    sheetDrag = null;
+    if(!d.dragging) return;                  /* 只是点了一下：交给原来的 click */
+    /* 松手前停了一会儿就不算「快速下滑」，避免慢慢拖到一半松手被误关 */
+    var v = (Date.now() - d.lastT > 100) ? 0 : d.v;
+    var pass = d.dy > 100 || v > 0.5;
+    card.classList.remove('dragging');
+    if(sheetSnapTimer){ clearTimeout(sheetSnapTimer); sheetSnapTimer = null; }
+    if(pass){
+      closeModal();                          /* 从当前位置接着滑走 */
+      return;
+    }
+    if(sheetReducedMotion()){                 /* 减少动态：不播弹回动画，直接归位 */
+      sheetResetCard();
+      return;
+    }
+    card.classList.add('settling');          /* 没到阈值：180ms 弹回 */
+    card.style.transform = 'translateY(0)';
+    wrap.style.setProperty('--sheet-dim', String(d.baseDim));
+    sheetSnapTimer = setTimeout(function(){
+      sheetSnapTimer = null;
+      sheetResetCard();
+    }, 200);
+  }
+
+  card.addEventListener('pointerdown', function(e){
+    if(e.pointerType === 'mouse' && e.button !== 0) return;
+    if(!canStart(e)) return;
+    var baseDim = 0.62;
+    try{ baseDim = parseFloat(getComputedStyle(wrap).getPropertyValue('--sheet-dim')) || 0.62; }catch(err){}
+    sheetDrag = {
+      id:e.pointerId, x:e.clientX, y:e.clientY, dy:0,
+      lastY:e.clientY, lastT:Date.now(), v:0, dragging:false, baseDim:baseDim
+    };
+  });
+  card.addEventListener('pointermove', function(e){
+    var d = sheetDrag;
+    if(!d || e.pointerId !== d.id) return;
+    var dy = e.clientY - d.y, dx = e.clientX - d.x;
+    if(!d.dragging){
+      /* 纵向位移 > 6px 且明显大于横向，才认成下滑；横滑 / 上滑都放回去让页面自己滚 */
+      if(dy <= 6 || dy <= Math.abs(dx)) return;
+      d.dragging = true;
+      card.classList.add('dragging');
+      try{ card.setPointerCapture(e.pointerId); }catch(err){}
+    }
+    if(e.cancelable) e.preventDefault();
+    d.dy = Math.max(0, dy);
+    var now = Date.now();
+    if(now > d.lastT) d.v = (e.clientY - d.lastY) / (now - d.lastT);
+    d.lastY = e.clientY; d.lastT = now;
+    card.style.transform = 'translateY(' + d.dy + 'px)';
+    /* 遮罩跟着变淡：最多淡到原浓度的 30%，别拖到一半就整块看不见 */
+    wrap.style.setProperty('--sheet-dim', String((d.baseDim * Math.max(.3, 1 - d.dy / 300)).toFixed(3)));
+  });
+  card.addEventListener('pointerup', dragEnd);
+  card.addEventListener('pointercancel', dragEnd);
+  /* 指针在卡片外松开（没来得及 capture）：也结束这次手势，别留下脏状态 */
+  window.addEventListener('pointerup', dragEnd);
+  window.addEventListener('pointercancel', dragEnd);
+  /* 触屏：确认是下滑后立刻拦掉原生滚动；向上 / 横滑不拦，卡片照常滚 */
+  card.addEventListener('touchmove', function(e){
+    var d = sheetDrag;
+    if(!d) return;
+    if(!d.dragging){
+      var t = e.touches && e.touches[0];
+      if(!t) return;
+      if(t.clientY - d.y <= 4 || t.clientY - d.y <= Math.abs(t.clientX - d.x)) return;
+    }
+    if(e.cancelable) e.preventDefault();
+  }, { passive:false });
+}
+
+/* ---------------- 安卓返回键 / 桌面 ESC 的统一入口 ----------------
+   MainActivity 用 evaluateJavascript 调 window.muHandleBack()：
+   返回 true 表示这次返回已经用掉，false 表示交给系统退出 App。
+   其他模块可以 muBackHandlers.push(fn)；fn 返回 true 表示已处理，
+   越晚注册的越靠上层，所以从后往前问（比如待办行左滑展开时先收起）。 */
+var muBackHandlers = [];
+window.muBackHandlers = muBackHandlers;
+function muHandleBack(){
+  for(var i = muBackHandlers.length - 1; i >= 0; i--){
+    var fn = muBackHandlers[i];
+    if(typeof fn !== 'function') continue;
+    try{ if(fn() === true) return true; }catch(e){}
+  }
+  /* 1) 应用内确认框：当成点了「取消」 */
+  var cw = $('#p5ConfirmWrap');
+  if(cw && !cw.hidden){
+    if(_p5ConfirmFinish) _p5ConfirmFinish(false);
+    else { cw.hidden = true; cw.classList.remove('on'); }
+    return true;
+  }
+  /* 2) 待办 / 项目弹窗：走下滑退出动画 */
+  var mw = $('#modalWrap');
+  if(mw && mw.classList.contains('on')){ closeModal(); return true; }
+  /* 3) 全屏扫码页 */
+  var sp = document.getElementById('scPage');
+  if(sp && !sp.hidden){ closeScanPage(); return true; }
+  /* 4) 资讯阅读页：和点「‹」一致（正文里点进去的会先退回上一篇） */
+  if(rdIsOpen()){ rdBackStep(); return true; }
+  /* 5) 不在今日页：先回今日 */
+  if(currentTab !== 'today'){ switchTab('today'); return true; }
+  /* 6) 已经在今日页：交给系统退出 */
+  return false;
+}
+window.muHandleBack = muHandleBack;
+
+/* 设置页的返回：先关覆盖层，再回进入设置之前的那一页。
+   注意 muHandleBack 会先倒序问 muBackHandlers，然后才处理覆盖层，
+   所以这里必须先确认没有弹窗 / 确认框 / 扫码页 / 阅读页，否则返回 false 让它们先收。 */
+muBackHandlers.push(function(){
+  if(currentTab !== 'settings') return false;
+  var mw = $('#modalWrap');
+  if(mw && mw.classList.contains('on')) return false;
+  var cw = $('#p5ConfirmWrap');
+  if(cw && !cw.hidden) return false;
+  var sp = document.getElementById('scPage');
+  if(sp && !sp.hidden) return false;
+  if(typeof rdIsOpen === 'function' && rdIsOpen()) return false;
+  muLeaveSettings();
+  return true;
+});
 
 /* ---------------- 应用内确认框 ----------------
    替代安卓/浏览器的白框 confirm()：独立浮层（不占用 #modalCard，避免顶掉正在编辑的弹窗），
    返回 Promise<boolean>。点「取消」/遮罩/ESC 都算 false。
    测试环境可以用 window.__p5AutoConfirm = true/false 直接短路，方便 Node 仿真与 e2e。 */
 var _p5ConfirmResolve = null;
+var _p5ConfirmFinish = null;     /* 返回键 / ESC 复用同一套「取消」收尾逻辑 */
 function p5Confirm(opt){
   opt = opt || {};
   if(typeof window !== 'undefined' && window.__p5AutoConfirm !== undefined){
@@ -5654,7 +6181,7 @@ function p5Confirm(opt){
   }
   var wrap = $('#p5ConfirmWrap'), card = $('#p5ConfirmCard');
   if(!wrap || !card) return Promise.resolve(typeof confirm === 'function' ? confirm(opt.text || '') : false);
-  if(_p5ConfirmResolve){ try{ _p5ConfirmResolve(false); }catch(e){} _p5ConfirmResolve = null; }
+  if(_p5ConfirmResolve){ try{ _p5ConfirmResolve(false); }catch(e){} _p5ConfirmResolve = null; _p5ConfirmFinish = null; }
   return new Promise(function(resolve){
     _p5ConfirmResolve = resolve;
     card.innerHTML =
@@ -5668,10 +6195,11 @@ function p5Confirm(opt){
     wrap.hidden = false;
     wrap.classList.add('on');
     function finish(v){
-      var r = _p5ConfirmResolve; _p5ConfirmResolve = null;
+      var r = _p5ConfirmResolve; _p5ConfirmResolve = null; _p5ConfirmFinish = null;
       wrap.classList.remove('on'); wrap.hidden = true; card.innerHTML = '';
       if(r) r(v);
     }
+    _p5ConfirmFinish = finish;
     wrap.onclick = function(e){ if(e.target === wrap) finish(false); };
     $$('#p5ConfirmCard [data-p5c]').forEach(function(b){
       b.onclick = function(){ finish(b.dataset.p5c === 'yes'); };
@@ -5912,6 +6440,17 @@ function openTaskModal(id, presetDate, presetType){
     };
   }
 
+  /* 表单折叠状态：
+     · 月历默认收起；当前日期不是今天/明天（且不为空）时默认展开
+     · 「更多选项」新建时收起；编辑时优先级/分类不是默认值、或已有子任务时默认展开 */
+  var todayK = todayKey(), tomorrowK = dk(addDays(new Date(), 1));
+  var calOpen = !!(draft.date && draft.date !== todayK && draft.date !== tomorrowK);
+  var moreOpen = !!editing && (
+    draft.priority !== 'mid' ||
+    (draft.tag || TAGS[0]) !== TAGS[0] ||
+    (draft.subs || []).length > 0
+  );
+
   var html =
   '<div class="modal-head"><h3>' + (editing ? '编辑待办' : '新建待办') + '</h3>' +
     '<button class="icon-btn" data-mc="close">×</button></div>' +
@@ -5921,32 +6460,42 @@ function openTaskModal(id, presetDate, presetType){
 
     '<div class="field"><span>类型</span><div class="type-list" id="typeList">' +
       TODO_TYPES.map(function(x){
-        return '<button data-type="' + x.k + '" class="' + (draft.type===x.k?'on':'') + '">' +
-          '<span><span class="tn">' + x.n + '</span><span class="td">' + x.d + '</span></span>' +
-          '<span class="tick">✓</span></button>';
-      }).join('') + '</div></div>' +
+        return '<button type="button" class="tf-chip' + (draft.type===x.k?' on':'') + '" data-type="' + x.k + '">' + x.n + '</button>';
+      }).join('') + '</div>' +
+      '<div class="tf-tdesc" id="tfTypeDesc"></div></div>' +
 
     '<div id="typeFields"></div>' +
 
-    '<div class="field"><span>提醒时间</span>' +
-      '<div class="time-row">' +
-        '<input class="input" type="time" id="fTime" value="' + (draft.time || '') + '">' +
-        '<button class="btn ghost sm" id="fTimeClear">不单独提醒</button>' +
-        '<button class="btn ghost sm" id="fTimeDefault">用默认 ' + esc(state.settings.remind || '08:00') + '</button>' +
-      '</div>' +
+    '<div class="tf-more">' +
+      '<button type="button" class="tf-more-btn" id="tfMoreBtn" aria-expanded="false" aria-controls="tfMoreBody">' +
+        '<span class="tf-more-t">更多选项</span>' +
+        '<span class="tf-sum" id="tfSum"></span>' +
+        '<span class="tf-arrow" aria-hidden="true">▾</span>' +
+      '</button>' +
+      '<div class="tf-more-body" id="tfMoreBody"><div>' +
+
+        '<div class="field"><span>提醒时间</span>' +
+          '<div class="time-row">' +
+            '<input class="input" type="time" id="fTime" value="' + (draft.time || '') + '">' +
+            '<button class="btn ghost sm" id="fTimeClear">不单独提醒</button>' +
+            '<button class="btn ghost sm" id="fTimeDefault">用默认 ' + esc(state.settings.remind || '08:00') + '</button>' +
+          '</div>' +
+        '</div>' +
+
+        '<div class="field"><span>优先级</span><div class="seg" id="fPri">' +
+          ['high','mid','low'].map(function(p){
+            return '<button data-pri="' + p + '" class="' + (draft.priority===p?'on':'') + '" style="--c:' + PRI[p].c + '">' + PRI[p].t + '</button>';
+          }).join('') + '</div></div>' +
+
+        '<label class="field"><span>分类</span><select class="input" id="fTag">' +
+          TAGS.map(function(g){ return '<option' + (draft.tag===g?' selected':'') + '>' + g + '</option>'; }).join('') + '</select></label>' +
+
+        '<div class="field" style="margin-bottom:2px"><span>子任务（可留空）</span><div class="sublist" id="subList"></div>' +
+          '<div class="row gap6"><input class="input sm" id="subInput" placeholder="加一个步骤，回车添加" autocomplete="off">' +
+          '<button class="btn ghost sm" id="subAdd">添加</button></div></div>' +
+
+      '</div></div>' +
     '</div>' +
-
-    '<div class="field"><span>优先级</span><div class="seg" id="fPri">' +
-      ['high','mid','low'].map(function(p){
-        return '<button data-pri="' + p + '" class="' + (draft.priority===p?'on':'') + '" style="--c:' + PRI[p].c + '">' + PRI[p].t + '</button>';
-      }).join('') + '</div></div>' +
-
-    '<label class="field"><span>分类</span><select class="input" id="fTag">' +
-      TAGS.map(function(g){ return '<option' + (draft.tag===g?' selected':'') + '>' + g + '</option>'; }).join('') + '</select></label>' +
-
-    '<div class="field"><span>子任务（可留空）</span><div class="sublist" id="subList"></div>' +
-      '<div class="row gap6"><input class="input sm" id="subInput" placeholder="加一个步骤，回车添加" autocomplete="off">' +
-      '<button class="btn ghost sm" id="subAdd">添加</button></div></div>' +
   '</div>' +
   '<div class="modal-foot">' +
     (editing ? '<button class="btn danger" data-mc="del">删除</button>' : '') +
@@ -5955,13 +6504,60 @@ function openTaskModal(id, presetDate, presetType){
     '<button class="btn primary" data-mc="save">保存</button>' +
   '</div>';
   openModal(html);
-  setTimeout(function(){ var el = $('#fTitle'); if(el && !editing) el.focus(); }, 60);
+  setTimeout(function(){
+    var el = $('#fTitle');
+    if(!el) return;
+    if(!editing) el.focus();
+    scrollTypeChip();          /* 打开时把选中的类型 chip 滚到可见位置 */
+  }, 60);
 
   /* ---- 随类型变化的字段 ---- */
   var fCalY = 0, fCalM = 0;   /* 自制月历当前显示的年月 */
   function syncCalCursorFromDraft(){
     var d = fromKey(draft.date || todayKey());
     fCalY = d.getFullYear(); fCalM = d.getMonth();
+  }
+  /* 把选中的类型 chip 横向滚到可见位置（不动弹窗的纵向滚动） */
+  function scrollTypeChip(){
+    var list = $('#typeList'); if(!list) return;
+    var on = list.querySelector('.tf-chip.on'); if(!on) return;
+    var lr = list.getBoundingClientRect(), br = on.getBoundingClientRect();
+    if(br.left < lr.left) list.scrollLeft -= (lr.left - br.left) + 8;
+    else if(br.right > lr.right) list.scrollLeft += (br.right - lr.right) + 8;
+  }
+  /* chip 下方那一行：当前类型的说明 */
+  function paintTypeDesc(){
+    var el = $('#tfTypeDesc'); if(!el) return;
+    el.textContent = typeDef(draft.type).d || '';
+  }
+  /* 日期快捷 chip 的选中态：今天 / 明天 / 收集箱 / 选日期…（展开时选中） */
+  function paintDateChips(){
+    var box = $('#typeFields'); if(!box) return;
+    var tk = todayKey(), tm = dk(addDays(new Date(), 1));
+    $$('[data-setdate]', box).forEach(function(b){
+      var v = b.dataset.setdate;
+      var on = v === 'none' ? !draft.date : (v === 'today' ? draft.date === tk : draft.date === tm);
+      b.classList.toggle('on', !!on);
+    });
+    var calBtn = $('[data-caltoggle]', box);
+    if(calBtn) calBtn.classList.toggle('on', calOpen);
+  }
+  /* 月历的展开 / 收起（高度过渡写在 .tf-cal / .tf-cal.on 里，外层折叠、内层 #fCalBox 画框） */
+  function applyCalOpen(){
+    var wrap = $('#fCalWrap');
+    if(wrap) wrap.classList.toggle('on', calOpen);
+    paintDateChips();
+  }
+  /* 「更多选项」右侧摘要：【08:00 提醒】 · 优先级 · 分类 [· N 个步骤] */
+  function updateSum(){
+    var el = $('#tfSum'); if(!el) return;
+    var tv = $('#fTime') ? $('#fTime').value : (draft.time || '');
+    var p = PRI[draft.priority] || PRI.mid;
+    var tag = $('#fTag') ? $('#fTag').value : (draft.tag || TAGS[0]);
+    var parts = [tv ? tv + ' 提醒' : '不提醒', p.t, tag];
+    var n = (draft.subs || []).length;
+    if(n) parts.push(n + ' 个步骤');
+    el.textContent = parts.join(' · ');
   }
   function paintDateLabel(){
     var lb = $('#fDateLabel'); if(!lb) return;
@@ -5974,15 +6570,19 @@ function openTaskModal(id, presetDate, presetType){
     box.innerHTML = miniCalHTML(fCalY, fCalM, draft.date);
     paintDateLabel();
   }
+  /* 日期选择：一行快捷 chip + 已选日期；月历由「选日期…」展开 / 收起 */
   function pickerHTML(label, allowNone){
     return '<div class="field"><span>' + label + '</span>' +
-      '<div class="row wrap gap6" style="margin-bottom:8px">' +
-        '<button class="btn ghost sm" data-setdate="today">今天</button>' +
-        '<button class="btn ghost sm" data-setdate="tomorrow">明天</button>' +
-        (allowNone ? '<button class="btn ghost sm" data-setdate="none">不安排（收集箱）</button>' : '') +
+      '<div class="tf-dates">' +
+        '<button type="button" class="tf-chip" data-setdate="today">今天</button>' +
+        '<button type="button" class="tf-chip" data-setdate="tomorrow">明天</button>' +
+        (allowNone ? '<button type="button" class="tf-chip" data-setdate="none">收集箱</button>' : '') +
+        '<button type="button" class="tf-chip" data-caltoggle="1">选日期…</button>' +
       '</div>' +
-      '<div class="muted small" id="fDateLabel" style="margin-bottom:6px"></div>' +
-      '<div id="fCalBox">' + miniCalHTML(fCalY, fCalM, draft.date) + '</div>' +
+      '<div class="tf-date" id="fDateLabel"></div>' +
+      '<div class="tf-cal' + (calOpen ? ' on' : '') + '" id="fCalWrap">' +
+        '<div class="minical" id="fCalBox">' + miniCalHTML(fCalY, fCalM, draft.date) + '</div>' +
+      '</div>' +
     '</div>';
   }
   function renderTypeFields(){
@@ -6021,14 +6621,17 @@ function openTaskModal(id, presetDate, presetType){
     }
     box.innerHTML = h;
 
-    $$('[data-setdate]').forEach(function(b){
+    $$('[data-setdate]', box).forEach(function(b){
       b.onclick = function(){
         var v = b.dataset.setdate;
         draft.date = v === 'none' ? '' : (v === 'tomorrow' ? dk(addDays(new Date(),1)) : todayKey());
         syncCalCursorFromDraft();
         repaintMiniCal();
+        paintDateChips();
       };
     });
+    var calBtn = $('[data-caltoggle]', box);
+    if(calBtn) calBtn.onclick = function(){ calOpen = !calOpen; applyCalOpen(); };
     var fbox = $('#fCalBox');
     if(fbox){
       fbox.onclick = function(e){
@@ -6043,10 +6646,13 @@ function openTaskModal(id, presetDate, presetType){
         var cell = (t.closest ? t.closest('.cell') : null);
         if(!cell) return;
         draft.date = cell.dataset.key;
+        calOpen = true;                                /* 从月历里点过某天之后保持展开 */
         syncCalCursorFromDraft();
         repaintMiniCal();
+        applyCalOpen();
       };
       paintDateLabel();
+      paintDateChips();
     }
     var grid = $('#wkGrid');
     if(grid){
@@ -6071,6 +6677,7 @@ function openTaskModal(id, presetDate, presetType){
       };
     }
   }
+  paintTypeDesc();
   renderTypeFields();
 
   $('#typeList').onclick = function(e){
@@ -6080,10 +6687,36 @@ function openTaskModal(id, presetDate, presetType){
     if(draft.type === 'custom' && !(draft.weekdays||[]).length) draft.weekdays = [fromKey(draft.date || todayKey()).getDay()];
     if(draft.type === 'monthly' && !(draft.mdays||[]).length) draft.mdays = [fromKey(draft.date || todayKey()).getDate()];
     $$('#typeList button').forEach(function(x){ x.classList.toggle('on', x === b); });
+    paintTypeDesc();
     renderTypeFields();
+    scrollTypeChip();
   };
-      $('#fTimeClear').onclick = function(){ $('#fTime').value = ''; };
-  $('#fTimeDefault').onclick = function(){ $('#fTime').value = state.settings.remind || '08:00'; };
+  /* 标题：回车 = 点保存（中文输入法组合时不触发） */
+  $('#fTitle').onkeydown = function(e){
+    if(e.key !== 'Enter' || e.isComposing) return;
+    e.preventDefault();
+    var sv = $('#modalCard [data-mc="save"]');
+    if(sv) sv.click();
+  };
+  $('#fTimeClear').onclick = function(){ $('#fTime').value = ''; updateSum(); };
+  $('#fTimeDefault').onclick = function(){ $('#fTime').value = state.settings.remind || '08:00'; updateSum(); };
+  /* 区内值变化时摘要实时更新 */
+  $('#fTime').oninput = updateSum;
+  $('#fTime').onchange = updateSum;
+  $('#fTag').onchange = updateSum;
+
+  /* 「更多选项」的展开 / 收起 */
+  function paintMore(){
+    var btn = $('#tfMoreBtn'), body = $('#tfMoreBody');
+    if(btn){
+      btn.classList.toggle('on', moreOpen);
+      btn.setAttribute('aria-expanded', moreOpen ? 'true' : 'false');
+    }
+    if(body) body.classList.toggle('on', moreOpen);
+  }
+  $('#tfMoreBtn').onclick = function(){ moreOpen = !moreOpen; paintMore(); };
+  paintMore();
+  updateSum();
 
   function renderSubs(){
     $('#subList').innerHTML = draft.subs.length ? draft.subs.map(function(s){
@@ -6092,6 +6725,7 @@ function openTaskModal(id, presetDate, presetType){
         '<span class="' + (s.done?'strike':'') + '">' + esc(s.title) + '</span>' +
         '<button class="x" data-sact="del">×</button></div>';
     }).join('') : '<div class="muted small">还没有步骤</div>';
+    updateSum();                                  /* 子任务增删后摘要跟着变 */
   }
   renderSubs();
 
@@ -6116,6 +6750,7 @@ function openTaskModal(id, presetDate, presetType){
     b.onclick = function(){
       draft.priority = b.dataset.pri;
       $$('#fPri button').forEach(function(x){ x.classList.toggle('on', x === b); });
+      updateSum();
     };
   });
   $$('#modalCard [data-mc]').forEach(function(b){
@@ -6123,11 +6758,10 @@ function openTaskModal(id, presetDate, presetType){
       var a = b.dataset.mc;
       if(a === 'close'){ closeModal(); return; }
       if(a === 'del'){
-        p5Confirm({ text:'删除这条待办？', ok:'删除', danger:true }).then(function(ok){
-          if(!ok) return;
-          state.todos = state.todos.filter(function(t){ return t.id !== draft.id; });
-          save(); closeModal(); renderAll(); toast('已删除');
-        });
+        /* 不再二次确认：关掉弹窗后直接删，toast 里 5 秒可撤销 */
+        var target = editing || state.todos.filter(function(t){ return t.id === draft.id; })[0];
+        closeModal();
+        if(target) deleteTodoWithUndo(target);
         return;
       }
       if(a === 'save'){
@@ -10464,21 +11098,122 @@ function maybePortalSync(){
 }
 
 /* ====================== [10] 事件绑定与启动 ====================== */
-function toast(msg, ms){
+/* 触感反馈：light 8ms / medium 15ms / warn 12-40-12。
+   没有 navigator.vibrate（桌面浏览器、部分 WebView）或调用抛错时静默跳过。 */
+function haptic(kind){
+  try{
+    if(!navigator || typeof navigator.vibrate !== 'function') return;
+    navigator.vibrate(kind === 'warn' ? [12, 40, 12] : (kind === 'medium' ? 15 : 8));
+  }catch(e){}
+}
+
+function toast(msg, ms, action){
   var el = document.createElement('div');
   el.className = 'toast';
-  el.textContent = msg;
-  $('#toastWrap').appendChild(el);
-  requestAnimationFrame(function(){ el.classList.add('on'); });
-  setTimeout(function(){
+  var hasAct = !!(action && typeof action.onClick === 'function');
+  var timer = null, done = false;
+  function hide(){
+    if(done) return;
+    done = true;
+    if(timer){ clearTimeout(timer); timer = null; }
     el.classList.remove('on');
     setTimeout(function(){ el.remove(); }, 200);
-  }, ms || 2500);
+  }
+  if(hasAct){
+    /* 带操作按钮：文案单独包一层，最多两行；按钮点完立刻收起 */
+    el.classList.add('toast-act');
+    var txt = document.createElement('span');
+    txt.className = 'toast-msg';
+    txt.textContent = msg;
+    el.appendChild(txt);
+    var btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'toast-btn';
+    btn.textContent = action.label || '撤销';
+    btn.onclick = function(e){
+      e.preventDefault(); e.stopPropagation();
+      if(done) return;                 /* 已经开始收起（自动超时）：不要再执行一次回调 */
+      hide();
+      try{ action.onClick(); }catch(err){}
+    };
+    el.appendChild(btn);
+  }else{
+    el.textContent = msg;
+  }
+  $('#toastWrap').appendChild(el);
+  requestAnimationFrame(function(){ el.classList.add('on'); });
+  /* 有操作按钮时默认多停一会儿，留出点按时间 */
+  timer = setTimeout(hide, ms || (hasAct ? 5000 : 2500));
+  return el;
 }
 
 function bindTabs(){
-  $$('.tab').forEach(function(b){ b.onclick = function(){ switchTab(b.dataset.tab); }; });
+  $$('.tab').forEach(function(b){
+    b.onclick = function(){
+      /* 「专注」是时钟 / 项目两个子页共用的入口：回上次停留的那一页 */
+      if(b.dataset.tab === 'focus'){ switchTab(muFocusSub()); return; }
+      switchTab(b.dataset.tab);
+    };
+  });
+  /* 设置挪到顶栏右上角齿轮；设置页顶部「‹ 返回」回进入前的页面 */
+  var gs = document.getElementById('btnSettings');
+  if(gs) gs.onclick = function(){ switchTab('settings'); };
+  var sb = document.getElementById('btnSetBack');
+  if(sb) sb.onclick = muLeaveSettings;
+  /* 时钟 / 项目两页顶部的分段切换 */
+  $$('.seg-switch [data-focus-sub]').forEach(function(b){
+    b.onclick = function(){ switchTab(b.dataset.focusSub); };
+  });
 }
+/* ---- 待办行动作：完成 / 删除 / 推迟 的共用逻辑 ---- */
+/* 完成 / 取消完成：勾选框和右滑手势共用；返回原来的完成状态 */
+function toggleTodoAt(t, key){
+  var wasDone = isDoneOn(t, key);           /* 先记下原状态：只有「完成」才震，取消完成不震 */
+  toggleDoneOn(t, key);
+  save(); renderAll();
+  if(!wasDone && isDoneOn(t, key)){ haptic('medium'); chime('done'); toast('完成一条，节奏不错 ✅'); }
+  return wasDone;
+}
+
+/* 删除：不再弹确认框，直接删，toast 里 5 秒可撤销。
+   × 按钮 / 左滑「删除」/ 编辑弹窗的「删除」都走这里。 */
+function deleteTodoWithUndo(t){
+  var at = state.todos.indexOf(t);
+  if(at < 0) return false;
+  var removed = state.todos[at];
+  state.todos.splice(at, 1);
+  taskSwipeClose();                         /* 展开的行先收起，别留一个指向已删对象的引用 */
+  save(); renderAll(); haptic('warn');
+  var title = String(removed.title || '');
+  if(title.length > 12) title = title.slice(0, 12) + '…';
+  toast('已删除「' + title + '」', 5000, { label:'撤销', onClick:function(){
+    if(state.todos.some(function(x){ return x.id === removed.id; })) return;   /* 已经恢复过 */
+    var i = Math.max(0, Math.min(at, state.todos.length));
+    state.todos.splice(i, 0, removed);      /* 放回原下标（列表变短了就放到末尾） */
+    save(); renderAll();
+    toast('已恢复「' + title + '」');
+  }});
+  return true;
+}
+
+/* 「明天」：单次待办改成「原日期与今天中较晚的那天 + 1 天」；收集箱里的设为明天。
+   重复类型没有「跳过某一天」的数据结构，用 toggleDoneOn 会记成「已完成」、和完成混淆，
+   所以这里选择不改数据，只提示不能推迟。 */
+function postponeTodo(t){
+  taskSwipeClose();
+  if(!t.type || t.type === 'once'){
+    var tk = todayKey();
+    var base = (t.date && t.date > tk) ? t.date : tk;
+    var next = dk(addDays(fromKey(base), 1));
+    t.date = next;
+    if(t.done){ t.done = false; t.doneAt = null; }   /* 推迟一条已完成的任务 = 重新打开 */
+    save(); renderAll();
+    toast('已推迟到 ' + next.slice(5));
+    return;
+  }
+  toast('重复待办不能推迟');
+}
+
 function bindToday(){
   $('#newTodoBtn').onclick = function(){ openTaskModal(null, todayKey()); };
   var bs = document.getElementById('btnScan'); if(bs) bs.onclick = openScanPage;
@@ -10493,17 +11228,15 @@ function bindToday(){
     var act = e.target.dataset.act;
     var key = taskEl.dataset.key || t.date || todayKey();
     if(act === 'toggle'){
-      toggleDoneOn(t, key);
-      save(); renderAll();
-      if(isDoneOn(t,key)){ chime('done'); toast('完成一条，节奏不错 ✅'); }
+      toggleTodoAt(t, key);
       return;
     }
     if(act === 'del'){
-      p5Confirm({ text:'删除这条待办？', ok:'删除', danger:true }).then(function(ok){
-        if(!ok) return;
-        state.todos = state.todos.filter(function(x){ return x.id !== id; });
-        save(); renderAll(); toast('已删除');
-      });
+      deleteTodoWithUndo(t);                /* 不再二次确认：直接删，toast 里可撤销 */
+      return;
+    }
+    if(act === 'tomorrow'){
+      postponeTodo(t);
       return;
     }
     if(act === 'toDay'){
@@ -10512,6 +11245,194 @@ function bindToday(){
       return;
     }
     if(act === 'edit'){ openTaskModal(id); return; }
+  });
+  bindTaskSwipe();
+}
+
+/* ====================== 待办行横滑手势 ======================
+   右滑：跟手最多 120px，超过 72px 松手 = 完成 / 取消完成。
+   左滑：跟手最多 160px，超过 60px 松手停在 -144px，露出「明天 / 删除」。
+   只认「横向位移 > 10px 且 |dx| > |dy|」的拖动；纵向优先时直接放手，页面照常滚。
+   鼠标 / 触屏都走 Pointer Events；云邮等非本地待办（state.todos 里找不到 id）不响应。 */
+var TASK_SWIPE_TRIGGER = 72;   /* 右滑完成阈值 */
+var TASK_SWIPE_OPEN = 60;      /* 左滑展开阈值 */
+var TASK_SWIPE_RMAX = 120;     /* 右滑最大跟手 */
+var TASK_SWIPE_LMAX = 160;     /* 左滑最大跟手 */
+var TASK_SWIPE_OPEN_X = -144;  /* 展开后停住的位置（两个 72px 按钮） */
+var taskDrag = null;           /* 当前这次指针手势 */
+var taskOpenEl = null;         /* 当前展开着的行（同一时间只允许一行） */
+var taskSuppressClick = false; /* 横滑松手后要吃掉这一次 click */
+var taskSuppressTimer = null;
+
+function taskTodoById(id){
+  for(var i = 0; i < state.todos.length; i++){ if(state.todos[i].id === id) return state.todos[i]; }
+  return null;
+}
+function taskFgOf(el){ return el ? el.querySelector('.task-fg') : null; }
+function taskBgOf(el){ return el ? el.querySelector('.task-bg') : null; }
+/* 展开的行如果已经被 renderAll 换掉了，就当没有展开 */
+function taskOpenLive(){
+  if(taskOpenEl && !document.body.contains(taskOpenEl)) taskOpenEl = null;
+  return taskOpenEl;
+}
+function taskMoveTo(el, x){
+  var fg = taskFgOf(el); if(!fg) return;
+  fg.style.transform = x ? ('translateX(' + x + 'px)') : '';
+  var bg = taskBgOf(el);
+  if(bg) bg.classList.toggle('armed', x > TASK_SWIPE_TRIGGER);
+}
+/* 回弹 / 收回：先恢复 CSS 过渡并强制回流，再从当前位置动画到 0 */
+function taskAnimateBack(fg){
+  fg.style.transition = '';
+  void fg.offsetWidth;
+  fg.style.transform = '';
+}
+function taskSnapBack(el){
+  if(taskOpenEl === el) taskOpenEl = null;
+  var fg = taskFgOf(el);
+  if(fg) taskAnimateBack(fg);
+  var bg = taskBgOf(el);
+  if(bg) bg.classList.remove('armed');
+}
+/* 收起当前展开行；返回这次是否真的收起过 */
+function taskSwipeClose(){
+  var el = taskOpenLive();
+  if(!el) return false;
+  taskOpenEl = null;
+  var fg = taskFgOf(el);
+  if(fg) taskAnimateBack(fg);
+  var bg = taskBgOf(el);
+  if(bg) bg.classList.remove('armed');
+  return true;
+}
+function taskSwipeOpen(el){
+  if(taskOpenEl !== el) taskSwipeClose();
+  var fg = taskFgOf(el);
+  if(!fg) return;
+  taskOpenEl = el;
+  fg.style.transition = '';
+  void fg.offsetWidth;                       /* 让 -144px 从松手位置接着滑过去 */
+  fg.style.transform = 'translateX(' + TASK_SWIPE_OPEN_X + 'px)';
+  var bg = taskBgOf(el);
+  if(bg) bg.classList.remove('armed');
+}
+function taskSuppressNextClick(){
+  taskSuppressClick = true;
+  if(taskSuppressTimer) clearTimeout(taskSuppressTimer);
+  /* 触屏上不一定再补一个 click：留个兜底，别把下一次正常点击也吃掉 */
+  taskSuppressTimer = setTimeout(function(){ taskSuppressTimer = null; taskSuppressClick = false; }, 400);
+}
+
+function taskSwipeEnd(e, cancelled){
+  var s = taskDrag;
+  if(!s) return;
+  if(e && e.pointerId != null && e.pointerId !== s.pid) return;
+  taskDrag = null;
+  if(s.mode !== 1) return;                   /* 没进入横滑：这次点击交给原生 click */
+  try{ if(s.el.hasPointerCapture && s.el.hasPointerCapture(s.pid)) s.el.releasePointerCapture(s.pid); }catch(err){}
+  taskSuppressNextClick();                   /* 拖过就不算点击：别再打开编辑 / 误触完成 */
+  if(cancelled || !document.body.contains(s.el)){ taskSnapBack(s.el); return; }
+  if(s.dx > TASK_SWIPE_TRIGGER){
+    var t = taskTodoById(s.id);
+    if(!t){ taskSnapBack(s.el); return; }
+    var key = s.el.dataset.key || t.date || todayKey();
+    var wasDone = toggleTodoAt(t, key);      /* 内部 save(); renderAll(); */
+    if(wasDone) toast('已恢复未完成');
+    return;
+  }
+  if(s.dx < -TASK_SWIPE_OPEN){ taskSwipeOpen(s.el); return; }
+  taskSnapBack(s.el);
+}
+
+function bindTaskSwipe(){
+  document.addEventListener('pointerdown', function(e){
+    if(e.pointerType === 'mouse' && e.button !== 0) return;
+    if(taskDrag){
+      /* 上一次手势的 pointerup 丢了（比如鼠标在窗口外松开）：超过 1 秒就当它已结束；
+         正在横滑（mode===1）时来的第二根手指直接忽略 */
+      if(taskDrag.mode !== 1 && Date.now() - (taskDrag.t0 || 0) > 1000) taskDrag = null;
+      else return;
+    }
+    var target = e.target;
+    if(!target || !target.closest) return;
+    var el = target.closest('.task');
+    if(!el) return;
+    if(target.closest('.task-bg')) return;           /* 背景按钮：不当作拖动起点 */
+    if(!taskFgOf(el)) return;
+    if(!taskTodoById(el.dataset.id)) return;         /* 云邮 / 非本地待办不响应手势 */
+    if(!el.hasAttribute('data-key')) return;         /* 完成记录里的重复待办没有具体日期，不做手势 */
+    if(taskOpenLive() === el){                       /* 点已展开的这一行：只收起，不触发别的 */
+      taskSwipeClose();
+      taskSuppressNextClick();
+      return;
+    }
+    taskDrag = {
+      el:el, id:el.dataset.id, pid:e.pointerId, t0:Date.now(),
+      x0:e.clientX, y0:e.clientY, dx:0, dy:0,
+      mode:0, armed:false
+    };
+  });
+
+  document.addEventListener('pointermove', function(e){
+    var s = taskDrag;
+    if(!s || e.pointerId !== s.pid) return;
+    var dx = e.clientX - s.x0, dy = e.clientY - s.y0;
+    if(s.mode === 0){
+      var adx = Math.abs(dx), ady = Math.abs(dy);
+      if(adx > 10 && adx > ady){
+        s.mode = 1;
+        var fg = taskFgOf(s.el);
+        if(fg) fg.style.transition = 'none';         /* 跟手阶段不要过渡 */
+        try{ s.el.setPointerCapture(e.pointerId); }catch(err){}
+        taskSwipeClose();                            /* 同一时间只展开一行 */
+      }else if(ady > 10){
+        taskDrag = null;                             /* 纵向优先：放手，让页面正常滚 */
+        return;
+      }else{
+        return;
+      }
+    }
+    if(e.cancelable) e.preventDefault();
+    s.dx = dx; s.dy = dy;
+    var x = dx > TASK_SWIPE_RMAX ? TASK_SWIPE_RMAX : (dx < -TASK_SWIPE_LMAX ? -TASK_SWIPE_LMAX : dx);
+    taskMoveTo(s.el, x);
+    if(!s.armed && dx > TASK_SWIPE_TRIGGER){ s.armed = true; haptic('light'); }
+  });
+
+  document.addEventListener('pointerup', function(e){ taskSwipeEnd(e, false); });
+  document.addEventListener('pointercancel', function(e){ taskSwipeEnd(e, true); });
+  /* 窗口失焦时指针事件可能收不到 pointerup：别把跟手状态留着 */
+  window.addEventListener('blur', function(){
+    var s = taskDrag;
+    if(!s) return;
+    taskDrag = null;
+    taskSnapBack(s.el);
+  });
+
+  /* 展开状态下：点页面任何其他地方都先收起，这次点击不再触发别的动作。
+     例外：展开行自己的「明天 / 删除」按钮、toast 上的「撤销」。 */
+  document.addEventListener('click', function(e){
+    if(taskSuppressClick){
+      taskSuppressClick = false;
+      if(taskSuppressTimer){ clearTimeout(taskSuppressTimer); taskSuppressTimer = null; }
+      e.preventDefault(); e.stopPropagation();
+      return;
+    }
+    var open = taskOpenLive();
+    if(!open) return;
+    var target = e.target;
+    if(!target || !target.closest) return;
+    if(target.closest('.toast')) return;
+    if(target.closest('.task') === open && target.closest('.bg-btn')) return;
+    taskSwipeClose();
+    e.preventDefault(); e.stopPropagation();
+  }, true);
+
+  /* 返回键 / ESC：有展开行时先收起它 */
+  muBackHandlers.push(function(){
+    if(!taskOpenLive()) return false;
+    taskSwipeClose();
+    return true;
   });
 }
 function bindProjects(){
@@ -10889,7 +11810,7 @@ $('#ptList').onclick = function(e){
         ptApplyQ();
         this.blur();
       }
-      if(e.key === 'Escape'){ this.value = ''; ptApplyQ(); }
+      if(e.key === 'Escape'){ this.value = ''; ptApplyQ(); e.stopPropagation(); }   /* 清空搜索即可，别让 ESC 继续冒泡去切页 */
     };
   })();
   var ptClrBtn = $('#ptQClear');
@@ -11190,7 +12111,11 @@ function bindClock(){
 }
 function bindModal(){
   $('#modalWrap').onclick = function(e){ if(e.target === $('#modalWrap')) closeModal(); };
-  document.addEventListener('keydown', function(e){ if(e.key === 'Escape') closeModal(); });
+  /* 桌面浏览器：ESC 和安卓返回键走同一套逻辑；在今日页最底层返回 false 就什么也不做 */
+  document.addEventListener('keydown', function(e){
+    if(e.key === 'Escape') muHandleBack();
+  });
+  bindModalSheet();   /* 底部弹窗下滑关闭手势 */
   /* 首次交互时激活音频上下文（浏览器自动播放策略要求） */
   document.addEventListener('click', function once(){
     audio();
@@ -11356,6 +12281,13 @@ function keepAliveInit(){
 
 function init(){
   bindTabs(); bindToday(); bindProjects(); bindCalendar(); bindSettings(); bindClock(); bindModal();
+  /* 课程页子页签吸顶要贴在顶栏下面：量顶栏高度，窗口变化 / 顶栏自己变高时重算 */
+  muSyncTopbarH();
+  window.addEventListener('resize', muSyncTopbarH);
+  window.addEventListener('orientationchange', muSyncTopbarH);
+  if(window.ResizeObserver){
+    try{ new ResizeObserver(muSyncTopbarH).observe(document.querySelector('.topbar')); }catch(e){}
+  }
   bindUcloudCard();
   renderAll();
   /* 冷启动也顺手拉一次课表（有凭据且过期才真的发请求） */
@@ -13250,6 +14182,12 @@ function crSwitchSub(k){
   if(k === 'hw') hwRender();
   if(k === 'zz') zzEnter();
   window.scrollTo(0, 0);
+  /* 子页签是吸顶 + 可横向滚动的：切过去后把当前页签滚到中间，别让它藏在屏幕外 */
+  var cur = document.querySelector('#crTabs button.on');
+  if(cur && typeof cur.scrollIntoView === 'function'){
+    try{ cur.scrollIntoView({ inline:'center', block:'nearest' }); }
+    catch(e){ try{ cur.scrollIntoView(false); }catch(e2){} }
+  }
 }
 
 /* ====================== [6c] 扫码签到（微教学 / 云邮同源后端） ======================

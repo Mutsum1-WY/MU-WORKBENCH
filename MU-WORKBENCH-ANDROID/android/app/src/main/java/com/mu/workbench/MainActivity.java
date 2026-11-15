@@ -4,6 +4,8 @@ import android.os.Bundle;
 import android.webkit.CookieManager;
 import android.webkit.WebView;
 
+import androidx.activity.OnBackPressedCallback;
+
 import com.getcapacitor.BridgeActivity;
 
 public class MainActivity extends BridgeActivity {
@@ -43,5 +45,39 @@ public class MainActivity extends BridgeActivity {
                 // 拿不到也不致命：网页里的下载按钮会退回「交给系统浏览器」
             }
         }
+
+        // 安卓系统返回键：Capacitor 没装 @capacitor/app 插件时，返回键默认会直接退出 App。
+        // 这里先交给网页的 window.muHandleBack() 判断（关确认框 / 弹窗 / 扫码页 / 阅读页，
+        // 或从其它页回到「今日」）；网页返回 1 表示已处理，否则才走系统默认行为退出。
+        getOnBackPressedDispatcher().addCallback(this, new OnBackPressedCallback(true) {
+            @Override
+            public void handleOnBackPressed() {
+                // 返回键回调本来就在主线程，这里再兜一层，保证 evaluateJavascript 一定在 UI 线程调用
+                runOnUiThread(() -> {
+                    if (web == null) {
+                        // 网页还没准备好：直接走系统默认退出
+                        setEnabled(false);
+                        getOnBackPressedDispatcher().onBackPressed();
+                        setEnabled(true);
+                        return;
+                    }
+                    try {
+                        web.evaluateJavascript("(window.muHandleBack&&window.muHandleBack())?'1':'0'", value -> {
+                            // 网页已经处理（关弹窗、回到今日等）：这次返回就到此为止
+                            if (value != null && value.contains("1")) return;
+                            // 网页说没处理：临时关掉自己再触发一次，交给系统默认行为退出 App
+                            setEnabled(false);
+                            getOnBackPressedDispatcher().onBackPressed();
+                            setEnabled(true);
+                        });
+                    } catch (Throwable ignored) {
+                        // 网页已经销毁等极端情况：别把返回键卡死，直接走默认退出
+                        setEnabled(false);
+                        getOnBackPressedDispatcher().onBackPressed();
+                        setEnabled(true);
+                    }
+                });
+            }
+        });
     }
 }
