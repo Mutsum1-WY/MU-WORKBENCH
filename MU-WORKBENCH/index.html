@@ -723,6 +723,12 @@ select.input{
   scroll-behavior:smooth;
 }
 .type-list::-webkit-scrollbar{display:none;width:0;height:0}
+/* 右边缘渐隐：提示「还能往右滑」；末尾留一段空白，滑到底时最后一个 chip 不被淡掉 */
+.type-list{
+  -webkit-mask-image:linear-gradient(to right,#000 calc(100% - 28px),transparent);
+          mask-image:linear-gradient(to right,#000 calc(100% - 28px),transparent);
+}
+.type-list::after{content:'';flex:0 0 22px;align-self:stretch}
 .tf-chip{
   position:relative;flex:0 0 auto;
   display:inline-flex;align-items:center;justify-content:center;
@@ -847,6 +853,18 @@ select.input{
   text-shadow:3px 3px 0 var(--accent-soft);
 }
 .digital .sec{font-size:20px;color:var(--accent);letter-spacing:-.02em}
+/* 手机竖屏：表盘缩到左边、数字时间放右边，把番茄钟让进首屏 */
+@media (max-width:699px){
+  .clock-card{
+    display:grid;grid-template-columns:auto 1fr;
+    grid-template-areas:"dial digital" "dial date" "prog prog";
+    column-gap:18px;align-items:center;justify-items:start;padding:16px 16px 14px;
+  }
+  .clock-card .dial{grid-area:dial;width:124px}
+  .clock-card .digital{grid-area:digital;align-self:end;margin-top:0;font-size:40px}
+  .clock-card .clock-date{grid-area:date;align-self:start;margin-top:8px;line-height:1.45;letter-spacing:.02em;text-wrap:balance}
+  .clock-card .day-progress{grid-area:prog;margin-top:14px}
+}
 .clock-date{font-size:12.5px;color:var(--ink-2);font-weight:800;margin-top:8px;letter-spacing:.06em;text-transform:uppercase}
 .day-progress{width:100%;margin-top:18px}
 .day-progress .row{justify-content:space-between;font-size:12px;color:var(--ink-2);font-weight:700;margin-bottom:7px}
@@ -1053,6 +1071,8 @@ select.input{
 .pt-search input::-webkit-search-cancel-button{display:none}
 .pt-search input::placeholder{color:var(--ink-3)}
 .pt-qclear{flex:0 0 auto;width:20px;height:20px;border-radius:0;border:0;padding:0;cursor:pointer;background:var(--chrome);color:var(--chrome-ink);font-size:14px;line-height:1;display:grid;place-items:center}
+/* 搜索框是空的就别显示 ×（上面的 display:grid 和 P3R 覆盖都会顶掉 hidden） */
+.pt-qclear[hidden]{display:none !important}
 .pt-filters{display:flex;align-items:center;gap:7px;margin-bottom:10px;flex-wrap:wrap}
 .pt-range{display:inline-flex;padding:2px;gap:2px;background:var(--chrome);border:var(--bw) solid var(--chrome)}
 .pt-range button{border:0;background:transparent;color:var(--chrome-soft);font-size:11.5px;font-weight:800;font-family:inherit;padding:4px 9px;cursor:pointer;line-height:1.5;transition:background var(--t),color var(--t)}
@@ -3193,7 +3213,7 @@ html[data-theme="p3r"] .tf-arrow{color:var(--ink-3)}
       </div>
     </div>
     <div class="top-actions">
-      <button class="icon-btn" id="btnSettings" title="设置" aria-label="设置"><svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3.1"/><path d="M12 3.2v2.4M12 18.4v2.4M4.8 12H2.4M21.6 12h-2.4M6.9 6.9 5.2 5.2M18.8 18.8l-1.7-1.7M6.9 17.1l-1.7 1.7M18.8 5.2l-1.7 1.7"/></svg></button>
+      <button class="icon-btn" id="btnSettings" title="设置" aria-label="设置"><svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M10.37 5.61L10.53 3.43L13.47 3.43L13.63 5.61A6.6 6.6 0 0 1 15.37 6.32L17.02 4.9L19.1 6.98L17.68 8.63A6.6 6.6 0 0 1 18.39 10.37L20.57 10.53L20.57 13.47L18.39 13.63A6.6 6.6 0 0 1 17.68 15.37L19.1 17.02L17.02 19.1L15.37 17.68A6.6 6.6 0 0 1 13.63 18.39L13.47 20.57L10.53 20.57L10.37 18.39A6.6 6.6 0 0 1 8.63 17.68L6.98 19.1L4.9 17.02L6.32 15.37A6.6 6.6 0 0 1 5.61 13.63L3.43 13.47L3.43 10.53L5.61 10.37A6.6 6.6 0 0 1 6.32 8.63L4.9 6.98L6.98 4.9L8.63 6.32A6.6 6.6 0 0 1 10.37 5.61Z"/><circle cx="12" cy="12" r="2.8"/></svg></button>
       <button class="icon-btn" id="btnScan" title="扫码签到" aria-label="扫码签到"><svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8V5.5A1.5 1.5 0 0 1 5.5 4H8"/><path d="M16 4h2.5A1.5 1.5 0 0 1 20 5.5V8"/><path d="M20 16v2.5a1.5 1.5 0 0 1-1.5 1.5H16"/><path d="M8 20H5.5A1.5 1.5 0 0 1 4 18.5V16"/><rect x="8.4" y="8.4" width="7.2" height="7.2" rx="1.2"/></svg></button>
     </div>
   </header>
@@ -3271,7 +3291,7 @@ html[data-theme="p3r"] .tf-arrow{color:var(--ink-3)}
           <div class="pomo-ring" id="pomoRing" style="--p:0">
             <div class="pomo-inner">
               <div class="pomo-time num" id="pomoTime">25:00</div>
-              <div class="pomo-phase" id="pomoPhase">专注中</div>
+              <div class="pomo-phase" id="pomoPhase">准备专注</div>
             </div>
           </div>
           <div class="pomo-side">
@@ -5497,7 +5517,14 @@ function renderBanner(text, count){
       '<button class="bgo" id="bannerGo">去处理</button>' +
       '<button class="bx" id="bannerClose" aria-label="关闭">×</button>' +
     '</div></div>';
-  $('#bannerGo').onclick = function(){ switchTab('today'); window.scrollTo(0,0); };
+  /* 「去处理」：横幅本来就在今日页顶上，回到页顶等于没反应——改成滚到待办列表 */
+  $('#bannerGo').onclick = function(){
+    if(currentTab !== 'today') switchTab('today');
+    var list = $('#todayList'), tb = $('.topbar');
+    if(!list){ window.scrollTo(0,0); return; }
+    var top = list.getBoundingClientRect().top + window.pageYOffset - ((tb ? tb.offsetHeight : 0) + 8);
+    try{ window.scrollTo({ top:Math.max(0, top), behavior:'smooth' }); }catch(e){ window.scrollTo(0, Math.max(0, top)); }
+  };
   $('#bannerClose').onclick = function(){ bannerClosed = true; host.innerHTML = ''; };
   $('#todayFocus').textContent = '今日专注 ' + pomoDoneCount() + ' 个番茄';
 }
@@ -6964,7 +6991,11 @@ function pomoRender(){
   ring.classList.toggle('brk', pomo.phase === 'break');
   var mm = Math.floor(pomo.left/60), ss = pomo.left%60;
   $('#pomoTime').textContent = pad2(mm) + ':' + pad2(ss);
-  $('#pomoPhase').textContent = pomo.phase === 'focus' ? '专注中' : '休息中';
+  /* 状态文字跟着真实状态走：没开始、暂停、进行中分开说，别一打开就写「专注中」 */
+  var isFocus = pomo.phase === 'focus';
+  $('#pomoPhase').textContent = pomo.running
+    ? (isFocus ? '专注中' : '休息中')
+    : (pomo.left < pomo.total ? '已暂停' : (isFocus ? '准备专注' : '准备休息'));
   $('#pomoStart').textContent = pomo.running ? '暂停' : '开始';
   $('#pomoMeta').textContent = '今日已完成 ' + pomoDoneCount() + ' 个番茄' + pomoLinkText();
 }
