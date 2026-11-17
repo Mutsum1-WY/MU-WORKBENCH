@@ -3248,43 +3248,27 @@ html[data-theme="p3r"] .tf-more-btn.on{border-color:var(--accent-mid)}
 html[data-theme="p3r"] .tf-sum,
 html[data-theme="p3r"] .tf-arrow{color:var(--ink-3)}
 
-/* ====================== 13d. iOS 主题：灵动流体毛玻璃 ====================== */
-@keyframes iosViewIn{
-  from{opacity:0;transform:translate3d(0,10px,0) scale(.994)}
-  to{opacity:1;transform:none}
+/* ====================== 13d. iOS 主题：原汁原味 iOS 系统动效 ====================== */
+@keyframes iosPushIn{
+  from{transform:translate3d(100%,0,0);box-shadow:-8px 0 28px rgba(0,0,0,.14)}
+  to{transform:translate3d(0,0,0);box-shadow:none}
 }
-@keyframes iosCardIn{
-  from{opacity:0;transform:translate3d(0,12px,0) scale(.99)}
-  to{opacity:1;transform:none}
-}
-@keyframes iosSheetIn{
-  from{opacity:.65;transform:translate3d(0,56px,0)}
-  to{opacity:1;transform:none}
+@keyframes iosCoverIn{
+  from{transform:translate3d(0,100%,0)}
+  to{transform:translate3d(0,0,0)}
 }
 @keyframes iosAlertIn{
-  from{opacity:0;transform:scale(1.11)}
-  to{opacity:1;transform:none}
+  from{opacity:0;transform:scale(1.18)}
+  to{opacity:1;transform:scale(1)}
 }
 @keyframes iosReveal{
-  from{opacity:0;transform:translate3d(0,-5px,0)}
+  from{opacity:0;transform:translate3d(0,-6px,0)}
   to{opacity:1;transform:none}
-}
-@keyframes iosPop{
-  0%{transform:scale(.86)}
-  58%{transform:scale(1.06)}
-  100%{transform:scale(1)}
-}
-@keyframes iosPillBounce{
-  0%{transform:scale(.97)}
-  58%{transform:scale(1.018)}
-  100%{transform:scale(1)}
 }
 
 html[data-theme="ios"]{
-  --ios-fluid:cubic-bezier(.25,1,.38,1);
-  --ios-spring:cubic-bezier(.26,1.12,.46,1);
-  --ios-sheet:cubic-bezier(.32,.72,0,1);
-  --ios-tap:cubic-bezier(.25,.46,.45,.94);
+  --ios-sys:cubic-bezier(.32,.72,0,1);
+  --ios-ease:cubic-bezier(.25,.1,.25,1);
   --ios-glass:rgba(249,249,251,.82);
   --ios-glass-b:rgba(60,60,67,.12);
   --paper:#f2f2f7;
@@ -3314,8 +3298,8 @@ html[data-theme="ios"]{
   --sh:0 2px 14px rgba(0,0,0,.045),0 1px 2px rgba(0,0,0,.03);
   --sh-up:0 12px 30px rgba(0,0,0,.09);
   --sh-red:0 4px 14px color-mix(in srgb,var(--accent) 26%,transparent);
-  --ease:cubic-bezier(.28,.84,.38,1);
-  --t:340ms;
+  --ease:cubic-bezier(.32,.72,0,1);
+  --t:280ms;
   --sheet-dim:.36;
 }
 @media (prefers-color-scheme: dark){
@@ -3353,113 +3337,47 @@ html[data-theme="ios"] body{
 html[data-theme="ios"] body::after{display:none !important}
 html[data-theme="ios"] *{font-style:normal !important}
 
-/* —— iOS 流体弹簧动效（柔和加速 + 丝滑长减速尾段） —— */
-html[data-theme="ios"] .view.on{transform-origin:top center;animation:iosViewIn 460ms var(--ios-sheet)}
+/* —— 原生 iOS 转场：底栏瞬切无飞入；详情页右推入；全屏页自底升起 —— */
+html[data-theme="ios"] .view.on,
 html[data-theme="ios"] #crPaneCourse:not([hidden]),
 html[data-theme="ios"] #crPaneBonus:not([hidden]),
 html[data-theme="ios"] #crPaneScan:not([hidden]),
 html[data-theme="ios"] #crPaneHw:not([hidden]),
-html[data-theme="ios"] #crPaneZz:not([hidden]){transform-origin:top center;animation:iosViewIn 400ms var(--ios-sheet)}
+html[data-theme="ios"] #crPaneZz:not([hidden]){animation:none}
+
+html[data-theme="ios"] .reader{animation:iosPushIn 500ms var(--ios-sys)}
+html[data-theme="ios"] .sc-page{animation:iosCoverIn 500ms var(--ios-sys)}
+
 html[data-theme="ios"] .hw-detail.hw-just-open,
 html[data-theme="ios"] .hw-ex-detail.hw-just-open,
 html[data-theme="ios"] .cb-more,
 html[data-theme="ios"] .cb-cd,
 html[data-theme="ios"] .cb-fold[open]>div,
 html[data-theme="ios"] .zz-fold[open]>.zz-fold-body,
-html[data-theme="ios"] .kb-week[open]>.kb-week-body{animation:iosReveal 380ms var(--ios-sheet)}
-html[data-theme="ios"] .reader,
-html[data-theme="ios"] .sc-page{animation:iosViewIn 460ms var(--ios-sheet)}
-html[data-theme="ios"] .ym-panel.on{animation:iosReveal 340ms var(--ios-sheet)}
+html[data-theme="ios"] .kb-week[open]>.kb-week-body,
+html[data-theme="ios"] .ym-panel.on{animation:iosReveal 350ms var(--ios-sys)}
 html[data-theme="ios"] .tf-more,
-html[data-theme="ios"] .tf-cal{transition-duration:360ms;transition-timing-function:var(--ios-sheet)}
-html[data-theme="ios"] .tf-arrow{transition:transform 320ms var(--ios-sheet)}
+html[data-theme="ios"] .tf-cal{transition-duration:350ms;transition-timing-function:var(--ios-sys)}
+html[data-theme="ios"] .tf-arrow{transition:transform 300ms var(--ios-sys)}
 
-/* 覆盖 P5R 左右斜飞入场，统一换成 iOS 柔和阻尼流体上浮与轻柔错峰 */
-html[data-theme="ios"] #dayList>.task:nth-child(n),
-html[data-theme="ios"] #inboxList>.task:nth-child(n),
-html[data-theme="ios"] #doneList>.task:nth-child(n),
-html[data-theme="ios"] #todayList>.task:nth-child(n),
-html[data-theme="ios"] #projGrid>.pcard:nth-child(n),
-html[data-theme="ios"] #ptList>.pt-item:nth-child(n),
-html[data-theme="ios"] #crList>.cr-item:nth-child(n),
-html[data-theme="ios"] #cbList>.cb-item:nth-child(n),
-html[data-theme="ios"] .kb-wrap.kb-anim>.kb-item:nth-child(n),
-html[data-theme="ios"] .hw-wrap.hw-anim>.hw-term:nth-child(n),
-html[data-theme="ios"] .hw-wrap.hw-anim>.hw-note:nth-child(n),
-html[data-theme="ios"] #crPaneZz>.zz-hero:nth-child(n),
-html[data-theme="ios"] #crPaneZz>.zz-card:nth-child(n),
-html[data-theme="ios"] #crPaneZz>.zz-fold:nth-child(n){
-  animation-name:iosCardIn;
-  animation-duration:480ms;
-  animation-timing-function:var(--ios-sheet);
-  animation-fill-mode:backwards;
+/* UITableView / List 原生即显，不做网页式逐张错峰飞入 */
+html[data-theme="ios"] #dayList>.task,
+html[data-theme="ios"] #inboxList>.task,
+html[data-theme="ios"] #doneList>.task,
+html[data-theme="ios"] #todayList>.task,
+html[data-theme="ios"] #projGrid>.pcard,
+html[data-theme="ios"] #ptList>.pt-item,
+html[data-theme="ios"] #crList>.cr-item,
+html[data-theme="ios"] #cbList>.cb-item,
+html[data-theme="ios"] .kb-wrap.kb-anim>.kb-item,
+html[data-theme="ios"] .hw-wrap.hw-anim>.hw-term,
+html[data-theme="ios"] .hw-wrap.hw-anim>.hw-note,
+html[data-theme="ios"] #crPaneZz>.zz-hero,
+html[data-theme="ios"] #crPaneZz>.zz-card,
+html[data-theme="ios"] #crPaneZz>.zz-fold{
+  animation:none;
+  animation-delay:0ms;
 }
-html[data-theme="ios"] #dayList>.task:nth-child(2),
-html[data-theme="ios"] #inboxList>.task:nth-child(2),
-html[data-theme="ios"] #doneList>.task:nth-child(2),
-html[data-theme="ios"] #projGrid>.pcard:nth-child(2),
-html[data-theme="ios"] #ptList>.pt-item:nth-child(2),
-html[data-theme="ios"] #crList>.cr-item:nth-child(2),
-html[data-theme="ios"] #cbList>.cb-item:nth-child(2),
-html[data-theme="ios"] .hw-wrap.hw-anim>.hw-term:nth-child(2),
-html[data-theme="ios"] #crPaneZz>:nth-child(2),
-html[data-theme="ios"] #todayList>.task:nth-child(3),
-html[data-theme="ios"] .kb-wrap.kb-anim>.kb-item:nth-child(3){animation-delay:22ms}
-html[data-theme="ios"] #dayList>.task:nth-child(3),
-html[data-theme="ios"] #inboxList>.task:nth-child(3),
-html[data-theme="ios"] #doneList>.task:nth-child(3),
-html[data-theme="ios"] #projGrid>.pcard:nth-child(3),
-html[data-theme="ios"] #ptList>.pt-item:nth-child(3),
-html[data-theme="ios"] #crList>.cr-item:nth-child(3),
-html[data-theme="ios"] #cbList>.cb-item:nth-child(3),
-html[data-theme="ios"] .hw-wrap.hw-anim>.hw-term:nth-child(3),
-html[data-theme="ios"] #crPaneZz>:nth-child(3),
-html[data-theme="ios"] #todayList>.task:nth-child(4),
-html[data-theme="ios"] .kb-wrap.kb-anim>.kb-item:nth-child(4){animation-delay:44ms}
-html[data-theme="ios"] #dayList>.task:nth-child(4),
-html[data-theme="ios"] #inboxList>.task:nth-child(4),
-html[data-theme="ios"] #doneList>.task:nth-child(4),
-html[data-theme="ios"] #projGrid>.pcard:nth-child(4),
-html[data-theme="ios"] #ptList>.pt-item:nth-child(4),
-html[data-theme="ios"] #crList>.cr-item:nth-child(4),
-html[data-theme="ios"] #cbList>.cb-item:nth-child(4),
-html[data-theme="ios"] .hw-wrap.hw-anim>.hw-term:nth-child(4),
-html[data-theme="ios"] #crPaneZz>:nth-child(4),
-html[data-theme="ios"] #todayList>.task:nth-child(5),
-html[data-theme="ios"] .kb-wrap.kb-anim>.kb-item:nth-child(5){animation-delay:66ms}
-html[data-theme="ios"] #dayList>.task:nth-child(5),
-html[data-theme="ios"] #inboxList>.task:nth-child(5),
-html[data-theme="ios"] #doneList>.task:nth-child(5),
-html[data-theme="ios"] #projGrid>.pcard:nth-child(5),
-html[data-theme="ios"] #ptList>.pt-item:nth-child(5),
-html[data-theme="ios"] #crList>.cr-item:nth-child(5),
-html[data-theme="ios"] #cbList>.cb-item:nth-child(5),
-html[data-theme="ios"] .hw-wrap.hw-anim>.hw-term:nth-child(5),
-html[data-theme="ios"] #crPaneZz>:nth-child(5),
-html[data-theme="ios"] #todayList>.task:nth-child(6),
-html[data-theme="ios"] .kb-wrap.kb-anim>.kb-item:nth-child(6){animation-delay:88ms}
-html[data-theme="ios"] #dayList>.task:nth-child(6),
-html[data-theme="ios"] #inboxList>.task:nth-child(6),
-html[data-theme="ios"] #doneList>.task:nth-child(6),
-html[data-theme="ios"] #projGrid>.pcard:nth-child(6),
-html[data-theme="ios"] #ptList>.pt-item:nth-child(6),
-html[data-theme="ios"] #crList>.cr-item:nth-child(6),
-html[data-theme="ios"] #cbList>.cb-item:nth-child(6),
-html[data-theme="ios"] .hw-wrap.hw-anim>.hw-term:nth-child(6),
-html[data-theme="ios"] #crPaneZz>:nth-child(6),
-html[data-theme="ios"] #todayList>.task:nth-child(7),
-html[data-theme="ios"] .kb-wrap.kb-anim>.kb-item:nth-child(7){animation-delay:110ms}
-html[data-theme="ios"] #dayList>.task:nth-child(n+7),
-html[data-theme="ios"] #inboxList>.task:nth-child(n+7),
-html[data-theme="ios"] #doneList>.task:nth-child(n+7),
-html[data-theme="ios"] #projGrid>.pcard:nth-child(n+7),
-html[data-theme="ios"] #ptList>.pt-item:nth-child(n+7),
-html[data-theme="ios"] #crList>.cr-item:nth-child(n+7),
-html[data-theme="ios"] #cbList>.cb-item:nth-child(n+7),
-html[data-theme="ios"] .hw-wrap.hw-anim>.hw-term:nth-child(n+7),
-html[data-theme="ios"] #crPaneZz>:nth-child(n+7),
-html[data-theme="ios"] #todayList>.task:nth-child(n+8),
-html[data-theme="ios"] .kb-wrap.kb-anim>.kb-item:nth-child(n+8){animation-delay:132ms}
 
 /* —— 顶栏 & 底部毛玻璃 TabBar —— */
 html[data-theme="ios"] .topbar{
@@ -3495,14 +3413,14 @@ html[data-theme="ios"] .tabbar{
 }
 html[data-theme="ios"] .tab{
   color:var(--ink-3);font-weight:600;letter-spacing:0;
-  transition:color 300ms var(--ios-fluid),transform 260ms var(--ios-tap),opacity 220ms var(--ios-tap);
+  transition:color 180ms var(--ios-ease),opacity 200ms var(--ios-ease);
 }
-html[data-theme="ios"] .tab:active{transform:scale(.95);opacity:.78}
+html[data-theme="ios"] .tab:active{transform:none;opacity:.45;transition-duration:60ms}
 html[data-theme="ios"] .tab.on{color:var(--accent-ink);font-weight:700}
-html[data-theme="ios"] .tab.on svg{stroke:var(--accent-ink);animation:iosPop 400ms var(--ios-spring)}
+html[data-theme="ios"] .tab.on svg{stroke:var(--accent-ink);animation:none}
 html[data-theme="ios"] .tab.on::before{
   border-radius:14px;background:var(--accent-soft);border:0;transform:none;
-  transition:background 300ms var(--ios-fluid),opacity 300ms var(--ios-fluid);
+  transition:background 180ms var(--ios-ease),opacity 180ms var(--ios-ease);
 }
 html[data-theme="ios"] .tab.on::after{display:none}
 html[data-theme="ios"] .tab-badge{border-radius:999px;border:0;box-shadow:0 2px 6px rgba(0,0,0,.18)}
@@ -3572,13 +3490,13 @@ html[data-theme="ios"] .cb-item,
 html[data-theme="ios"] .pt-item,
 html[data-theme="ios"] .pcard,
 html[data-theme="ios"] .kb-item{
-  transition:transform 280ms var(--ios-fluid),border-color 280ms var(--ios-fluid),box-shadow 280ms var(--ios-fluid),opacity 220ms var(--ios-tap);
+  transition:background-color 240ms var(--ios-ease),border-color 240ms var(--ios-ease),box-shadow 240ms var(--ios-ease);
 }
 html[data-theme="ios"] .hw-item:active,
 html[data-theme="ios"] .cr-item:active,
 html[data-theme="ios"] .cb-item:active,
 html[data-theme="ios"] .pt-item:active,
-html[data-theme="ios"] .pcard:active{transform:scale(.986);opacity:.9}
+html[data-theme="ios"] .pcard:active{transform:none;background-color:var(--surface-3);transition-duration:50ms}
 html[data-theme="ios"] .hw-item.open,
 html[data-theme="ios"] .hw-ex.open,
 html[data-theme="ios"] .pt-item.open{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent-mid),var(--sh)}
@@ -3619,7 +3537,7 @@ html[data-theme="ios"] .hero-foot .btn{
 }
 html[data-theme="ios"] .hero-foot .btn.primary{background:#fff;color:var(--accent-ink)}
 
-/* —— 按钮 / 输入框 / 触感反馈 —— */
+/* —— 按钮 / 输入框 / 原生 iOS 高亮反馈 —— */
 html[data-theme="ios"] .btn,
 html[data-theme="ios"] .icon-btn,
 html[data-theme="ios"] .set-back,
@@ -3641,7 +3559,7 @@ html[data-theme="ios"] .wk-grid button,
 html[data-theme="ios"] .md-grid button,
 html[data-theme="ios"] .emoji-pick button,
 html[data-theme="ios"] .color-pick button{
-  transition:transform 260ms var(--ios-fluid),background 280ms var(--ios-fluid),border-color 280ms var(--ios-fluid),color 260ms var(--ios-fluid),box-shadow 280ms var(--ios-fluid),opacity 220ms var(--ios-tap);
+  transition:background-color 220ms var(--ios-ease),border-color 220ms var(--ios-ease),color 220ms var(--ios-ease),box-shadow 220ms var(--ios-ease),opacity 220ms var(--ios-ease);
 }
 html[data-theme="ios"] .btn{
   border-radius:var(--r-sm);border:1px solid var(--line-2);box-shadow:none;transform:none;
@@ -3670,7 +3588,7 @@ html[data-theme="ios"] .tf-chip:active,
 html[data-theme="ios"] .zz-chip:active,
 html[data-theme="ios"] .zz-majors button:active,
 html[data-theme="ios"] .cr-majors button:active,
-html[data-theme="ios"] .cr-chip:active{transform:scale(.965);opacity:.84;box-shadow:none}
+html[data-theme="ios"] .cr-chip:active{transform:none;opacity:.45;transition-duration:50ms;box-shadow:none}
 
 html[data-theme="ios"] .icon-btn{border-radius:999px;border:1px solid var(--line);background:var(--surface-2);color:var(--ink);box-shadow:none}
 html[data-theme="ios"] .pt-head .icon-btn{border-radius:999px;border:1px solid var(--line);background:var(--surface-1);box-shadow:none}
@@ -3690,18 +3608,20 @@ html[data-theme="ios"] .input:focus,
 html[data-theme="ios"] select:focus,
 html[data-theme="ios"] textarea:focus{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}
 
-/* —— iOS 开关 & 分段控制器（含吸顶毛玻璃 .cr-tabs） —— */
+/* —— UISwitch & UISegmentedControl —— */
 html[data-theme="ios"] .sw{
-  width:50px;height:30px;border-radius:999px;border:0;background:var(--track);
-  transition:background 340ms var(--ios-fluid);
+  width:51px;height:31px;border-radius:999px;border:0;background:var(--track);
+  transition:background-color 250ms var(--ios-ease);
 }
 html[data-theme="ios"] .sw::after{
-  top:2px;left:2px;width:26px;height:26px;border-radius:999px;background:#fff;border:0;
-  box-shadow:0 2px 6px rgba(0,0,0,.22);
-  transition:transform 380ms var(--ios-spring);
+  top:2px;left:2px;width:27px;height:27px;border-radius:999px;background:#fff;border:0;
+  box-shadow:0 3px 8px rgba(0,0,0,.15),0 1px 1px rgba(0,0,0,.16);
+  transition:transform 280ms var(--ios-sys),width 200ms var(--ios-sys);
 }
+html[data-theme="ios"] .sw:active::after{width:33px}
 html[data-theme="ios"] .sw.on{background:#34c759}
 html[data-theme="ios"] .sw.on::after{transform:translateX(20px)}
+html[data-theme="ios"] .sw.on:active::after{transform:translateX(14px)}
 
 html[data-theme="ios"] .seg,
 html[data-theme="ios"] .seg-switch,
@@ -3720,7 +3640,7 @@ html[data-theme="ios"] .seg-switch button,
 html[data-theme="ios"] .pt-range button,
 html[data-theme="ios"] .cr-tabs button{
   border-radius:9px;color:var(--ink-2);font-weight:700;border:0;
-  transition:background 320ms var(--ios-fluid),color 300ms var(--ios-fluid),box-shadow 320ms var(--ios-fluid),transform 240ms var(--ios-tap);
+  transition:background-color 280ms var(--ios-sys),color 220ms var(--ios-ease),box-shadow 280ms var(--ios-sys),opacity 180ms var(--ios-ease);
 }
 html[data-theme="ios"] .seg button.on,
 html[data-theme="ios"] .seg-switch button.on,
@@ -3728,7 +3648,7 @@ html[data-theme="ios"] .pt-range button.on,
 html[data-theme="ios"] .cr-tabs button.on{
   background:var(--surface-1);color:var(--ink);
   box-shadow:0 2px 8px rgba(0,0,0,.1),0 .5px 1px rgba(0,0,0,.06);
-  animation:iosPillBounce 340ms var(--ios-spring);
+  animation:none;
 }
 @media (prefers-color-scheme: dark){
   html[data-theme="ios"] .seg button.on,
@@ -3742,22 +3662,22 @@ html[data-theme="ios"] .cr-tabs button.on{
 /* —— 待办 / 今日课程 / 进度条 —— */
 html[data-theme="ios"] .task{
   border:1px solid var(--line);border-radius:var(--r-md);box-shadow:var(--sh);
-  transition:transform 280ms var(--ios-fluid),box-shadow 280ms var(--ios-fluid),opacity 220ms var(--ios-tap);
+  transition:background-color 240ms var(--ios-ease),box-shadow 240ms var(--ios-ease);
 }
-html[data-theme="ios"] .task-front{transition:transform 360ms var(--ios-sheet)}
+html[data-theme="ios"] .task-front{transition:transform 400ms var(--ios-sys)}
 html[data-theme="ios"] .task:hover{transform:none;box-shadow:var(--sh-up)}
-html[data-theme="ios"] .task:active{transform:scale(.986);opacity:.92}
+html[data-theme="ios"] .task:active{transform:none;background-color:var(--surface-3);transition-duration:50ms}
 html[data-theme="ios"] .task::before{border-radius:var(--r-md) 0 0 var(--r-md)}
 html[data-theme="ios"] .task-bg{border-radius:var(--r-md);background:var(--surface-3)}
 html[data-theme="ios"] .task-bg .bg-btn{border-left:1px solid var(--line)}
 html[data-theme="ios"] .chk,
 html[data-theme="ios"] .cb{
   border-radius:999px;border:1.5px solid var(--ink-3);transform:none;
-  transition:transform 300ms var(--ios-spring),background 280ms var(--ios-fluid),border-color 280ms var(--ios-fluid);
+  transition:background-color 220ms var(--ios-sys),border-color 220ms var(--ios-sys);
 }
 html[data-theme="ios"] .chk::after{transform:none}
 html[data-theme="ios"] .task.done .chk,
-html[data-theme="ios"] .cb.on{background:var(--accent);border-color:var(--accent);animation:iosPop 380ms var(--ios-spring)}
+html[data-theme="ios"] .cb.on{background:var(--accent);border-color:var(--accent);animation:none}
 html[data-theme="ios"] .chip{border-radius:999px;border:0;background:var(--fill);color:var(--ink-2);transform:none}
 html[data-theme="ios"] .chip.tag{background:var(--accent-soft);color:var(--accent-ink)}
 html[data-theme="ios"] .chip.bad,
@@ -3779,17 +3699,17 @@ html[data-theme="ios"] .kb-prog i,
 html[data-theme="ios"] .bar i,
 html[data-theme="ios"] .zz-bar i,
 html[data-theme="ios"] .cb-led-bar i,
-html[data-theme="ios"] .pcard .pbar>i{border-radius:999px;transition:width 520ms var(--ios-sheet)}
+html[data-theme="ios"] .pcard .pbar>i{border-radius:999px;transition:width 450ms var(--ios-sys)}
 
-/* —— 底部抽屉弹窗 (.modal) & 确认弹窗 (.p5-confirm) —— */
+/* —— UISheetPresentationController & UIAlertController —— */
 html[data-theme="ios"] .modal-wrap{
   background:rgba(0,0,0,var(--sheet-dim));
   backdrop-filter:blur(10px);
   -webkit-backdrop-filter:blur(10px);
-  transition:opacity 360ms var(--ios-sheet),display 360ms allow-discrete;
+  transition:opacity 400ms var(--ios-sys),display 400ms allow-discrete;
 }
-html[data-theme="ios"] .modal-wrap.on{animation:fadeIn 340ms var(--ios-sheet)}
-html[data-theme="ios"] .modal-wrap.closing{transition:opacity 340ms var(--ios-sheet)}
+html[data-theme="ios"] .modal-wrap.on{animation:fadeIn 400ms var(--ios-sys)}
+html[data-theme="ios"] .modal-wrap.closing{transition:opacity 400ms var(--ios-sys)}
 html[data-theme="ios"] .modal{
   border-radius:24px 24px 0 0;border:0;
   background:var(--surface-1);
@@ -3799,9 +3719,9 @@ html[data-theme="ios"] .modal{
   html[data-theme="ios"] .modal{border-radius:22px}
 }
 html[data-theme="ios"] .modal::before{display:none}
-html[data-theme="ios"] .modal.enter{animation:iosSheetIn 500ms var(--ios-sheet)}
+html[data-theme="ios"] .modal.enter{animation:iosCoverIn 500ms var(--ios-sys)}
 html[data-theme="ios"] .modal.settling,
-html[data-theme="ios"] .modal.sheet-closing{transition:transform 380ms var(--ios-sheet),opacity 320ms var(--ios-fluid)}
+html[data-theme="ios"] .modal.sheet-closing{transition:transform 450ms var(--ios-sys),opacity 400ms var(--ios-ease)}
 html[data-theme="ios"] .sheet-grip i{width:38px;height:5px;border-radius:999px;background:var(--track-2)}
 html[data-theme="ios"] .modal-head .icon-btn{border:0;background:var(--fill);color:var(--ink-2)}
 html[data-theme="ios"] .modal-foot{border-top:1px solid var(--line);background:var(--surface-1)}
@@ -3811,7 +3731,7 @@ html[data-theme="ios"] .p5-confirm{
   backdrop-filter:saturate(180%) blur(24px);
   -webkit-backdrop-filter:saturate(180%) blur(24px);
   box-shadow:0 20px 50px rgba(0,0,0,.28);
-  animation:iosAlertIn 380ms var(--ios-sheet);
+  animation:iosAlertIn 360ms var(--ios-sys);
 }
 html[data-theme="ios"] .p5-confirm::before{display:none}
 
@@ -3915,7 +3835,7 @@ html[data-theme="ios"] .sc-state span{border-radius:7px;border:0}
 html[data-theme="ios"] .cb-mark,
 html[data-theme="ios"] .cb-step button,
 html[data-theme="ios"] .zz-del{border-radius:8px;border:1px solid var(--line-2);background:var(--surface-2)}
-html[data-theme="ios"] .cb-item.done .cb-mark{background:var(--accent);border-color:transparent;color:#fff;animation:iosPop 380ms var(--ios-spring)}
+html[data-theme="ios"] .cb-item.done .cb-mark{background:var(--accent);border-color:transparent;color:#fff;animation:none}
 html[data-theme="ios"] .cb-lead .cb-two>div,
 html[data-theme="ios"] .cb-grades>div,
 html[data-theme="ios"] .cb-doc,
@@ -3938,7 +3858,7 @@ html[data-theme="ios"] #themePick .btn{border-radius:999px;border:1px solid var(
 html[data-theme="ios"] #themePick .btn.primary{background:var(--accent);color:#fff;border-color:transparent;box-shadow:0 4px 12px color-mix(in srgb,var(--accent) 28%,transparent)}
 html[data-theme="ios"] .color-pick button{border-radius:999px;transform:none;border:2px solid var(--surface-1);box-shadow:0 0 0 1px var(--line-2)}
 html[data-theme="ios"] .color-pick button.on{box-shadow:0 0 0 2.5px var(--accent)}
-html[data-theme="ios"] .color-pick button:active{transform:scale(.94);opacity:.85}
+html[data-theme="ios"] .color-pick button:active{transform:none;opacity:.55}
 html[data-theme="ios"] .empty{border-radius:var(--r);border:1px dashed var(--line-2);transform:none;background:var(--surface-2)}
 html[data-theme="ios"] .toast{
   border-radius:999px;border:0;
@@ -3946,15 +3866,15 @@ html[data-theme="ios"] .toast{
   backdrop-filter:saturate(180%) blur(20px);
   -webkit-backdrop-filter:saturate(180%) blur(20px);
   box-shadow:0 12px 32px rgba(0,0,0,.24);
-  transform:translate3d(0,14px,0) scale(.96);
-  transition:opacity 360ms var(--ios-sheet),transform 380ms var(--ios-sheet);
+  transform:translate3d(0,16px,0);
+  transition:opacity 380ms var(--ios-sys),transform 380ms var(--ios-sys);
 }
 html[data-theme="ios"] .toast.on{opacity:1;transform:none}
 html[data-theme="ios"] .banner{
   border-radius:var(--r);border:0;transform:none;
   background:linear-gradient(135deg,var(--accent),var(--accent-2));
   color:#fff;box-shadow:var(--sh-up);
-  animation:iosReveal 420ms var(--ios-sheet);
+  animation:iosReveal 380ms var(--ios-sys);
 }
 html[data-theme="ios"] .banner>*{transform:none}
 html[data-theme="ios"] .banner .bgo{border-radius:999px;border:0;background:#fff;color:var(--accent-ink);box-shadow:none}
@@ -6762,12 +6682,12 @@ function switchTab(name){
 var sheetCloseTimer = null;      /* closeModal 的收尾定时器 */
 var sheetSnapTimer = null;       /* 弹回原位后清样式的定时器 */
 var sheetDrag = null;            /* 当前这次下滑手势 */
-var SHEET_CLOSE_MS = 180;        /* P5R/P3R 关闭动画时长：≤ 200ms；iOS 用 380ms 走完流体减速 */
+var SHEET_CLOSE_MS = 180;        /* P5R/P3R 关闭动画时长：≤ 200ms；iOS 对齐原生 UISheet 450ms */
 function sheetIsIos(){
   try{ return document.documentElement.getAttribute('data-theme') === 'ios'; }catch(e){ return false; }
 }
-function sheetCloseMs(){ return sheetIsIos() ? 380 : SHEET_CLOSE_MS; }
-function sheetSnapMs(){ return sheetIsIos() ? 400 : 200; }
+function sheetCloseMs(){ return sheetIsIos() ? 450 : SHEET_CLOSE_MS; }
+function sheetSnapMs(){ return sheetIsIos() ? 450 : 200; }
 
 function sheetReducedMotion(){
   try{ return !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches); }catch(e){ return false; }
