@@ -1,7 +1,6 @@
 @echo off
 rem ===========================================================================
-rem  MU WORKBENCH - build a debug APK (ASCII only on purpose, cmd.exe safe)
-rem  Everything (JDK / Android SDK / Gradle cache) lives inside this folder.
+rem  MU WORKBENCH - Pure Jetpack Compose Native Debug APK Build
 rem ===========================================================================
 setlocal
 cd /d "%~dp0"
@@ -25,16 +24,12 @@ if not exist "%ANDROID_HOME%\platforms\android-35" (
   exit /b 1
 )
 
-echo [1/3] sync www ...
-call node sync-www.cjs || goto :fail
-call npx cap sync android || goto :fail
-
-echo [2/3] gradle assembleDebug ...
+echo [1/2] gradle assembleDebug ...
 pushd android
 call gradlew.bat assembleDebug --no-daemon || (popd & goto :fail)
 popd
 
-echo [3/3] copy APK ...
+echo [2/2] copy APK ...
 set "APK=android\app\build\outputs\apk\debug\app-debug.apk"
 if not exist "%APK%" goto :fail
 copy /y "%APK%" "MU-WORKBENCH-debug.apk" >nul

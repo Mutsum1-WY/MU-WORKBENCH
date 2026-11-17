@@ -3249,6 +3249,26 @@ html[data-theme="p3r"] .tf-sum,
 html[data-theme="p3r"] .tf-arrow{color:var(--ink-3)}
 
 /* ====================== 13d. iOS 主题：原汁原味 iOS 系统动效 ====================== */
+@keyframes iosFadeIn{
+  from{opacity:0}
+  to{opacity:1}
+}
+@keyframes iosViewFwd{
+  from{opacity:0;transform:translate3d(26px,0,0)}
+  to{opacity:1;transform:translate3d(0,0,0)}
+}
+@keyframes iosViewBack{
+  from{opacity:0;transform:translate3d(-26px,0,0)}
+  to{opacity:1;transform:translate3d(0,0,0)}
+}
+@keyframes iosPaneFwd{
+  from{opacity:0;transform:translate3d(18px,0,0)}
+  to{opacity:1;transform:translate3d(0,0,0)}
+}
+@keyframes iosPaneBack{
+  from{opacity:0;transform:translate3d(-18px,0,0)}
+  to{opacity:1;transform:translate3d(0,0,0)}
+}
 @keyframes iosPushIn{
   from{transform:translate3d(100%,0,0);box-shadow:-8px 0 28px rgba(0,0,0,.14)}
   to{transform:translate3d(0,0,0);box-shadow:none}
@@ -3337,13 +3357,27 @@ html[data-theme="ios"] body{
 html[data-theme="ios"] body::after{display:none !important}
 html[data-theme="ios"] *{font-style:normal !important}
 
-/* —— 原生 iOS 转场：底栏瞬切无飞入；详情页右推入；全屏页自底升起 —— */
-html[data-theme="ios"] .view.on,
+/* —— iOS 切屏动画：按导航方向柔和水平滑入+淡入；设置右推入；详情右推入；扫码自底升起 —— */
+html[data-theme="ios"] .view.on{animation:iosFadeIn 280ms var(--ios-ease)}
+html[data-theme="ios"] .view.on[data-ios-dir="fwd"]{animation:iosViewFwd 380ms var(--ios-sys)}
+html[data-theme="ios"] .view.on[data-ios-dir="back"]{animation:iosViewBack 380ms var(--ios-sys)}
+html[data-theme="ios"] #view-settings.on{animation:iosViewFwd 420ms var(--ios-sys)}
+
 html[data-theme="ios"] #crPaneCourse:not([hidden]),
 html[data-theme="ios"] #crPaneBonus:not([hidden]),
 html[data-theme="ios"] #crPaneScan:not([hidden]),
 html[data-theme="ios"] #crPaneHw:not([hidden]),
-html[data-theme="ios"] #crPaneZz:not([hidden]){animation:none}
+html[data-theme="ios"] #crPaneZz:not([hidden]){animation:iosFadeIn 260ms var(--ios-ease)}
+html[data-theme="ios"] #crPaneCourse:not([hidden])[data-ios-dir="fwd"],
+html[data-theme="ios"] #crPaneBonus:not([hidden])[data-ios-dir="fwd"],
+html[data-theme="ios"] #crPaneScan:not([hidden])[data-ios-dir="fwd"],
+html[data-theme="ios"] #crPaneHw:not([hidden])[data-ios-dir="fwd"],
+html[data-theme="ios"] #crPaneZz:not([hidden])[data-ios-dir="fwd"]{animation:iosPaneFwd 340ms var(--ios-sys)}
+html[data-theme="ios"] #crPaneCourse:not([hidden])[data-ios-dir="back"],
+html[data-theme="ios"] #crPaneBonus:not([hidden])[data-ios-dir="back"],
+html[data-theme="ios"] #crPaneScan:not([hidden])[data-ios-dir="back"],
+html[data-theme="ios"] #crPaneHw:not([hidden])[data-ios-dir="back"],
+html[data-theme="ios"] #crPaneZz:not([hidden])[data-ios-dir="back"]{animation:iosPaneBack 340ms var(--ios-sys)}
 
 html[data-theme="ios"] .reader{animation:iosPushIn 500ms var(--ios-sys)}
 html[data-theme="ios"] .sc-page{animation:iosCoverIn 500ms var(--ios-sys)}
@@ -6650,13 +6684,34 @@ function muSyncTopbarH(){
   var h = Math.round(tb.getBoundingClientRect().height);
   if(h > 0) document.documentElement.style.setProperty('--mu-topbar-h', h + 'px');
 }
+function muTabOrder(name){
+  var map = { today:0, todos:1, clock:2, projects:2.5, news:3, course:4 };
+  return (name in map) ? map[name] : -1;
+}
 function switchTab(name){
   /* 底栏「专注」是个入口名，不是视图：换成它记住的子页再走 */
   if(name === 'focus') name = muFocusSub();
+  var prev = currentTab;
   /* 进设置前记下从哪一页来的（顶栏齿轮、以后任何 switchTab('settings') 都算） */
   if(name === 'settings' && currentTab !== 'settings') prevTabBeforeSettings = currentTab;
+  var dir = '';
+  if(prev && prev !== name){
+    if(name === 'settings') dir = 'fwd';
+    else if(prev === 'settings') dir = 'back';
+    else {
+      var a = muTabOrder(prev), b = muTabOrder(name);
+      if(a >= 0 && b >= 0 && a !== b) dir = (b > a) ? 'fwd' : 'back';
+    }
+  }
   currentTab = name;
-  $$('.view').forEach(function(v){ v.classList.toggle('on', v.id === 'view-' + name); });
+  $$('.view').forEach(function(v){
+    var on = (v.id === 'view-' + name);
+    if(on){
+      if(dir) v.setAttribute('data-ios-dir', dir);
+      else v.removeAttribute('data-ios-dir');
+    }
+    v.classList.toggle('on', on);
+  });
   /* 底栏映射：clock / projects 都高亮「专注」；settings 不在底栏，谁也不高亮 */
   var navKey = (name === 'clock' || name === 'projects') ? 'focus' : name;
   if(name === 'settings') navKey = '';
@@ -14893,6 +14948,10 @@ function cbBind(){
 }
 
 function crSwitchSub(k){
+  var prev = crSub;
+  var order = { course:0, bonus:1, scan:2, hw:3, zz:4 };
+  var dir = (prev && prev !== k && (prev in order) && (k in order))
+    ? (order[k] > order[prev] ? 'fwd' : 'back') : '';
   crSub = k;
   var tabs = document.querySelectorAll('#crTabs button');
   for(var i = 0; i < tabs.length; i++){
@@ -14900,12 +14959,18 @@ function crSwitchSub(k){
   }
   var c = document.getElementById('crPaneCourse'), b = document.getElementById('crPaneBonus');
   var s = document.getElementById('crPaneScan');
+  var zzPane = document.getElementById('crPaneZz');
+  var hwPane = document.getElementById('crPaneHw');
+  var paneMap = { course:c, bonus:b, scan:s, hw:hwPane, zz:zzPane };
+  var targetPane = paneMap[k];
+  if(targetPane){
+    if(dir) targetPane.setAttribute('data-ios-dir', dir);
+    else targetPane.removeAttribute('data-ios-dir');
+  }
   if(c) c.hidden = (k !== 'course');
   if(b) b.hidden = (k !== 'bonus');
   if(s) s.hidden = (k !== 'scan');
-  var zzPane = document.getElementById('crPaneZz');
   if(zzPane) zzPane.hidden = (k !== 'zz');
-  var hwPane = document.getElementById('crPaneHw');
   if(hwPane) hwPane.hidden = (k !== 'hw');
   if(k === 'scan'){
     renderScan();

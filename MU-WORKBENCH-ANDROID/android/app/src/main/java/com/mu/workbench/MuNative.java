@@ -1,18 +1,16 @@
 package com.mu.workbench;
 
-import android.app.Activity;
 import android.content.ActivityNotFoundException;
 import android.content.ContentResolver;
 import android.content.ContentValues;
+import android.content.Context;
 import android.content.Intent;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Environment;
 import android.provider.MediaStore;
 import android.util.Log;
-import android.webkit.JavascriptInterface;
 import android.webkit.MimeTypeMap;
-import android.webkit.WebView;
 import android.widget.Toast;
 
 import androidx.core.content.FileProvider;
@@ -28,14 +26,7 @@ import java.net.URL;
 import java.net.URLDecoder;
 
 /**
- * 附件下载的原生桥，挂在 window.MuNative 上。
- *
- * 为什么必须原生做：门户的附件在 download.jsp 后面，要带着门户会话（JSESSIONID）才给文件，
- * 而且会 302 到 CAS。WebView 里直接跳只会被弹回登录页，系统浏览器更没有我们的会话。
- * 所以这里用 JS 传进来的 cookie 自己取流，存到手机「下载/MU WORKBENCH」，
- * 存完再用系统应用打开（FileProvider / MediaStore content URI）。
- *
- * 只做下载与打开，不碰任何提交类接口。
+ * 原生文件保存与附件下载器（MediaStore + FileProvider）。
  */
 public class MuNative {
 
@@ -45,34 +36,32 @@ public class MuNative {
             "Mozilla/5.0 (Linux; Android 13; Pixel 7) AppleWebKit/537.36 (KHTML, like Gecko) "
             + "Chrome/120.0.0.0 Mobile Safari/537.36";
 
-    private final Activity act;
-    private final WebView web;
-
-    MuNative(Activity act, WebView web) {
-        this.act = act;
-        this.web = web;
+    public interface DownloadCallback {
+        void onProgress(String id, int pct);
+        void onDone(String id, String uri, String name);
+        void onFail(String id, String msg);
     }
 
-    /* ---------------- 给 JS 的接口 ---------------- */
+    private final Context ctx;
 
-    /** 下载一个附件；结果通过 window.__muDl(json) 回调。referer 用来过门户的防盗链。 */
-    @JavascriptInterface
+    public MuNative(Context ctx) {
+        this.ctx = ctx.getApplicationContext();
+    }
+
     public void download(final String id, final String url, final String cookie, final String name,
-                         final String referer) {
+                         final String referer, final DownloadCallback cb) {
         if (id == null || url == null || url.isEmpty()) return;
         Thread t = new Thread(() -> {
             try {
-                fetch(id, url, cookie, name, referer);
+                fetch(id, url, cookie, name, referer, cb);
             } catch (Throwable e) {
-                fail(id, msgOf(e));
+                if (cb != null) cb.onFail(id, msgOf(e));
             }
         }, "mu-download");
         t.setDaemon(true);
         t.start();
     }
 
-    /** 打开已经下载好的文件（uri 来自 download 的回调）。 */
-    @JavascriptInterface
     public void open(String uri, String mime) {
         try {
             if (uri == null || uri.isEmpty()) return;
@@ -81,28 +70,14 @@ public class MuNative {
             Intent i = new Intent(Intent.ACTION_VIEW);
             i.setDataAndType(u, type);
             i.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION | Intent.FLAG_ACTIVITY_NEW_TASK);
-            act.startActivity(i);
+            ctx.startActivity(i);
         } catch (ActivityNotFoundException e) {
-            toast("手机上没装能打开这种文件的软件，文件已存到 下载/" + FOLDER);
+            Toast.makeText(ctx, "手机上没装能打开这种文件的软件，文件已存到 下载/" + FOLDER, Toast.LENGTH_LONG).show();
         } catch (Throwable e) {
-            toast("打不开这个文件：" + msgOf(e));
+            Toast.makeText(ctx, "打不开这个文件：" + msgOf(e), Toast.LENGTH_LONG).show();
         }
     }
 
-    /** 版本标记：JS 侧用来判断这个包有没有下载能力。 */
-    @JavascriptInterface
-    public String version() {
-        return "1";
-    }
-
-    /**
-     * 把一段文本（备份 JSON）写进手机「下载/MU WORKBENCH」，同步把结果 JSON 返回给 JS。
-     *
-     * 为什么需要它：WebView 不支持网页上的 blob 下载，`<a download>` 点了会静默失败，
-     * 所以设置页的「导出备份」在 App 里必须走这里。Android 10+ 用 MediaStore 写公共下载目录
-     * （不需要存储权限）；9 及以下写应用外部 Download 目录，把完整路径回给 JS。
-     */
-    @JavascriptInterface
     public String saveTextFile(String name, String content) {
         JSONObject o = new JSONObject();
         try {
@@ -110,7 +85,7 @@ public class MuNative {
             String fileName = safeName(name);
             String display;
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-                ContentResolver cr = act.getContentResolver();
+                ContentResolver cr = ctx.getContentResolver();
                 ContentValues cv = new ContentValues();
                 cv.put(MediaStore.Downloads.DISPLAY_NAME, fileName);
                 cv.put(MediaStore.Downloads.MIME_TYPE, "application/json");
@@ -136,7 +111,7 @@ public class MuNative {
                 }
                 display = "下载/" + FOLDER + "/" + fileName;
             } else {
-                File dir = new File(act.getExternalFilesDir(Environment.DIRECTORY_DOWNLOADS), FOLDER);
+                File dir = new File(ctx.getExternalFilesDir(Environment.DIRECTORY_DOWNLOADS), FOLDER);
                 if (!dir.exists() && !dir.mkdirs()) throw new Exception("建不了下载目录");
                 File f = unique(dir, fileName);
                 try (FileOutputStream out = new FileOutputStream(f)) {
@@ -157,9 +132,8 @@ public class MuNative {
         return o.toString();
     }
 
-    /* ---------------- 下载实现 ---------------- */
-
-    private void fetch(String id, String url, String cookie, String name, String referer) throws Exception {
+    private void fetch(String id, String url, String cookie, String name, String referer,
+                       DownloadCallback cb) throws Exception {
         String fileName = safeName(name);
         HttpURLConnection conn = null;
         String cur = url;
@@ -186,12 +160,11 @@ public class MuNative {
                 if (cur.contains("authserver")) throw new Exception("门户会话过期了，回资讯页刷新一下再试");
                 continue;
             }
-            if (code != 200) throw new Exception("门户返回 HTTP " + code);
+            if (code != 200) throw new Exception("HTTP " + code);
 
-            /* 302 到登录页但状态码被抹成 200 的情况：附件不可能是 HTML */
             String ctype = conn.getContentType();
             if (ctype != null && ctype.toLowerCase().startsWith("text/html"))
-                throw new Exception("门户给的是网页不是文件，会话可能过期了");
+                throw new Exception("返回的是网页不是文件，会话可能过期了");
 
             String cd = conn.getHeaderField("Content-Disposition");
             if (cd != null) {
@@ -214,7 +187,7 @@ public class MuNative {
 
         try {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-                ContentResolver cr = act.getContentResolver();
+                ContentResolver cr = ctx.getContentResolver();
                 ContentValues cv = new ContentValues();
                 cv.put(MediaStore.Downloads.DISPLAY_NAME, fileName);
                 cv.put(MediaStore.Downloads.MIME_TYPE, guessMime(fileName));
@@ -224,7 +197,7 @@ public class MuNative {
                 if (target == null) throw new Exception("手机不允许写入下载目录");
                 out = cr.openOutputStream(target);
             } else {
-                File dir = new File(act.getExternalFilesDir(Environment.DIRECTORY_DOWNLOADS), FOLDER);
+                File dir = new File(ctx.getExternalFilesDir(Environment.DIRECTORY_DOWNLOADS), FOLDER);
                 if (!dir.exists() && !dir.mkdirs()) throw new Exception("建不了下载目录");
                 plain = unique(dir, fileName);
                 out = new FileOutputStream(plain);
@@ -239,7 +212,10 @@ public class MuNative {
                 done += n;
                 if (total > 0) {
                     int pct = (int) (done * 100 / total);
-                    if (pct / 10 != lastPct / 10) { lastPct = pct; progress(id, pct); }
+                    if (pct / 10 != lastPct / 10) {
+                        lastPct = pct;
+                        if (cb != null) cb.onProgress(id, pct);
+                    }
                 }
             }
             out.flush();
@@ -249,16 +225,15 @@ public class MuNative {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
                 ContentValues cv = new ContentValues();
                 cv.put(MediaStore.Downloads.IS_PENDING, 0);
-                act.getContentResolver().update(target, cv, null, null);
-                done(id, target.toString(), fileName);
+                ctx.getContentResolver().update(target, cv, null, null);
+                if (cb != null) cb.onDone(id, target.toString(), fileName);
             } else {
-                Uri u = FileProvider.getUriForFile(act, act.getPackageName() + ".fileprovider", plain);
-                done(id, u.toString(), fileName);
+                Uri u = FileProvider.getUriForFile(ctx, ctx.getPackageName() + ".fileprovider", plain);
+                if (cb != null) cb.onDone(id, u.toString(), fileName);
             }
         } catch (Throwable e) {
-            /* 失败别在下载目录里留半截文件 */
             if (target != null) {
-                try { act.getContentResolver().delete(target, null, null); } catch (Throwable ignored) { }
+                try { ctx.getContentResolver().delete(target, null, null); } catch (Throwable ignored) { }
             }
             if (plain != null && plain.exists()) {
                 try { plain.delete(); } catch (Throwable ignored) { }
@@ -272,58 +247,12 @@ public class MuNative {
         }
     }
 
-    /* ---------------- 工具 ---------------- */
-
-    private void progress(String id, int pct) {
-        try {
-            JSONObject o = new JSONObject();
-            o.put("id", id);
-            o.put("act", "progress");
-            o.put("pct", pct);
-            emit(o);
-        } catch (Throwable ignored) { }
-    }
-
-    private void done(String id, String uri, String name) {
-        try {
-            JSONObject o = new JSONObject();
-            o.put("id", id);
-            o.put("ok", true);
-            o.put("uri", uri);
-            o.put("name", name);
-            emit(o);
-        } catch (Throwable ignored) { }
-    }
-
-    private void fail(String id, String msg) {
-        try {
-            JSONObject o = new JSONObject();
-            o.put("id", id);
-            o.put("ok", false);
-            o.put("msg", msg == null ? "下载失败" : msg);
-            emit(o);
-        } catch (Throwable ignored) { }
-    }
-
-    private void emit(JSONObject o) {
-        final String js = "window.__muDl&&window.__muDl(" + JSONObject.quote(o.toString()) + ");";
-        web.post(() -> {
-            try { web.evaluateJavascript(js, null); } catch (Throwable ignored) { }
-        });
-    }
-
-    private void toast(final String msg) {
-        act.runOnUiThread(() -> {
-            try { Toast.makeText(act, msg, Toast.LENGTH_LONG).show(); } catch (Throwable ignored) { }
-        });
-    }
-
     private static String msgOf(Throwable e) {
         String s = e == null ? "" : e.getMessage();
         if (s == null || s.isEmpty()) s = e == null ? "下载失败" : e.getClass().getSimpleName();
         if (s.contains("Unable to resolve host") || s.contains("Failed to connect")
                 || s.contains("timed out") || s.contains("timeout")) {
-            return "连不上门户，检查一下网络再试";
+            return "连不上服务器，检查一下网络再试";
         }
         return s;
     }
