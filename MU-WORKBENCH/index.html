@@ -12,7 +12,7 @@
    这两个值是 save() 时顺手写进 localStorage 的（键 mu_theme / mu_accent）。 */
 (function(){try{
   var t = localStorage.getItem('mu_theme');
-  if(t === 'p3r' || t === 'p5r') document.documentElement.setAttribute('data-theme', t);
+  if(t === 'ios' || t === 'p3r' || t === 'p5r') document.documentElement.setAttribute('data-theme', t);
   var a = localStorage.getItem('mu_accent');
   if(a) document.documentElement.setAttribute('data-accent', a);
 }catch(e){}})();
@@ -197,7 +197,7 @@ button{cursor:pointer}
 }
 
 /* ====================== 3. 外壳：顶栏 / 主区 / 底栏 ====================== */
-.app{display:flex;flex-direction:column;min-height:100dvh}
+.app{display:flex;flex-direction:column;min-height:100dvh;overflow-x:clip}
 .topbar{
   position:sticky;top:0;z-index:30;
   display:flex;align-items:center;justify-content:space-between;gap:10px;
@@ -242,7 +242,7 @@ button{cursor:pointer}
 
 .main{flex:1;width:100%;max-width:780px;margin:0 auto;padding:14px 14px 112px}
 .view{display:none}
-.view.on{display:block;animation:p5In 180ms var(--ease)}
+.view.on{display:block;transform-origin:top center;animation:p5In 180ms var(--ease)}
 @keyframes p5In{
   from{opacity:0;transform:translate3d(14px,-6px,0) skewX(-6deg)}
   to{opacity:1;transform:none}
@@ -1763,7 +1763,7 @@ html.sc-lock{overflow:hidden}
 
 /* ====================== 10c. 作业档案（云邮教学空间） ====================== */
 #crPaneHw{padding-bottom:8px}
-#crPaneHw:not([hidden]){animation:p5In 180ms var(--ease)}
+#crPaneCourse:not([hidden]),#crPaneBonus:not([hidden]),#crPaneScan:not([hidden]),#crPaneHw:not([hidden]),#crPaneZz:not([hidden]){transform-origin:top center;animation:p5In 180ms var(--ease)}
 .hw-wrap{display:flex;flex-direction:column;gap:10px}
 .hw-note{border:1.5px solid var(--ink-2);background:var(--paper-2);padding:12px 13px;font-size:11.5px;line-height:1.7;color:var(--ink-2)}
 .hw-bar{display:flex;align-items:center;flex-wrap:wrap;gap:8px}
@@ -1828,8 +1828,29 @@ html.sc-lock{overflow:hidden}
 .hw-ex-detail{margin:2px 0 6px;padding:7px 9px;border:1.5px dashed var(--accent);background:var(--surface-1)}
 .hw-mine{font-size:10px;font-weight:900;color:var(--ok)}
 .hw-link{display:inline-block;margin-top:7px;font-size:10px;font-weight:800;color:var(--accent-ink);text-decoration:underline;text-underline-offset:2px}
-html[data-theme="p3r"] .hw-term{border-width:1px;border-color:var(--line-2)}
+html[data-theme="p3r"] .hw-term{border-width:1px;border-color:var(--line-2);border-radius:var(--r);overflow:hidden;box-shadow:0 6px 18px rgba(3,31,100,.06)}
 html[data-theme="p3r"] .hw-term-h{background:var(--surface-2)}
+html[data-theme="p3r"] .hw-note,
+html[data-theme="p3r"] .hw-item,
+html[data-theme="p3r"] .hw-comment,
+html[data-theme="p3r"] .hw-body-text,
+html[data-theme="p3r"] .hw-ex,
+html[data-theme="p3r"] .hw-ex-detail{border-width:1px;border-color:var(--line-2);border-radius:var(--r-sm)}
+html[data-theme="p3r"] .hw-item.open,
+html[data-theme="p3r"] .hw-ex.open{border-color:var(--accent)}
+html[data-theme="p3r"] .hw-file .btn.hw-fbtn{box-shadow:none;border-radius:4px}
+@keyframes p3rReveal{from{opacity:0;transform:translateY(-6px)}to{opacity:1;transform:none}}
+html[data-theme="p3r"] .hw-detail.hw-just-open,
+html[data-theme="p3r"] .hw-ex-detail.hw-just-open,
+html[data-theme="p3r"] .cb-more,
+html[data-theme="p3r"] .cb-cd,
+html[data-theme="p3r"] .cb-fold[open]>div,
+html[data-theme="p3r"] .zz-fold[open]>.zz-fold-body{animation:p3rReveal 180ms var(--ease)}
+html[data-theme="p3r"] #crPaneCourse:not([hidden]),
+html[data-theme="p3r"] #crPaneBonus:not([hidden]),
+html[data-theme="p3r"] #crPaneScan:not([hidden]),
+html[data-theme="p3r"] #crPaneHw:not([hidden]),
+html[data-theme="p3r"] #crPaneZz:not([hidden]){transform-origin:top center;animation:p3rIn 220ms var(--ease)}
 
 /* ====================== 12. 动效（掌牌式 / 按下位移） ====================== */
 @media (prefers-reduced-motion: reduce){
@@ -1847,8 +1868,8 @@ html[data-theme="p3r"] .hw-term-h{background:var(--surface-2)}
 .cb-item.done .cb-mark{animation:popIn 260ms cubic-bezier(.2,.9,.3,1)}
 .cb-item.plan .cb-mark{animation:popIn 220ms cubic-bezier(.2,.9,.3,1)}
 .cb-more,.cb-cd{animation:riseIn 170ms var(--ease)}
-.cb-fold[open]>div{animation:riseIn 180ms var(--ease)}
-#crPaneCourse:not([hidden]),#crPaneBonus:not([hidden]){animation:p5In 180ms var(--ease)}
+.cb-fold[open]>div,.zz-fold[open]>.zz-fold-body{animation:riseIn 180ms var(--ease)}
+.hw-detail.hw-just-open,.hw-ex-detail.hw-just-open{animation:riseIn 180ms var(--ease)}
 .cb-led-bar i{transform-origin:left center;animation:growX 420ms var(--ease)}
 .cb-led,.cb-comps,.cb-fold,.cb-item,.cb-comp{transition:background-color 220ms linear,border-color var(--t),box-shadow var(--t)}
 
@@ -1871,7 +1892,12 @@ html[data-theme="p3r"] .hw-term-h{background:var(--surface-2)}
 #projGrid>.pcard:nth-child(odd),
 #ptList>.pt-item:nth-child(odd),
 #crList>.cr-item:nth-child(odd),
-#cbList>.cb-item:nth-child(odd){
+#cbList>.cb-item:nth-child(odd),
+.hw-wrap.hw-anim>.hw-term:nth-child(odd),
+.hw-wrap.hw-anim>.hw-note:nth-child(odd),
+#crPaneZz>.zz-hero:nth-child(odd),
+#crPaneZz>.zz-card:nth-child(odd),
+#crPaneZz>.zz-fold:nth-child(odd){
   animation:flyInLeft 320ms cubic-bezier(.2,.85,.25,1) backwards;
 }
 #dayList>.task:nth-child(even),
@@ -1880,7 +1906,12 @@ html[data-theme="p3r"] .hw-term-h{background:var(--surface-2)}
 #projGrid>.pcard:nth-child(even),
 #ptList>.pt-item:nth-child(even),
 #crList>.cr-item:nth-child(even),
-#cbList>.cb-item:nth-child(even){
+#cbList>.cb-item:nth-child(even),
+.hw-wrap.hw-anim>.hw-term:nth-child(even),
+.hw-wrap.hw-anim>.hw-note:nth-child(even),
+#crPaneZz>.zz-hero:nth-child(even),
+#crPaneZz>.zz-card:nth-child(even),
+#crPaneZz>.zz-fold:nth-child(even){
   animation:flyInRight 320ms cubic-bezier(.2,.85,.25,1) backwards;
 }
 /* B 组：今日页（首个孩子是标题）→ 偶数从左、奇数从右 */
@@ -1947,6 +1978,14 @@ html[data-theme="p3r"] .hw-term-h{background:var(--surface-2)}
 #ptList>.pt-item:nth-child(9),
 #crList>.cr-item:nth-child(9),
 #cbList>.cb-item:nth-child(9){animation-delay:304ms}
+.hw-wrap.hw-anim>.hw-term:nth-child(2),#crPaneZz>:nth-child(2){animation-delay:38ms}
+.hw-wrap.hw-anim>.hw-term:nth-child(3),#crPaneZz>:nth-child(3){animation-delay:76ms}
+.hw-wrap.hw-anim>.hw-term:nth-child(4),#crPaneZz>:nth-child(4){animation-delay:114ms}
+.hw-wrap.hw-anim>.hw-term:nth-child(5),#crPaneZz>:nth-child(5){animation-delay:152ms}
+.hw-wrap.hw-anim>.hw-term:nth-child(6),#crPaneZz>:nth-child(6){animation-delay:190ms}
+.hw-wrap.hw-anim>.hw-term:nth-child(7),#crPaneZz>:nth-child(7){animation-delay:228ms}
+.hw-wrap.hw-anim>.hw-term:nth-child(8),#crPaneZz>:nth-child(8){animation-delay:266ms}
+.hw-wrap.hw-anim>.hw-term:nth-child(n+9),#crPaneZz>:nth-child(n+9){animation-delay:304ms}
 #todayList>.task:nth-child(3){animation-delay:38ms}
 #todayList>.task:nth-child(4){animation-delay:76ms}
 #todayList>.task:nth-child(5){animation-delay:114ms}
@@ -2457,8 +2496,11 @@ html[data-theme="p3r"] .cb-lead,
 html[data-theme="p3r"] .cb-item,
 html[data-theme="p3r"] .cb-comps,
 html[data-theme="p3r"] .cb-led,
+html[data-theme="p3r"] .hw-term,
+html[data-theme="p3r"] .hw-note,
 html[data-theme="p3r"] .zz-hero,
-html[data-theme="p3r"] .zz-card{
+html[data-theme="p3r"] .zz-card,
+html[data-theme="p3r"] .zz-fold{
   border-radius:var(--r) !important;
   border:1px solid var(--line) !important;
   box-shadow:0 10px 24px rgba(3,31,100,.06) !important;
@@ -2722,9 +2764,10 @@ html[data-theme="p3r"] body:has(#view-settings.on) .brand-sub::after{content:'07
 .zz-filterbar{display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin:0 0 8px}
 .zz-sel{flex:none;height:32px;border:1.5px solid var(--ink);background:var(--paper-2);color:var(--ink);font:inherit;font-size:11.5px;font-weight:800;padding:0 6px;border-radius:0;outline:none;max-width:132px}
 .zz-sel:focus{border-color:var(--accent)}
-/* 第 4 个 tab 的窄屏兜底：360px 下 4 × 5 字标签会折行（recon 实测），缩字号与内边距压回一行 */
-@media (max-width:420px){
-  .cr-tabs button{font-size:11px;padding:9px 3px;letter-spacing:-.02em}
+/* 5 个 tab 的窄屏适配：保证 5 个子标签在一行内完整显示、不挤字、切换不左右晃动 */
+@media (max-width:480px){
+  .cr-tabs button{flex:1 1 auto;min-width:0;font-size:clamp(11px,3.1vw,12.5px);padding:9px 5px;letter-spacing:-.01em}
+  html[data-theme="p3r"] .cr-tabs button.on{clip-path:polygon(4px 0,100% 0,calc(100% - 4px) 100%,0 100%)}
 }
 @media (max-width:380px){
   .zz-score{font-size:36px}
@@ -3204,6 +3247,616 @@ html[data-theme="p3r"] .tf-more-btn:active{transform:none;box-shadow:none}
 html[data-theme="p3r"] .tf-more-btn.on{border-color:var(--accent-mid)}
 html[data-theme="p3r"] .tf-sum,
 html[data-theme="p3r"] .tf-arrow{color:var(--ink-3)}
+
+/* ====================== 13d. iOS 主题：灵动流体毛玻璃 ====================== */
+@keyframes iosViewIn{
+  from{opacity:0;transform:translate3d(0,12px,0) scale(.988)}
+  to{opacity:1;transform:none}
+}
+@keyframes iosCardIn{
+  from{opacity:0;transform:translate3d(0,16px,0) scale(.978)}
+  to{opacity:1;transform:none}
+}
+@keyframes iosSheetIn{
+  from{opacity:0;transform:translate3d(0,48px,0) scale(.97)}
+  to{opacity:1;transform:none}
+}
+@keyframes iosAlertIn{
+  from{opacity:0;transform:scale(1.08)}
+  to{opacity:1;transform:none}
+}
+@keyframes iosReveal{
+  from{opacity:0;transform:translate3d(0,-6px,0) scale(.988)}
+  to{opacity:1;transform:none}
+}
+@keyframes iosPop{
+  0%{transform:scale(.76)}
+  55%{transform:scale(1.12)}
+  100%{transform:scale(1)}
+}
+@keyframes iosPillBounce{
+  0%{transform:scale(.94)}
+  60%{transform:scale(1.03)}
+  100%{transform:scale(1)}
+}
+
+html[data-theme="ios"]{
+  --ios-spring:cubic-bezier(.22,1,.36,1);
+  --ios-sheet:cubic-bezier(.32,.72,0,1);
+  --ios-bounce:cubic-bezier(.34,1.56,.64,1);
+  --ios-glass:rgba(249,249,251,.82);
+  --ios-glass-b:rgba(60,60,67,.12);
+  --paper:#f2f2f7;
+  --paper-2:#e5e5ea;
+  --white:#ffffff;
+  --surface-1:#ffffff;
+  --surface-2:#f9f9fb;
+  --surface-3:#efeef4;
+  --surface-solid:#ffffff;
+  --card:#ffffff;
+  --card-2:#ffffff;
+  --ink:#1c1c1e;
+  --ink-2:#3a3a3c;
+  --ink-3:#8e8e93;
+  --line:rgba(60,60,67,.11);
+  --line-2:rgba(60,60,67,.18);
+  --track:rgba(120,120,128,.16);
+  --track-2:rgba(120,120,128,.28);
+  --fill:rgba(118,118,128,.12);
+  --chrome-ink:#ffffff;
+  --bw:1px;
+  --skew:0deg;
+  --r:18px;
+  --r-md:14px;
+  --r-sm:10px;
+  --r-xs:8px;
+  --sh:0 2px 14px rgba(0,0,0,.045),0 1px 2px rgba(0,0,0,.03);
+  --sh-up:0 12px 30px rgba(0,0,0,.09);
+  --sh-red:0 4px 14px color-mix(in srgb,var(--accent) 26%,transparent);
+  --ease:cubic-bezier(.22,1,.36,1);
+  --t:220ms;
+  --sheet-dim:.36;
+}
+@media (prefers-color-scheme: dark){
+  html[data-theme="ios"]{
+    --ios-glass:rgba(28,28,30,.82);
+    --ios-glass-b:rgba(255,255,255,.12);
+    --paper:#000000;
+    --paper-2:#1c1c1e;
+    --white:#1c1c1e;
+    --surface-1:#1c1c1e;
+    --surface-2:#2c2c2e;
+    --surface-3:#3a3a3c;
+    --surface-solid:#1c1c1e;
+    --card:#1c1c1e;
+    --card-2:#1c1c1e;
+    --ink:#ffffff;
+    --ink-2:rgba(235,235,245,.82);
+    --ink-3:#8e8e93;
+    --line:rgba(255,255,255,.11);
+    --line-2:rgba(255,255,255,.18);
+    --track:rgba(120,120,128,.28);
+    --track-2:rgba(120,120,128,.4);
+    --fill:rgba(118,118,128,.24);
+    --sh:0 4px 18px rgba(0,0,0,.38);
+    --sh-up:0 14px 34px rgba(0,0,0,.52);
+    --sheet-dim:.56;
+  }
+}
+
+html[data-theme="ios"] body{
+  background-color:var(--paper);
+  background-image:none;
+  font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","PingFang SC","Helvetica Neue",sans-serif;
+}
+html[data-theme="ios"] body::after{display:none !important}
+html[data-theme="ios"] *{font-style:normal !important}
+
+/* —— iOS 流体弹簧动效 —— */
+html[data-theme="ios"] .view.on{transform-origin:top center;animation:iosViewIn 320ms var(--ios-sheet)}
+html[data-theme="ios"] #crPaneCourse:not([hidden]),
+html[data-theme="ios"] #crPaneBonus:not([hidden]),
+html[data-theme="ios"] #crPaneScan:not([hidden]),
+html[data-theme="ios"] #crPaneHw:not([hidden]),
+html[data-theme="ios"] #crPaneZz:not([hidden]){transform-origin:top center;animation:iosViewIn 280ms var(--ios-sheet)}
+html[data-theme="ios"] .hw-detail.hw-just-open,
+html[data-theme="ios"] .hw-ex-detail.hw-just-open,
+html[data-theme="ios"] .cb-more,
+html[data-theme="ios"] .cb-cd,
+html[data-theme="ios"] .cb-fold[open]>div,
+html[data-theme="ios"] .zz-fold[open]>.zz-fold-body,
+html[data-theme="ios"] .kb-week[open]>.kb-week-body{animation:iosReveal 260ms var(--ios-spring)}
+html[data-theme="ios"] .reader,
+html[data-theme="ios"] .sc-page{animation:iosViewIn 320ms var(--ios-sheet)}
+html[data-theme="ios"] .ym-panel.on{animation:iosReveal 220ms var(--ios-spring)}
+
+/* 覆盖 P5R 左右斜飞入场，统一换成 iOS 垂直阻尼弹簧上浮 */
+html[data-theme="ios"] #dayList>.task:nth-child(n),
+html[data-theme="ios"] #inboxList>.task:nth-child(n),
+html[data-theme="ios"] #doneList>.task:nth-child(n),
+html[data-theme="ios"] #todayList>.task:nth-child(n),
+html[data-theme="ios"] #projGrid>.pcard:nth-child(n),
+html[data-theme="ios"] #ptList>.pt-item:nth-child(n),
+html[data-theme="ios"] #crList>.cr-item:nth-child(n),
+html[data-theme="ios"] #cbList>.cb-item:nth-child(n),
+html[data-theme="ios"] .kb-wrap.kb-anim>.kb-item:nth-child(n),
+html[data-theme="ios"] .hw-wrap.hw-anim>.hw-term:nth-child(n),
+html[data-theme="ios"] .hw-wrap.hw-anim>.hw-note:nth-child(n),
+html[data-theme="ios"] #crPaneZz>.zz-hero:nth-child(n),
+html[data-theme="ios"] #crPaneZz>.zz-card:nth-child(n),
+html[data-theme="ios"] #crPaneZz>.zz-fold:nth-child(n){
+  animation-name:iosCardIn;
+  animation-duration:340ms;
+  animation-timing-function:var(--ios-spring);
+  animation-fill-mode:backwards;
+}
+
+/* —— 顶栏 & 底部毛玻璃 TabBar —— */
+html[data-theme="ios"] .topbar{
+  background:var(--ios-glass);
+  backdrop-filter:saturate(180%) blur(22px);
+  -webkit-backdrop-filter:saturate(180%) blur(22px);
+  border-bottom:.5px solid var(--ios-glass-b);
+  color:var(--ink);
+  box-shadow:none;
+}
+html[data-theme="ios"] .logo{
+  border-radius:11px;border:0;
+  background:linear-gradient(145deg,var(--accent),var(--accent-2));
+  color:#fff;box-shadow:0 4px 12px color-mix(in srgb,var(--accent) 32%,transparent);
+  transform:none;
+}
+html[data-theme="ios"] .logo>*{transform:none}
+html[data-theme="ios"] .brand-name{color:var(--ink);letter-spacing:-.02em;font-weight:800}
+html[data-theme="ios"] .brand-sub{color:var(--ink-3);letter-spacing:.04em}
+html[data-theme="ios"] .topbar .icon-btn{
+  border-radius:999px;border:0;
+  background:var(--fill);color:var(--ink);box-shadow:none;
+}
+html[data-theme="ios"] .topbar .icon-btn:hover{background:var(--accent);color:#fff}
+html[data-theme="ios"] #bellDot{border-radius:999px;border:2px solid var(--surface-1)}
+
+html[data-theme="ios"] .tabbar{
+  background:var(--ios-glass);
+  backdrop-filter:saturate(180%) blur(24px);
+  -webkit-backdrop-filter:saturate(180%) blur(24px);
+  border-top:.5px solid var(--ios-glass-b);
+  box-shadow:none;
+}
+html[data-theme="ios"] .tab{
+  color:var(--ink-3);font-weight:600;letter-spacing:0;
+  transition:color 200ms var(--ios-spring),transform 160ms var(--ios-spring);
+}
+html[data-theme="ios"] .tab:active{transform:scale(.9)}
+html[data-theme="ios"] .tab.on{color:var(--accent-ink);font-weight:700}
+html[data-theme="ios"] .tab.on svg{stroke:var(--accent-ink);animation:iosPop 300ms var(--ios-bounce)}
+html[data-theme="ios"] .tab.on::before{
+  border-radius:14px;background:var(--accent-soft);border:0;transform:none;
+}
+html[data-theme="ios"] .tab.on::after{display:none}
+html[data-theme="ios"] .tab-badge{border-radius:999px;border:0;box-shadow:0 2px 6px rgba(0,0,0,.18)}
+
+/* —— 章节标题 / 通用卡片 / 英雄卡 —— */
+html[data-theme="ios"] .view-head h2{font-weight:800;letter-spacing:-.02em}
+html[data-theme="ios"] .view-head .vcount,
+html[data-theme="ios"] .view-head .muted.small{
+  border-radius:999px;border:0;background:var(--fill);color:var(--ink-2);transform:none;box-shadow:none;
+}
+
+html[data-theme="ios"] .card,
+html[data-theme="ios"] .pcard,
+html[data-theme="ios"] .kb-item,
+html[data-theme="ios"] .kb-week,
+html[data-theme="ios"] .cr-item,
+html[data-theme="ios"] .cb-item,
+html[data-theme="ios"] .cb-lead,
+html[data-theme="ios"] .pt-item,
+html[data-theme="ios"] .uc-item,
+html[data-theme="ios"] .cal-card,
+html[data-theme="ios"] .cr-ctl,
+html[data-theme="ios"] .cr-sum,
+html[data-theme="ios"] .cr-param,
+html[data-theme="ios"] .cb-led,
+html[data-theme="ios"] .cb-comps,
+html[data-theme="ios"] .cb-fold,
+html[data-theme="ios"] .rd-files,
+html[data-theme="ios"] .rd-file,
+html[data-theme="ios"] .hw-term,
+html[data-theme="ios"] .hw-note,
+html[data-theme="ios"] .hw-item,
+html[data-theme="ios"] .hw-comment,
+html[data-theme="ios"] .hw-body-text,
+html[data-theme="ios"] .hw-ex,
+html[data-theme="ios"] .hw-ex-detail,
+html[data-theme="ios"] .zz-hero,
+html[data-theme="ios"] .zz-card,
+html[data-theme="ios"] .zz-fold{
+  border:1px solid var(--line);
+  border-radius:var(--r);
+  background:var(--surface-1);
+  box-shadow:var(--sh);
+  transform:none;
+}
+html[data-theme="ios"] .hw-item,
+html[data-theme="ios"] .hw-note,
+html[data-theme="ios"] .hw-comment,
+html[data-theme="ios"] .hw-body-text,
+html[data-theme="ios"] .hw-ex,
+html[data-theme="ios"] .hw-ex-detail,
+html[data-theme="ios"] .kb-week,
+html[data-theme="ios"] .rd-file,
+html[data-theme="ios"] .zz-card .zz-fold{border-radius:var(--r-md)}
+html[data-theme="ios"] .zz-card .zz-fold,
+html[data-theme="ios"] .hw-comment,
+html[data-theme="ios"] .hw-body-text,
+html[data-theme="ios"] .hw-ex{background:var(--surface-2);box-shadow:none}
+html[data-theme="ios"] .hw-term{overflow:hidden}
+html[data-theme="ios"] .hw-term-h{background:var(--surface-2);border-bottom:1px solid var(--line)}
+html[data-theme="ios"] .hw-term.open .hw-term-h{border-bottom-color:var(--line)}
+html[data-theme="ios"] .hw-course-h{border-bottom:1px solid var(--line)}
+html[data-theme="ios"] .hw-detail{border-top:1px solid var(--line)}
+html[data-theme="ios"] .hw-item,
+html[data-theme="ios"] .cr-item,
+html[data-theme="ios"] .cb-item,
+html[data-theme="ios"] .pt-item,
+html[data-theme="ios"] .pcard,
+html[data-theme="ios"] .kb-item{
+  transition:transform 180ms var(--ios-spring),border-color 180ms var(--ios-spring),box-shadow 180ms var(--ios-spring);
+}
+html[data-theme="ios"] .hw-item:active,
+html[data-theme="ios"] .cr-item:active,
+html[data-theme="ios"] .cb-item:active,
+html[data-theme="ios"] .pt-item:active,
+html[data-theme="ios"] .pcard:active{transform:scale(.984)}
+html[data-theme="ios"] .hw-item.open,
+html[data-theme="ios"] .hw-ex.open,
+html[data-theme="ios"] .pt-item.open{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent-mid),var(--sh)}
+html[data-theme="ios"] .hw-tag{border-radius:999px;border:0;padding:2px 8px}
+html[data-theme="ios"] .hw-file .btn.hw-fbtn{box-shadow:none;border-radius:999px}
+html[data-theme="ios"] .hw-file i{border-radius:4px}
+
+html[data-theme="ios"] .card::after,
+html[data-theme="ios"] .card.hero::before,
+html[data-theme="ios"] .card.hero::after,
+html[data-theme="ios"] .cal-card::after,
+html[data-theme="ios"] .pcard::before{display:none}
+html[data-theme="ios"] .card:nth-child(even),
+html[data-theme="ios"] .pcard:nth-child(even){transform:none}
+html[data-theme="ios"] .card:hover,
+html[data-theme="ios"] .pcard:hover,
+html[data-theme="ios"] .pt-item:hover{transform:none;box-shadow:var(--sh-up)}
+
+html[data-theme="ios"] .card.hero{
+  background:linear-gradient(140deg,var(--accent),var(--accent-2));
+  border:0;color:#fff;padding:22px 18px 18px;
+  box-shadow:0 14px 32px color-mix(in srgb,var(--accent) 30%,transparent);
+}
+html[data-theme="ios"] .hero-top>div:first-child{background:transparent;padding:0;box-shadow:none;transform:none}
+html[data-theme="ios"] .hero-date,
+html[data-theme="ios"] .hero-week,
+html[data-theme="ios"] .hero-stats,
+html[data-theme="ios"] .hero .ring>span{color:#fff}
+html[data-theme="ios"] .hero-week{opacity:.85}
+html[data-theme="ios"] .hero .ring{border:0;box-shadow:none}
+html[data-theme="ios"] .hero .ring::after{background:color-mix(in srgb,var(--accent) 76%,#000)}
+html[data-theme="ios"] .p5-stamp{
+  border-radius:999px;background:rgba(255,255,255,.22);color:#fff;border:0;transform:none;box-shadow:none;
+}
+html[data-theme="ios"] .hero-foot{border-top:1px solid rgba(255,255,255,.2)}
+html[data-theme="ios"] .hero-foot .btn{
+  background:rgba(255,255,255,.2);color:#fff;border:0;border-radius:999px;box-shadow:none;
+}
+html[data-theme="ios"] .hero-foot .btn.primary{background:#fff;color:var(--accent-ink)}
+
+/* —— 按钮 / 输入框 / 触感反馈 —— */
+html[data-theme="ios"] .btn{
+  border-radius:var(--r-sm);border:1px solid var(--line-2);box-shadow:none;transform:none;
+  background:var(--surface-1);color:var(--ink);
+  transition:transform 160ms var(--ios-spring),background 180ms var(--ios-spring),opacity 160ms;
+}
+html[data-theme="ios"] .btn>*{transform:none}
+html[data-theme="ios"] .btn.primary{
+  background:var(--accent);color:#fff;border-color:transparent;
+  box-shadow:0 4px 12px color-mix(in srgb,var(--accent) 28%,transparent);
+}
+html[data-theme="ios"] .btn.ghost{background:var(--surface-2);border-color:var(--line)}
+html[data-theme="ios"] .btn.danger{background:rgba(255,59,48,.12);color:#ff3b30;border-color:transparent;box-shadow:none}
+html[data-theme="ios"] .btn:active,
+html[data-theme="ios"] .icon-btn:active,
+html[data-theme="ios"] .set-back:active,
+html[data-theme="ios"] .cb-mark:active,
+html[data-theme="ios"] .cb-step button:active,
+html[data-theme="ios"] .cb-chiprow>button:active,
+html[data-theme="ios"] .cb-metric button:active,
+html[data-theme="ios"] .pt-chip:active,
+html[data-theme="ios"] .pt-range button:active,
+html[data-theme="ios"] .cr-tabs button:active,
+html[data-theme="ios"] .seg button:active,
+html[data-theme="ios"] .seg-switch button:active,
+html[data-theme="ios"] .tf-chip:active,
+html[data-theme="ios"] .zz-chip:active,
+html[data-theme="ios"] .zz-majors button:active,
+html[data-theme="ios"] .cr-majors button:active,
+html[data-theme="ios"] .cr-chip:active{transform:scale(.95);box-shadow:none}
+
+html[data-theme="ios"] .icon-btn{border-radius:999px;border:1px solid var(--line);background:var(--surface-2);color:var(--ink);box-shadow:none}
+html[data-theme="ios"] .pt-head .icon-btn{border-radius:999px;border:1px solid var(--line);background:var(--surface-1);box-shadow:none}
+html[data-theme="ios"] .card-title .dotmark{border-radius:999px;transform:none}
+html[data-theme="ios"] .input,
+html[data-theme="ios"] select,
+html[data-theme="ios"] select.input,
+html[data-theme="ios"] textarea,
+html[data-theme="ios"] textarea.input,
+html[data-theme="ios"] .pt-sel,
+html[data-theme="ios"] .zz-sel,
+html[data-theme="ios"] .cr-selects select,
+html[data-theme="ios"] .cb-fields select{
+  border-radius:var(--r-sm);border:1px solid var(--line-2);background-color:var(--surface-2);color:var(--ink);box-shadow:none;
+}
+html[data-theme="ios"] .input:focus,
+html[data-theme="ios"] select:focus,
+html[data-theme="ios"] textarea:focus{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}
+
+/* —— iOS 开关 & 分段控制器（含吸顶毛玻璃 .cr-tabs） —— */
+html[data-theme="ios"] .sw{
+  width:50px;height:30px;border-radius:999px;border:0;background:var(--track);
+  transition:background 220ms var(--ios-spring);
+}
+html[data-theme="ios"] .sw::after{
+  top:2px;left:2px;width:26px;height:26px;border-radius:999px;background:#fff;border:0;
+  box-shadow:0 2px 6px rgba(0,0,0,.22);
+  transition:transform 260ms var(--ios-bounce);
+}
+html[data-theme="ios"] .sw.on{background:#34c759}
+html[data-theme="ios"] .sw.on::after{transform:translateX(20px)}
+
+html[data-theme="ios"] .seg,
+html[data-theme="ios"] .seg-switch,
+html[data-theme="ios"] .pt-range,
+html[data-theme="ios"] .cr-tabs{
+  background:var(--fill);border:0;border-radius:12px;padding:3px;gap:3px;box-shadow:none;
+}
+html[data-theme="ios"] .cr-tabs{
+  background:var(--ios-glass);
+  backdrop-filter:saturate(180%) blur(20px);
+  -webkit-backdrop-filter:saturate(180%) blur(20px);
+  box-shadow:inset 0 0 0 .5px var(--line-2),0 4px 14px rgba(0,0,0,.04);
+}
+html[data-theme="ios"] .seg button,
+html[data-theme="ios"] .seg-switch button,
+html[data-theme="ios"] .pt-range button,
+html[data-theme="ios"] .cr-tabs button{
+  border-radius:9px;color:var(--ink-2);font-weight:700;border:0;
+  transition:background 200ms var(--ios-spring),color 200ms var(--ios-spring),box-shadow 200ms var(--ios-spring),transform 160ms var(--ios-spring);
+}
+html[data-theme="ios"] .seg button.on,
+html[data-theme="ios"] .seg-switch button.on,
+html[data-theme="ios"] .pt-range button.on,
+html[data-theme="ios"] .cr-tabs button.on{
+  background:var(--surface-1);color:var(--ink);
+  box-shadow:0 2px 8px rgba(0,0,0,.1),0 .5px 1px rgba(0,0,0,.06);
+  animation:iosPillBounce 240ms var(--ios-bounce);
+}
+@media (prefers-color-scheme: dark){
+  html[data-theme="ios"] .seg button.on,
+  html[data-theme="ios"] .seg-switch button.on,
+  html[data-theme="ios"] .pt-range button.on,
+  html[data-theme="ios"] .cr-tabs button.on{
+    background:var(--surface-3);color:#fff;
+  }
+}
+
+/* —— 待办 / 今日课程 / 进度条 —— */
+html[data-theme="ios"] .task{
+  border:1px solid var(--line);border-radius:var(--r-md);box-shadow:var(--sh);
+  transition:transform 180ms var(--ios-spring),box-shadow 180ms var(--ios-spring);
+}
+html[data-theme="ios"] .task:hover{transform:none;box-shadow:var(--sh-up)}
+html[data-theme="ios"] .task:active{transform:scale(.984)}
+html[data-theme="ios"] .task::before{border-radius:var(--r-md) 0 0 var(--r-md)}
+html[data-theme="ios"] .task-bg{border-radius:var(--r-md);background:var(--surface-3)}
+html[data-theme="ios"] .task-bg .bg-btn{border-left:1px solid var(--line)}
+html[data-theme="ios"] .chk,
+html[data-theme="ios"] .cb{
+  border-radius:999px;border:1.5px solid var(--ink-3);transform:none;
+  transition:transform 200ms var(--ios-bounce),background 180ms var(--ios-spring),border-color 180ms;
+}
+html[data-theme="ios"] .chk::after{transform:none}
+html[data-theme="ios"] .task.done .chk,
+html[data-theme="ios"] .cb.on{background:var(--accent);border-color:var(--accent);animation:iosPop 300ms var(--ios-bounce)}
+html[data-theme="ios"] .chip{border-radius:999px;border:0;background:var(--fill);color:var(--ink-2);transform:none}
+html[data-theme="ios"] .chip.tag{background:var(--accent-soft);color:var(--accent-ink)}
+html[data-theme="ios"] .chip.bad,
+html[data-theme="ios"] .chip.holiday{background:#ff3b30;color:#fff}
+html[data-theme="ios"] .chip.warn{background:#ff9500;color:#fff}
+
+html[data-theme="ios"] .kb-now{border-radius:999px;border:0;background:var(--accent-soft);color:var(--accent-ink)}
+html[data-theme="ios"] .kb-item.live{border-left:3.5px solid var(--accent);box-shadow:0 8px 22px color-mix(in srgb,var(--accent) 18%,transparent)}
+html[data-theme="ios"] .kb-nm .kb-p{border-radius:6px;background:var(--fill);color:var(--ink-2)}
+html[data-theme="ios"] .kb-prog,
+html[data-theme="ios"] .bar,
+html[data-theme="ios"] .zz-bar,
+html[data-theme="ios"] .cb-led-bar,
+html[data-theme="ios"] .cr-dist,
+html[data-theme="ios"] .pcard .pbar{
+  border:0;border-radius:999px;background:var(--track);overflow:hidden;
+}
+html[data-theme="ios"] .kb-prog i,
+html[data-theme="ios"] .bar i,
+html[data-theme="ios"] .zz-bar i,
+html[data-theme="ios"] .cb-led-bar i,
+html[data-theme="ios"] .pcard .pbar>i{border-radius:999px}
+
+/* —— 底部抽屉弹窗 (.modal) & 确认弹窗 (.p5-confirm) —— */
+html[data-theme="ios"] .modal-wrap{
+  background:rgba(0,0,0,var(--sheet-dim));
+  backdrop-filter:blur(10px);
+  -webkit-backdrop-filter:blur(10px);
+}
+html[data-theme="ios"] .modal{
+  border-radius:24px 24px 0 0;border:0;
+  background:var(--surface-1);
+  box-shadow:0 -12px 44px rgba(0,0,0,.2),0 0 0 .5px var(--line-2);
+}
+@media (min-width:700px){
+  html[data-theme="ios"] .modal{border-radius:22px}
+}
+html[data-theme="ios"] .modal::before{display:none}
+html[data-theme="ios"] .modal.enter{animation:iosSheetIn 360ms var(--ios-sheet)}
+html[data-theme="ios"] .modal.settling,
+html[data-theme="ios"] .modal.sheet-closing{transition:transform 260ms var(--ios-sheet),opacity 200ms ease}
+html[data-theme="ios"] .sheet-grip i{width:38px;height:5px;border-radius:999px;background:var(--track-2)}
+html[data-theme="ios"] .modal-head .icon-btn{border:0;background:var(--fill);color:var(--ink-2)}
+html[data-theme="ios"] .modal-foot{border-top:1px solid var(--line);background:var(--surface-1)}
+html[data-theme="ios"] .p5-confirm{
+  border-radius:20px;border:.5px solid var(--line-2);transform:none;
+  background:var(--ios-glass);
+  backdrop-filter:saturate(180%) blur(24px);
+  -webkit-backdrop-filter:saturate(180%) blur(24px);
+  box-shadow:0 20px 50px rgba(0,0,0,.28);
+  animation:iosAlertIn 240ms var(--ios-spring);
+}
+html[data-theme="ios"] .p5-confirm::before{display:none}
+
+/* —— 日历 / 时钟 / 项目 / 资讯 / 阅读器 —— */
+html[data-theme="ios"] .cal-grid{gap:4px}
+html[data-theme="ios"] .cell{border-radius:11px;border:1px solid transparent;background:var(--surface-2);box-shadow:none}
+html[data-theme="ios"] .cell:hover{transform:none;background:var(--accent-soft)}
+html[data-theme="ios"] .cell.today{border-color:var(--accent);box-shadow:none}
+html[data-theme="ios"] .cell.sel{border-radius:11px;background:var(--accent);border-color:transparent;box-shadow:0 4px 12px color-mix(in srgb,var(--accent) 32%,transparent)}
+html[data-theme="ios"] .cell .corner{border-radius:0 9px 0 6px}
+html[data-theme="ios"] .cell .cdots i{border-radius:999px;transform:none;width:5px;height:5px}
+html[data-theme="ios"] .ym-panel,
+html[data-theme="ios"] .minical,
+html[data-theme="ios"] .tf-cal #fCalBox{border-radius:var(--r-md);border:1px solid var(--line);background:var(--surface-2);box-shadow:none}
+html[data-theme="ios"] .ym-months button,
+html[data-theme="ios"] .ym-years button,
+html[data-theme="ios"] .wk-grid button,
+html[data-theme="ios"] .md-grid button,
+html[data-theme="ios"] .emoji-pick button{border-radius:10px;border:1px solid var(--line);background:var(--surface-1);box-shadow:none}
+html[data-theme="ios"] .ym-months button.on,
+html[data-theme="ios"] .ym-years button.on,
+html[data-theme="ios"] .wk-grid button.on,
+html[data-theme="ios"] .md-grid button.on,
+html[data-theme="ios"] .emoji-pick button.on{background:var(--accent);border-color:transparent;color:#fff}
+html[data-theme="ios"] .float-today{
+  border-radius:999px;border:0;transform:none;
+  background:var(--accent);color:#fff;
+  box-shadow:0 8px 22px color-mix(in srgb,var(--accent) 36%,transparent);
+}
+
+html[data-theme="ios"] .dial .face{fill:var(--surface-1);stroke:var(--line-2);stroke-width:1.5}
+html[data-theme="ios"] .dial .tick{stroke:var(--ink-3)}
+html[data-theme="ios"] .dial .tick.big{stroke:var(--accent)}
+html[data-theme="ios"] .dial .hand{stroke:var(--ink);stroke-linecap:round}
+html[data-theme="ios"] .pomo-ring{border-radius:999px;border:2px solid var(--line)}
+html[data-theme="ios"] .pomo-ring::after{border-radius:999px;border:0;background:var(--surface-1)}
+html[data-theme="ios"] .pemoji{border-radius:12px;border:1px solid var(--line);background:var(--surface-2);transform:none}
+html[data-theme="ios"] .pemoji>*{transform:none}
+html[data-theme="ios"] .pitem,
+html[data-theme="ios"] .subrow{border-radius:10px;border:1px solid var(--line);background:var(--surface-2)}
+
+html[data-theme="ios"] .pt-search,
+html[data-theme="ios"] .cr-search,
+html[data-theme="ios"] .zz-search,
+html[data-theme="ios"] .cb-search input{
+  border-radius:11px;border:1px solid var(--line);background:var(--surface-2);box-shadow:none;
+}
+html[data-theme="ios"] .pt-qclear,
+html[data-theme="ios"] .cr-qclear,
+html[data-theme="ios"] .cb-search-x{border-radius:999px;border:0;background:var(--track-2);color:var(--surface-1)}
+html[data-theme="ios"] .pt-new,
+html[data-theme="ios"] .pt-hit{border-radius:999px;border:0}
+html[data-theme="ios"] .uc-body,
+html[data-theme="ios"] .pt-fields,
+html[data-theme="ios"] .yg-panel{border-radius:var(--r-md);border:1px solid var(--line);background:var(--surface-2)}
+html[data-theme="ios"] .rd-head{
+  background:var(--ios-glass);
+  backdrop-filter:saturate(180%) blur(20px);
+  -webkit-backdrop-filter:saturate(180%) blur(20px);
+  border-bottom:.5px solid var(--ios-glass-b);
+  color:var(--ink);
+}
+html[data-theme="ios"] .rd-head .rd-title{color:var(--ink)}
+html[data-theme="ios"] .rd-head .icon-btn{border:0;background:var(--fill);color:var(--ink)}
+html[data-theme="ios"] .rd-file-ico,
+html[data-theme="ios"] .rd-file-act{border-radius:8px;border:0}
+
+/* —— 课程 / 加分 / 综测 / 扫码 / 设置 —— */
+html[data-theme="ios"] .tf-chip,
+html[data-theme="ios"] .pt-chip,
+html[data-theme="ios"] .cr-chip,
+html[data-theme="ios"] .zz-chip,
+html[data-theme="ios"] .cr-majors button,
+html[data-theme="ios"] .zz-majors button,
+html[data-theme="ios"] .cb-chiprow>button,
+html[data-theme="ios"] .cb-metric button,
+html[data-theme="ios"] .cb-lvchips button{
+  border-radius:999px;border:1px solid var(--line-2);background:var(--surface-2);color:var(--ink-2);box-shadow:none;
+}
+html[data-theme="ios"] .tf-chip.on,
+html[data-theme="ios"] .pt-chip.on,
+html[data-theme="ios"] .cr-chip.on,
+html[data-theme="ios"] .zz-chip.on,
+html[data-theme="ios"] .cr-majors button.on,
+html[data-theme="ios"] .zz-majors button.on,
+html[data-theme="ios"] .cb-chiprow>button.on,
+html[data-theme="ios"] .cb-metric button.on,
+html[data-theme="ios"] .cb-lvchips button.on{
+  background:var(--accent);border-color:transparent;color:#fff;
+  box-shadow:0 3px 10px color-mix(in srgb,var(--accent) 28%,transparent);
+}
+html[data-theme="ios"] .cr-g,
+html[data-theme="ios"] .cb-cat,
+html[data-theme="ios"] .cb-lv,
+html[data-theme="ios"] .cb-b,
+html[data-theme="ios"] .cb-flag,
+html[data-theme="ios"] .cb-led-row .g,
+html[data-theme="ios"] .cb-led-check span,
+html[data-theme="ios"] .scwin-chip,
+html[data-theme="ios"] .sc-state span{border-radius:7px;border:0}
+html[data-theme="ios"] .cb-mark,
+html[data-theme="ios"] .cb-step button,
+html[data-theme="ios"] .zz-del{border-radius:8px;border:1px solid var(--line-2);background:var(--surface-2)}
+html[data-theme="ios"] .cb-item.done .cb-mark{background:var(--accent);border-color:transparent;color:#fff;animation:iosPop 280ms var(--ios-bounce)}
+html[data-theme="ios"] .cb-lead .cb-two>div,
+html[data-theme="ios"] .cb-grades>div,
+html[data-theme="ios"] .cb-doc,
+html[data-theme="ios"] .sc-qr,
+html[data-theme="ios"] .sc-try,
+html[data-theme="ios"] .sc-fold{border-radius:var(--r-md);border:1px solid var(--line);background:var(--surface-2);box-shadow:none}
+html[data-theme="ios"] .cb-lead .cb-two i{border-radius:6px}
+html[data-theme="ios"] .zz-badge{border-radius:999px;border:0;background:var(--fill);color:var(--ink-2);box-shadow:none}
+html[data-theme="ios"] .zz-badge.ok{background:#34c759;color:#fff}
+html[data-theme="ios"] .zz-badge.bad{background:#ff3b30;color:#fff}
+html[data-theme="ios"] .zz-in{border-radius:9px;border:1px solid var(--line-2);background:var(--surface-2)}
+html[data-theme="ios"] .zz-list,
+html[data-theme="ios"] .zz-warn,
+html[data-theme="ios"] .cb-cd-tbl{border-radius:var(--r-md);border:1px solid var(--line);background:var(--surface-2);overflow:hidden}
+html[data-theme="ios"] .scwin-view{border-radius:var(--r);border:1px solid var(--line)}
+
+html[data-theme="ios"] .set-back,
+html[data-theme="ios"] .tf-more-btn{border-radius:var(--r-sm);border:1px solid var(--line-2);background:var(--surface-2);box-shadow:none}
+html[data-theme="ios"] #themePick .btn{border-radius:999px;border:1px solid var(--line-2);background:var(--surface-2);box-shadow:none}
+html[data-theme="ios"] #themePick .btn.primary{background:var(--accent);color:#fff;border-color:transparent;box-shadow:0 4px 12px color-mix(in srgb,var(--accent) 28%,transparent)}
+html[data-theme="ios"] .color-pick button{border-radius:999px;transform:none;border:2px solid var(--surface-1);box-shadow:0 0 0 1px var(--line-2)}
+html[data-theme="ios"] .color-pick button.on{box-shadow:0 0 0 2.5px var(--accent)}
+html[data-theme="ios"] .color-pick button:active{transform:scale(.9)}
+html[data-theme="ios"] .empty{border-radius:var(--r);border:1px dashed var(--line-2);transform:none;background:var(--surface-2)}
+html[data-theme="ios"] .toast{
+  border-radius:999px;border:0;
+  background:rgba(28,28,30,.88);color:#fff;
+  backdrop-filter:saturate(180%) blur(20px);
+  -webkit-backdrop-filter:saturate(180%) blur(20px);
+  box-shadow:0 12px 32px rgba(0,0,0,.24);
+}
+html[data-theme="ios"] .banner{
+  border-radius:var(--r);border:0;transform:none;
+  background:linear-gradient(135deg,var(--accent),var(--accent-2));
+  color:#fff;box-shadow:var(--sh-up);
+}
+html[data-theme="ios"] .banner>*{transform:none}
+html[data-theme="ios"] .banner .bgo{border-radius:999px;border:0;background:#fff;color:var(--accent-ink);box-shadow:none}
 </style>
 </head>
 <body>
@@ -3769,6 +4422,7 @@ html[data-theme="p3r"] .tf-arrow{color:var(--ink-3)}
         <div class="row wrap gap6" id="themePick">
           <button class="btn" data-theme-pick="p5r">P5R · 红黑斜切</button>
           <button class="btn" data-theme-pick="p3r">P3R · 蓝白斜切</button>
+          <button class="btn" data-theme-pick="ios">iOS · 灵动流体</button>
         </div>
         <div class="muted small" style="margin-top:9px" id="themeNote">—</div>
       </div>
@@ -4142,12 +4796,16 @@ function accentPgHex(){
 /* 皮肤：P5R（红黑斜切）/ P3R（深蓝月夜·白昼，跟随系统明暗）。
    挂在 <html data-theme> 上；顺手改状态栏 theme-color，并把小值存一份给首屏脚本。 */
 function applyTheme(){
-  var k = (state.settings.theme === 'p3r') ? 'p3r' : 'p5r';
+  var raw = state.settings.theme;
+  var k = (raw === 'p3r' || raw === 'ios') ? raw : 'p5r';
   try{ document.documentElement.setAttribute('data-theme', k); }catch(e){}
   try{ localStorage.setItem('mu_theme', k); }catch(e){}
   try{
     var metas = document.querySelectorAll('meta[name="theme-color"]');
-    if(k === 'p3r'){
+    if(k === 'ios'){
+      if(metas[0]) metas[0].setAttribute('content', '#f2f2f7');
+      if(metas[1]) metas[1].setAttribute('content', '#000000');
+    }else if(k === 'p3r'){
       if(metas[0]) metas[0].setAttribute('content', '#eef5fc');   /* 白昼版底色 */
       if(metas[1]) metas[1].setAttribute('content', '#05101f');   /* 月夜版底色 */
     }else{
@@ -4287,7 +4945,7 @@ function save(){
     catch(e){ toast('保存失败：浏览器存储不可用或已满'); }
     /* 皮肤/主色另存一份小值：首屏脚本要读，别为了这个去解析几百 KB 的 state */
     try{
-      localStorage.setItem('mu_theme', state.settings.theme === 'p3r' ? 'p3r' : 'p5r');
+      localStorage.setItem('mu_theme', (state.settings.theme === 'p3r' || state.settings.theme === 'ios') ? state.settings.theme : 'p5r');
       localStorage.setItem('mu_accent', state.settings.accent || 'blue');
     }catch(e){}
   }, 60);
@@ -5920,13 +6578,15 @@ function renderSettings(){
     return '<button data-accent="' + a.k + '" class="' + (s.accent===a.k?'on':'') + '" title="' + a.n + '" ' +
       'style="background:linear-gradient(135deg,' + a.a + ',' + a.b + ' 55%,' + a.c + ')"></button>';
   }).join('');
-  var tk = (s.theme === 'p3r') ? 'p3r' : 'p5r';
+  var tk = (s.theme === 'p3r' || s.theme === 'ios') ? s.theme : 'p5r';
   $$('#themePick [data-theme-pick]').forEach(function(b){
     b.classList.toggle('primary', b.getAttribute('data-theme-pick') === tk);
   });
-  $('#themeNote').textContent = tk === 'p3r'
-    ? 'P3R：暂停菜单风——鲜蓝底、白块与楔形高亮、冰青细线，跟随系统明暗分白昼 / 月夜；主色调仍可换（推荐「月蓝」）。'
-    : 'P5R：红黑斜切、2px 粗描边、硬投影；七套主色调可换。';
+  $('#themeNote').textContent = tk === 'ios'
+    ? 'iOS：毛玻璃顶底栏、大圆角分组卡片、阻尼弹簧过渡与轻触缩放反馈，自动跟随系统浅色 / 深色模式。'
+    : tk === 'p3r'
+      ? 'P3R：暂停菜单风——鲜蓝底、白块与楔形高亮、冰青细线，跟随系统明暗分白昼 / 月夜；主色调仍可换（推荐「月蓝」）。'
+      : 'P5R：红黑斜切、2px 粗描边、硬投影；七套主色调可换。';
   var todos = state.todos.length, projects = state.projects.length;
   var items = state.projects.reduce(function(a,p){ return a + p.items.length; },0);
   $('#dataStat').textContent = '当前：' + todos + ' 条待办 · ' + projects + ' 张卡片 · ' + items + ' 个技能点';
@@ -8459,6 +9119,9 @@ var hwOpen = {};        /* termId -> 展开状态（内存，不落盘） */
 var hwOpenItem = {};    /* assignmentId -> 展开状态 */
 var hwOpenEx = {};      /* audiencesId -> 优秀作业正文展开 */
 var hwBound = false;
+var hwEnterAnim = false;
+var hwJustItem = '';
+var hwJustEx = '';
 
 function hwDefaultTerm(){
   return { at:0, ver:0, busy:0, err:'', phase:'', pi:0, pn:0, items:[], views:{}, files:{}, excellent:{} };
@@ -9021,7 +9684,7 @@ function hwExcellentHTML(termId, it, d){
     '</div>';
     if(open){
       var det = ex.detail[key];
-      h += '<div class="hw-ex-detail">';
+      h += '<div class="hw-ex-detail' + (hwJustEx === String(key) ? ' hw-just-open' : '') + '">';
       if(!det) h += '<div class="hw-loading">点开读取中…</div>';
       else if(det.busy) h += '<div class="hw-loading">正在读取正文…</div>';
       else if(det.err) h += '<div class="hw-err">' + esc(det.err) + '</div>';
@@ -9097,7 +9760,7 @@ function hwItemHTML(termId, it, d){
       (v.assignmentStatus === 1 && v.gradeTime ? '<span class="t">批改 ' + esc(hwShortTime(v.gradeTime)) + (v.gradeLocal ? '（本机）' : '') + '</span>' : '') + tags +
       (it.dups > 1 ? '<span class="hw-tag">已合并 ' + it.dups + ' 份</span>' : '') +
       (it.chapter ? '<span class="hw-tag">' + esc(it.chapter) + '</span>' : '') + '</div>';
-  if(open) h += '<div class="hw-detail">' + hwDetailHTML(termId, it, d) + '</div>';
+  if(open) h += '<div class="hw-detail' + (hwJustItem === String(it.id) ? ' hw-just-open' : '') + '">' + hwDetailHTML(termId, it, d) + '</div>';
   return h + '</div>';
 }
 function hwGroupsHTML(termId, d){
@@ -9160,14 +9823,18 @@ function hwRender(){
   hwBind();
   var h = hwState();
   if(!hwReady()){
-    host.innerHTML = '<div class="hw-wrap"><div class="hw-note">' +
+    var noteCls = hwEnterAnim ? ' hw-anim' : '';
+    hwEnterAnim = false;
+    host.innerHTML = '<div class="hw-wrap' + noteCls + '"><div class="hw-note">' +
       (ucReady() ? '先在「设置 → 云邮账号」里登录，再回来看作业档案。' : '只能在 App 版里用：网页版没有原生网络能力。') +
       '</div></div>';
     return;
   }
   if(!h.termsAt && !h.indexBusy && !h.indexErr) setTimeout(function(){ hwLoadIndex(); }, 0);
   var scrollY = window.scrollY || window.pageYOffset || 0;
-  var html = '<div class="hw-wrap">';
+  var wrapCls = (hwEnterAnim && h.terms.length) ? ' hw-anim' : '';
+  if(h.terms.length) hwEnterAnim = false;
+  var html = '<div class="hw-wrap' + wrapCls + '">';
   var termIds = [], curId = '';
   if(h.indexBusy && !h.terms.length){
     html += '<div class="hw-loading">正在读学期和课程列表…</div>';
@@ -9213,6 +9880,8 @@ function hwRender(){
   }
   html += '</div>';
   host.innerHTML = html;
+  hwJustItem = '';
+  hwJustEx = '';
   try{ window.scrollTo(0, scrollY); }catch(e){}
   /* 展开的学期 / 作业 / 附件 / 优秀作业：按需自动加载 */
   termIds.forEach(function(id){
@@ -9281,6 +9950,7 @@ function hwBind(){
     if((el = t.closest('[data-hwex]'))){
       var itemId = el.dataset.hwex, key = el.dataset.hwexkey;
       hwOpenEx[key] = !hwOpenEx[key];
+      hwJustEx = hwOpenEx[key] ? String(key) : '';
       var d = null, it = null, selTerm = '';
       var h2 = hwState();
       Object.keys(h2.byTerm).forEach(function(tid2){
@@ -9298,8 +9968,10 @@ function hwBind(){
       return;
     }
     if((el = t.closest('[data-hwitem]'))){
+      if(t.closest('.hw-detail')) return;
       var iid = el.dataset.hwitem;
       hwOpenItem[iid] = !hwOpenItem[iid];
+      hwJustItem = hwOpenItem[iid] ? String(iid) : '';
       hwRender();
       return;
     }
@@ -12061,11 +12733,11 @@ $('#swUcloud').onclick = function(){
   $('#themePick').onclick = function(e){
     var b = e.target.closest('[data-theme-pick]'); if(!b) return;
     var k = b.getAttribute('data-theme-pick');
-    if(k !== 'p3r') k = 'p5r';
+    if(k !== 'p3r' && k !== 'ios') k = 'p5r';
     if((state.settings.theme || 'p5r') === k) return;
     state.settings.theme = k;
     save(); renderSettings();
-    toast(k === 'p3r' ? '已切换到 P3R · 蓝白斜切' : '已切换到 P5R · 红黑斜切');
+    toast(k === 'ios' ? '已切换到 iOS · 灵动流体' : k === 'p3r' ? '已切换到 P3R · 蓝白斜切' : '已切换到 P5R · 红黑斜切');
   };
   $('#btnTestNotify').onclick = function(){ bannerClosed = false; fireTodayReminder('测试提醒'); };
   $('#btnTestSound').onclick = function(){ chime('done'); toast('这就是提示音'); };
@@ -14216,14 +14888,14 @@ function crSwitchSub(k){
     scStop();   /* 离开扫码页就关相机，别偷偷占着 */
   }
   if(k === 'bonus') cbRender();
-  if(k === 'hw') hwRender();
+  if(k === 'hw'){ hwEnterAnim = true; hwRender(); }
   if(k === 'zz') zzEnter();
   window.scrollTo(0, 0);
-  /* 子页签是吸顶 + 可横向滚动的：切过去后把当前页签滚到中间，别让它藏在屏幕外 */
-  var cur = document.querySelector('#crTabs button.on');
-  if(cur && typeof cur.scrollIntoView === 'function'){
-    try{ cur.scrollIntoView({ inline:'center', block:'nearest' }); }
-    catch(e){ try{ cur.scrollIntoView(false); }catch(e2){} }
+  /* 子页签是吸顶 + 可横向滚动的：直接改 #crTabs 的 scrollLeft，不要调 scrollIntoView（会连带把整页横向拉偏） */
+  var tabBox = document.getElementById('crTabs');
+  var cur = tabBox ? tabBox.querySelector('button.on') : null;
+  if(tabBox && cur && tabBox.scrollWidth > tabBox.clientWidth){
+    tabBox.scrollLeft = Math.max(0, (cur.offsetLeft || 0) - (tabBox.clientWidth - (cur.offsetWidth || 0)) / 2);
   }
 }
 
