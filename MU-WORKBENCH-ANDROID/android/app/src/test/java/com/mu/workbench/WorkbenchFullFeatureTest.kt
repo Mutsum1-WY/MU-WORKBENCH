@@ -5,6 +5,7 @@ import com.mu.workbench.data.CourseScheduleItem
 import com.mu.workbench.data.CourseSegment
 import com.mu.workbench.data.HolidayEntry
 import com.mu.workbench.data.PeriodSlot
+import com.mu.workbench.data.PortalArticle
 import com.mu.workbench.data.SettingsState
 import com.mu.workbench.data.SubStep
 import com.mu.workbench.data.TimetableData
@@ -233,5 +234,98 @@ class WorkbenchFullFeatureTest {
         assertTrue(zRoot.getJSONObject("basic").getJSONArray("deduct").length() >= 1)
         assertTrue(zRoot.getJSONObject("dev").getJSONObject("other").getJSONArray("items").length() >= 1)
         assertTrue(zRoot.getJSONArray("chapters").length() >= 3)
+    }
+
+    /* ===================== 5. 信息门户纯图通知 & 图文混排讲座解析校验 ===================== */
+
+    @Test
+    fun portalDetailParser_extractsImagesBlocksAndLectureFields() {
+        // 1. 纯图片校内通知（含 src + orisrc + 附件 + 尾部打印/关闭噪声）
+        val pureImgNoticeHtml = """
+            <html><body>
+            <div name="articlecontent">
+              <h1 class="text-center">关于印发《2026年工作要点》的通知</h1>
+              <div class="singlemeta text-center">发布部门：党政办公室  发布时间： 2026-03-28</div>
+              <div id='vsb_content'><div class='v_news_content'>
+                <p><br></p>
+                <p><img src="/__local/A/55/84/page1.png" width="1000" orisrc="/__local/A/55/84/ori1.png"></p>
+                <p><img src="/__local/9/AD/82/page2.png" vwidth="900" orisrc="/__local/8/25/48/ori2.png"></p>
+              </div></div>
+              <div class="battch">
+                <a href="/system/_content/download.jsp?urltype=news.DownloadAttachUrl&wbfileid=3217730">附件1. 工作要点.pdf</a>
+              </div>
+              <p>打印</p>
+              <p>关闭</p>
+            </div>
+            <img src="images/topback.gif">
+            </body></html>
+        """.trimIndent()
+
+        val noticeStub = PortalArticle(
+            id = "138177",
+            kind = "notice",
+            title = "关于印发《2026年工作要点》的通知",
+            url = "http://my.bupt.edu.cn/xntz_content.jsp?wbnewsid=138177"
+        )
+        val parsedNotice = NativeClients.parsePortalDetailHtml(pureImgNoticeHtml, noticeStub)
+        assertTrue(parsedNotice.detailFetched)
+        assertEquals(2, parsedNotice.imageCount)
+        assertEquals("", parsedNotice.bodyText)
+        assertEquals("党政办公室", parsedNotice.dept)
+        assertEquals("2026-03-28", parsedNotice.date)
+        val imgBlocks = parsedNotice.blocks.filter { it.type == "img" }
+        assertEquals(2, imgBlocks.size)
+        assertEquals("http://my.bupt.edu.cn/__local/A/55/84/page1.png", imgBlocks[0].src)
+        assertEquals("http://my.bupt.edu.cn/__local/A/55/84/ori1.png", imgBlocks[0].altSrc)
+        assertEquals(1000, imgBlocks[0].width)
+        assertEquals("http://my.bupt.edu.cn/__local/9/AD/82/page2.png", imgBlocks[1].src)
+        assertEquals(900, imgBlocks[1].width)
+        assertEquals(1, parsedNotice.attachments.size)
+        assertEquals("工作要点.pdf", parsedNotice.attachments[0].name)
+
+        // 2. 图文混排学术讲座（保留段落与海报图片交替顺序，并提取结构化讲座元数据）
+        val lectureHtml = """
+            <html><body>
+            <div class="singlemeta">发布单位：人工智能学院 发布时间:2026-10-21</div>
+            <div id="vsb_content"><div class="v_news_content">
+              <p><strong>报告题目：</strong>生成式AI驱动的物联网感知技术</p>
+              <p><strong>报 告 人：</strong>迟国轩 助理教授</p>
+              <p><strong>主 持 人：</strong>王兆丹</p>
+              <p><strong>报告时间：</strong>2026年10月28日 16:00-17:00</p>
+              <p><strong>腾讯会议：</strong>389-3266-5386</p>
+              <p><img src="../../__local/L/10/poster.jpg" width="800"></p>
+              <p><strong>报告摘要：</strong>围绕物联网前沿感知展开分享。</p>
+            </div></div>
+            </body></html>
+        """.trimIndent()
+
+        val lecStub = PortalArticle(
+            id = "143060",
+            kind = "lecture",
+            title = "人工智能论坛第115期",
+            url = "http://my.bupt.edu.cn/hy_content.jsp?wbnewsid=143060"
+        )
+        val parsedLec = NativeClients.parsePortalDetailHtml(lectureHtml, lecStub)
+        assertTrue(parsedLec.detailFetched)
+        assertEquals(1, parsedLec.imageCount)
+        assertEquals("2026-10-21", parsedLec.date)
+        assertNotNull(parsedLec.lecture)
+        assertEquals("2026年10月28日 16:00-17:00", parsedLec.lecture!!.whenText)
+        assertEquals("迟国轩 助理教授", parsedLec.lecture!!.who)
+        assertEquals("王兆丹", parsedLec.lecture!!.host)
+        assertEquals("389-3266-5386", parsedLec.lecture!!.where)
+        assertEquals("围绕物联网前沿感知展开分享。", parsedLec.lecture!!.abstractText)
+
+        val blkTypes = parsedLec.blocks.map { it.type }
+        assertTrue(blkTypes.contains("img"))
+        val poster = parsedLec.blocks.first { it.type == "img" }
+        assertEquals("http://my.bupt.edu.cn/__local/L/10/poster.jpg", poster.src)
+
+        // 验证中文与空格路径 URL 转义与 Base64 纯 Kotlin 解码
+        val zhUrl = NativeClients.resolvePortalUrl("/upload/海报 01.png", "http://my.bupt.edu.cn/xntz_content.jsp")
+        assertFalse(zhUrl.contains(" "))
+        assertTrue(zhUrl.startsWith("http://my.bupt.edu.cn/upload/"))
+        assertTrue(zhUrl.endsWith("%2001.png"))
+        assertEquals("hello", String(NativeClients.decodeBase64("aGVsbG8=")))
     }
 }

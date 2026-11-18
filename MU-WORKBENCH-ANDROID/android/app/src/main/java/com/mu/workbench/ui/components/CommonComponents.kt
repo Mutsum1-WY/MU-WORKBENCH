@@ -22,22 +22,21 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.draw.drawWithCache
-import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.ImageShader
 import androidx.compose.ui.graphics.Paint
+import androidx.compose.ui.graphics.PaintingStyle
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.TileMode
-import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalHapticFeedback
@@ -53,13 +52,12 @@ import com.mu.workbench.data.ThemeStyle
 import com.mu.workbench.data.TodoItem
 import com.mu.workbench.ui.theme.LocalMuColors
 import com.mu.workbench.ui.theme.MuMotion
-import kotlinx.coroutines.coroutineScope
-import kotlinx.coroutines.launch
+import java.util.concurrent.ConcurrentHashMap
 
 /**
  * 单子节点零卡顿切屏过渡：
- * 同时只保留当前目标页 1 份组合树，用 Animatable + graphicsLayer 实现丝滑平移/渐入，
- * 快速连点切页时自动取消前动画并直接渲染最新页面，彻底杜绝多页并发合成卡屏与重影。
+ * 同时只保留当前目标页 1 份组合树，纯 translationX 硬件位移（alpha=1f 避免全屏 saveLayerAlpha 离屏开销），
+ * 快速连点切页时自动取消前动画并直接渲染最新页面，彻底杜绝多页并发合成掉帧与重影。
  */
 @Composable
 fun <T> MuTabTransition(
@@ -70,7 +68,6 @@ fun <T> MuTabTransition(
     content: @Composable (T) -> Unit
 ) {
     val offsetFrac = remember { Animatable(0f) }
-    val alphaAnim = remember { Animatable(1f) }
     var initialized by remember { mutableStateOf(false) }
 
     LaunchedEffect(targetState) {
@@ -85,17 +82,12 @@ fun <T> MuTabTransition(
             else -> 0f
         }
         offsetFrac.snapTo(startOffset)
-        alphaAnim.snapTo(if (style == ThemeStyle.IOS) 0.92f else 0.86f)
-        coroutineScope {
-            launch { offsetFrac.animateTo(0f, MuMotion.floatSpring(style)) }
-            launch { alphaAnim.animateTo(1f, tween(if (style == ThemeStyle.IOS) 150 else 110)) }
-        }
+        offsetFrac.animateTo(0f, MuMotion.floatSpring(style))
     }
 
     Box(
         modifier = modifier.graphicsLayer {
             translationX = offsetFrac.value * size.width
-            alpha = alphaAnim.value
             clip = true
         }
     ) {
@@ -105,29 +97,42 @@ fun <T> MuTabTransition(
     }
 }
 
-/** 斜切平行四边形裁切形状，保留原版 P5R/P3R 标志性斜切视觉 */
-fun parallelogramShape(skewPxRatio: Float = 0.14f): Shape = GenericShape { size, _ ->
-    val dx = (size.height * skewPxRatio).coerceAtMost(size.width * 0.25f)
-    moveTo(dx, 0f)
-    lineTo(size.width, 0f)
-    lineTo(size.width - dx, size.height)
-    lineTo(0f, size.height)
-    close()
+private val parallelogramShapeCache = ConcurrentHashMap<Int, Shape>()
+private val beveledShapeCache = ConcurrentHashMap<Int, Shape>()
+
+/** 斜切平行四边形裁切形状（全局缓存实例，避免每次重组失效轮廓并触发重绘） */
+fun parallelogramShape(skewPxRatio: Float = 0.14f): Shape {
+    val key = (skewPxRatio * 1000f).toInt()
+    return parallelogramShapeCache.computeIfAbsent(key) {
+        GenericShape { size, _ ->
+            val dx = (size.height * skewPxRatio).coerceAtMost(size.width * 0.25f)
+            moveTo(dx, 0f)
+            lineTo(size.width, 0f)
+            lineTo(size.width - dx, size.height)
+            lineTo(0f, size.height)
+            close()
+        }
+    }
 }
 
-/** 切角方块形状（右上角切斜）用于 P3R 复选框和色块 */
-fun beveledCornerShape(bevelDpRatio: Float = 0.25f): Shape = GenericShape { size, _ ->
-    val b = size.minDimension * bevelDpRatio
-    moveTo(0f, 0f)
-    lineTo(size.width - b, 0f)
-    lineTo(size.width, b)
-    lineTo(size.width, size.height)
-    lineTo(0f, size.height)
-    close()
+/** 切角方块形状（右上角切斜，全局缓存实例） */
+fun beveledCornerShape(bevelDpRatio: Float = 0.25f): Shape {
+    val key = (bevelDpRatio * 1000f).toInt()
+    return beveledShapeCache.computeIfAbsent(key) {
+        GenericShape { size, _ ->
+            val b = size.minDimension * bevelDpRatio
+            moveTo(0f, 0f)
+            lineTo(size.width - b, 0f)
+            lineTo(size.width, b)
+            lineTo(size.width, size.height)
+            lineTo(0f, size.height)
+            close()
+        }
+    }
 }
 
 /**
- * 全屏主题背景纹样（使用 drawWithCache + ImageShader 平铺缓存，零循环开销、零重影）
+ * 全屏主题背景纹样（P5R/P3R 均使用 drawWithCache + ImageShader  tile 平铺缓存，零每帧路径/循环开销）
  */
 @Composable
 fun MuPageBackground(
@@ -154,7 +159,6 @@ fun MuPageBackground(
                             lineTo(size.width * 0.42f, size.height)
                             close()
                         }
-                        // 把交错半调网点预先绘入 1 个 tile 位图，GPU 重复平铺（替代每帧 3000 次 drawCircle）
                         val tilePx = 20.dp.toPx().toInt().coerceAtLeast(12)
                         val tile = ImageBitmap(tilePx, tilePx)
                         val tileCanvas = androidx.compose.ui.graphics.Canvas(tile)
@@ -194,20 +198,30 @@ fun MuPageBackground(
                             center = Offset(0f, size.height * 0.15f),
                             radius = size.width * 0.7f
                         )
-                        val linesPath = Path().apply {
-                            val gap = 16.dp.toPx()
-                            var x = -size.height
-                            while (x < size.width + size.height) {
-                                moveTo(x, 0f)
-                                lineTo(x + size.height * 0.48f, size.height)
-                                x += gap
-                            }
+                        // 115° 无缝斜线贴图瓦片（单次 Shader Blit 替代每帧描边 80 条整屏斜线）
+                        val tileW = 16.dp.toPx().toInt().coerceAtLeast(16)
+                        val tileH = (tileW / 0.48f).toInt().coerceAtLeast(32)
+                        val tile = ImageBitmap(tileW, tileH)
+                        val tileCanvas = androidx.compose.ui.graphics.Canvas(tile)
+                        val linePaint = Paint().apply {
+                            color = lineColor
+                            strokeWidth = 1.dp.toPx()
+                            style = PaintingStyle.Stroke
+                            isAntiAlias = true
                         }
-                        val stroke = Stroke(width = 1.dp.toPx())
+                        val fw = tileW.toFloat()
+                        val fh = tileH.toFloat()
+                        tileCanvas.drawLine(Offset(-fw, 0f), Offset(0f, fh), linePaint)
+                        tileCanvas.drawLine(Offset(0f, 0f), Offset(fw, fh), linePaint)
+                        tileCanvas.drawLine(Offset(fw, 0f), Offset(fw * 2f, fh), linePaint)
+                        val lineShaderPaint = Paint().apply {
+                            shader = ImageShader(tile, TileMode.Repeated, TileMode.Repeated)
+                        }
+                        val fullRect = Rect(0f, 0f, size.width, size.height)
                         onDrawBehind {
                             drawCircle(brush = b1, center = Offset(size.width * 0.92f, 0f), radius = size.width * 0.85f)
                             drawCircle(brush = b2, center = Offset(0f, size.height * 0.15f), radius = size.width * 0.7f)
-                            drawPath(linesPath, lineColor, style = stroke)
+                            drawContext.canvas.drawRect(fullRect, lineShaderPaint)
                         }
                     }
             )
@@ -229,10 +243,8 @@ fun MuPageBackground(
 }
 
 /**
- * 零残影主题卡片：
- * - P5R：drawBehind 绘制黑色/红色硬投影 + 2dp 粗黑框 + 右上角血红小三角折角，无 layout offset 拖影；
- * - P3R：7dp 圆角 + 细蓝边 + 顶部右侧冰青-亮蓝斜切标；
- * - iOS：18dp 大圆角 + 轻微柔和投影。
+ * 零残影零分配主题卡片：
+ * 阴影、边框与角标 Path/Brush 全部在 drawWithCache 中按尺寸缓存，滑动时零对象分配。
  */
 @Composable
 fun MuCard(
@@ -253,25 +265,24 @@ fun MuCard(
     val base = if (mu.style == ThemeStyle.P5R && mu.hardShadowDp > 0.dp) {
         modifier
             .padding(end = mu.hardShadowDp, bottom = mu.hardShadowDp)
-            .drawBehind {
+            .drawWithCache {
                 val sh = mu.hardShadowDp.toPx()
-                drawRect(
-                    color = shadowCol,
-                    topLeft = Offset(sh, sh),
-                    size = size
-                )
+                val tl = Offset(sh, sh)
+                onDrawBehind {
+                    drawRect(color = shadowCol, topLeft = tl, size = size)
+                }
             }
     } else if (mu.style == ThemeStyle.P3R) {
         modifier
             .padding(end = 2.dp, bottom = 3.dp)
-            .drawBehind {
+            .drawWithCache {
                 val r = mu.cardRadius.toPx()
-                drawRoundRect(
-                    color = mu.hardShadowColor,
-                    topLeft = Offset(1.dp.toPx(), 3.dp.toPx()),
-                    size = size,
-                    cornerRadius = CornerRadius(r, r)
-                )
+                val cr = CornerRadius(r, r)
+                val tl = Offset(1.dp.toPx(), 3.dp.toPx())
+                val p3ShadowCol = mu.hardShadowColor
+                onDrawBehind {
+                    drawRoundRect(color = p3ShadowCol, topLeft = tl, size = size, cornerRadius = cr)
+                }
             }
     } else {
         modifier.shadow(2.dp, shape, ambientColor = Color.Black.copy(alpha = 0.06f))
@@ -281,11 +292,10 @@ fun MuCard(
         .clip(shape)
         .background(bg)
         .border(mu.cardBorderWidth, bd, shape)
-        .drawWithContent {
-            drawContent()
-            if (showCornerAccent) {
+        .let { m ->
+            if (!showCornerAccent || mu.style == ThemeStyle.IOS) m
+            else m.drawWithCache {
                 if (mu.style == ThemeStyle.P5R) {
-                    // P5R 右上角 16dp 红三角折角
                     val tri = 16.dp.toPx()
                     val p = Path().apply {
                         moveTo(size.width - tri, 0f)
@@ -293,21 +303,29 @@ fun MuCard(
                         lineTo(size.width, tri)
                         close()
                     }
-                    drawPath(p, mu.accent)
-                } else if (mu.style == ThemeStyle.P3R) {
-                    // P3R 右上角 28x5dp 冰青渐变斜切条
+                    val acc = mu.accent
+                    onDrawWithContent {
+                        drawContent()
+                        drawPath(p, acc)
+                    }
+                } else {
                     val w = 28.dp.toPx()
                     val h = 5.dp.toPx()
                     val rightPad = 10.dp.toPx()
                     val topPad = 9.dp.toPx()
+                    val skew = 4.dp.toPx()
                     val p = Path().apply {
                         moveTo(size.width - rightPad - w, topPad)
                         lineTo(size.width - rightPad, topPad)
-                        lineTo(size.width - rightPad - 4.dp.toPx(), topPad + h)
-                        lineTo(size.width - rightPad - w - 4.dp.toPx(), topPad + h)
+                        lineTo(size.width - rightPad - skew, topPad + h)
+                        lineTo(size.width - rightPad - w - skew, topPad + h)
                         close()
                     }
-                    drawPath(p, Brush.horizontalGradient(listOf(mu.accent, mu.p3Cyan)))
+                    val br = Brush.horizontalGradient(listOf(mu.accent, mu.p3Cyan))
+                    onDrawWithContent {
+                        drawContent()
+                        drawPath(p, br)
+                    }
                 }
             }
         }
@@ -626,15 +644,23 @@ fun TodoCardRow(
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(IntrinsicSize.Min),
+                    .drawWithCache {
+                        val stripW = 24.dp.toPx()
+                        onDrawBehind {
+                            if (showIndexStrip) {
+                                drawRect(
+                                    color = stripColor,
+                                    topLeft = Offset.Zero,
+                                    size = Size(stripW, size.height)
+                                )
+                            }
+                        }
+                    },
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 if (showIndexStrip) {
                     Box(
-                        modifier = Modifier
-                            .fillMaxHeight()
-                            .width(24.dp)
-                            .background(stripColor),
+                        modifier = Modifier.width(24.dp),
                         contentAlignment = Alignment.Center
                     ) {
                         Text(

@@ -207,11 +207,17 @@ private fun WorkbenchShell(vm: WorkbenchViewModel) {
         ) {
             readerArticle?.let { art ->
                 val dlStates by vm.dlStates.collectAsState()
+                val refreshSeq by vm.readerRefreshSeq.collectAsState()
                 Box(modifier = Modifier.fillMaxSize().background(mu.paper)) {
                     ReaderOverlay(
                         article = art,
                         loading = readerLoading,
+                        refreshSeq = refreshSeq,
                         dlStates = dlStates,
+                        onLoadImage = { imgUrl, altUrl, force ->
+                            vm.loadPortalImage(imgUrl, altUrl, art.url, force)
+                        },
+                        onRefresh = { vm.refreshReaderArticle() },
                         onDownloadAttachment = { att -> vm.downloadPortalAttachment(att, art.url) },
                         onClose = { vm.closeReader() },
                         onOpenBrowser = { vm.openExternalUrl(it) }

@@ -28,6 +28,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.draw.drawWithCache
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
@@ -63,7 +64,7 @@ import java.util.Locale
 fun TodayScreen(vm: WorkbenchViewModel) {
     val mu = LocalMuColors.current
     val state by vm.state.collectAsState()
-    val nowTime by vm.nowTime.collectAsState()
+    val nowTime by vm.nowMinute.collectAsState()
     val today by vm.nowDate.collectAsState()
     val bannerDismissed by vm.bannerDismissed.collectAsState()
     val scope = rememberCoroutineScope()
@@ -84,10 +85,10 @@ fun TodayScreen(vm: WorkbenchViewModel) {
     val wkStatus = remember(tt, today) { ScheduleEngine.weekStatus(tt, today) }
     val curWeek = wkStatus.week.coerceIn(1, tt.totalWeeks.coerceAtLeast(1))
     val weekdayNum = today.dayOfWeek.value // 1=Mon..7=Sun
-    val todayClasses = remember(tt, wkStatus, weekdayNum, nowTime.minute, nowTime.second) {
+    val todayClasses = remember(tt, wkStatus, weekdayNum, nowTime.hour, nowTime.minute) {
         if (wkStatus.inRange) ScheduleEngine.classesForDay(tt, wkStatus.week, weekdayNum, nowTime) else emptyList()
     }
-    val nextHint = remember(tt, today, nowTime.minute) {
+    val nextHint = remember(tt, today, nowTime.hour, nowTime.minute) {
         if (todayClasses.isEmpty()) ScheduleEngine.nextCourseWithin14Days(tt, today, nowTime) else null
     }
     var showWeekKb by remember { mutableStateOf(false) }
@@ -689,14 +690,16 @@ private fun TodayHeroCard(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(end = 5.dp, bottom = 5.dp)
-                    .drawBehind {
+                    .drawWithCache {
                         val s = 5.dp.toPx()
-                        drawRect(mu.accent, topLeft = Offset(s, s), size = size)
+                        val shadowCol = mu.accent
+                        onDrawBehind {
+                            drawRect(shadowCol, topLeft = Offset(s, s), size = size)
+                        }
                     }
                     .background(mu.chrome)
                     .border(2.dp, mu.ink)
-                    .drawBehind {
-                        // 右侧血红斜切带
+                    .drawWithCache {
                         val slash = Path().apply {
                             moveTo(size.width * 0.72f, 0f)
                             lineTo(size.width, 0f)
@@ -704,18 +707,23 @@ private fun TodayHeroCard(
                             lineTo(size.width * 0.54f, size.height)
                             close()
                         }
-                        drawPath(slash, mu.accent.copy(alpha = 0.90f))
-                        // 底部 5dp 警告斜纹条
-                        val barY = size.height - 5.dp.toPx()
-                        var x = -16.dp.toPx()
-                        while (x < size.width + 16.dp.toPx()) {
-                            drawLine(
-                                color = Color.White.copy(alpha = 0.28f),
-                                start = Offset(x, barY),
-                                end = Offset(x + 8.dp.toPx(), size.height),
-                                strokeWidth = 4.dp.toPx()
-                            )
-                            x += 16.dp.toPx()
+                        val slashCol = mu.accent.copy(alpha = 0.90f)
+                        val zebraPath = Path().apply {
+                            val barY = size.height - 5.dp.toPx()
+                            val shiftX = 8.dp.toPx()
+                            val step = 16.dp.toPx()
+                            var x = -step
+                            while (x < size.width + step) {
+                                moveTo(x, barY)
+                                lineTo(x + shiftX, size.height)
+                                x += step
+                            }
+                        }
+                        val zebraStroke = Stroke(width = 4.dp.toPx())
+                        val zebraCol = Color.White.copy(alpha = 0.28f)
+                        onDrawBehind {
+                            drawPath(slash, slashCol)
+                            drawPath(zebraPath, zebraCol, style = zebraStroke)
                         }
                     }
                     .padding(start = 16.dp, end = 16.dp, top = 14.dp, bottom = 18.dp)
@@ -811,22 +819,24 @@ private fun TodayHeroCard(
                 modifier = Modifier
                     .fillMaxWidth()
                     .clip(RoundedCornerShape(8.dp))
-                    .background(Brush.linearGradient(listOf(Color(0xFF03164A), Color(0xFF0148A6), Color(0xFF0B84F3))))
-                    .drawBehind {
-                        // 右上白色斜切楔
-                        val w = Path().apply {
+                    .drawWithCache {
+                        val bgGrad = Brush.linearGradient(listOf(Color(0xFF03164A), Color(0xFF0148A6), Color(0xFF0B84F3)))
+                        val wedge = Path().apply {
                             moveTo(size.width * 0.56f, 0f)
                             lineTo(size.width, 0f)
                             lineTo(size.width, size.height * 0.42f)
                             close()
                         }
-                        drawPath(w, Color.White.copy(alpha = 0.90f))
-                        // 底部 3dp 冰青渐变高光条
-                        drawRect(
-                            Brush.horizontalGradient(listOf(Color.Transparent, mu.p3Cyan, Color(0xFF77FEFC), Color.Transparent)),
-                            topLeft = Offset(0f, size.height - 3.dp.toPx()),
-                            size = androidx.compose.ui.geometry.Size(size.width, 3.dp.toPx())
-                        )
+                        val wedgeCol = Color.White.copy(alpha = 0.90f)
+                        val barGrad = Brush.horizontalGradient(listOf(Color.Transparent, mu.p3Cyan, Color(0xFF77FEFC), Color.Transparent))
+                        val barH = 3.dp.toPx()
+                        val barTop = size.height - barH
+                        val barSize = androidx.compose.ui.geometry.Size(size.width, barH)
+                        onDrawBehind {
+                            drawRect(bgGrad)
+                            drawPath(wedge, wedgeCol)
+                            drawRect(barGrad, topLeft = Offset(0f, barTop), size = barSize)
+                        }
                     }
                     .padding(16.dp)
             ) {

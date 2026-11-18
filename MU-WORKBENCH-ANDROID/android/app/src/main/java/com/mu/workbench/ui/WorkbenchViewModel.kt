@@ -2,7 +2,12 @@ package com.mu.workbench.ui
 
 import android.app.Application
 import android.content.Intent
+import android.graphics.Bitmap
+import android.graphics.BitmapFactory
 import android.net.Uri
+import android.util.LruCache
+import androidx.compose.ui.graphics.ImageBitmap
+import androidx.compose.ui.graphics.asImageBitmap
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.mu.workbench.MuBgCheck
@@ -21,6 +26,8 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Semaphore
+import kotlinx.coroutines.sync.withPermit
 import kotlinx.coroutines.withContext
 import java.time.LocalDate
 import java.time.LocalTime
@@ -129,6 +136,12 @@ class WorkbenchViewModel(app: Application) : AndroidViewModel(app) {
     private val _readerLoading = MutableStateFlow(false)
     val readerLoading: StateFlow<Boolean> = _readerLoading.asStateFlow()
 
+    private val _readerRefreshSeq = MutableStateFlow(0)
+    val readerRefreshSeq: StateFlow<Int> = _readerRefreshSeq.asStateFlow()
+
+    private val portalImgCache = LruCache<String, List<ImageBitmap>>(48)
+    private val portalImgSemaphore = Semaphore(3)
+
     private val _editingTodo = MutableStateFlow<TodoItem?>(null)
     val editingTodo: StateFlow<TodoItem?> = _editingTodo.asStateFlow()
 
@@ -146,6 +159,9 @@ class WorkbenchViewModel(app: Application) : AndroidViewModel(app) {
 
     private val _nowTime = MutableStateFlow(LocalTime.now())
     val nowTime: StateFlow<LocalTime> = _nowTime.asStateFlow()
+
+    private val _nowMinute = MutableStateFlow(LocalTime.now().withSecond(0).withNano(0))
+    val nowMinute: StateFlow<LocalTime> = _nowMinute.asStateFlow()
 
     private val _nowDate = MutableStateFlow(LocalDate.now())
     val nowDate: StateFlow<LocalDate> = _nowDate.asStateFlow()
@@ -205,7 +221,10 @@ class WorkbenchViewModel(app: Application) : AndroidViewModel(app) {
         viewModelScope.launch {
             while (true) {
                 delay(1000L)
-                _nowTime.value = LocalTime.now()
+                val now = LocalTime.now()
+                _nowTime.value = now
+                val curMin = now.withSecond(0).withNano(0)
+                if (curMin != _nowMinute.value) _nowMinute.value = curMin
                 val today = LocalDate.now()
                 if (today != _nowDate.value) _nowDate.value = today
                 tickTimers()
@@ -800,10 +819,26 @@ class WorkbenchViewModel(app: Application) : AndroidViewModel(app) {
                 pageFlow.value = targetPage
                 updateState { s ->
                     val seen = s.portal.seen.toMutableSet()
+                    val oldById = (if (kind == "lecture") s.portal.lectures else s.portal.notices).associateBy { it.id }
                     val existing = if (append) (if (kind == "lecture") s.portal.lectures else s.portal.notices) else emptyList()
                     val existingIds = existing.map { it.id }.toSet()
-                    val merged = existing + list.filter { it.id !in existingIds }
-                        .map { art -> art.copy(isNew = s.portal.seenInit && art.id !in seen) }
+                    val incoming = list.filter { it.id !in existingIds }.map { art ->
+                        val prev = oldById[art.id]
+                        val mergedArt = if (prev != null && prev.detailFetched) {
+                            art.copy(
+                                dept = art.dept.ifEmpty { prev.dept },
+                                date = art.date.ifEmpty { prev.date },
+                                bodyText = prev.bodyText,
+                                blocks = prev.blocks,
+                                imageCount = prev.imageCount,
+                                lecture = prev.lecture,
+                                detailFetched = true,
+                                attachments = prev.attachments
+                            )
+                        } else art
+                        mergedArt.copy(isNew = s.portal.seenInit && art.id !in seen)
+                    }
+                    val merged = existing + incoming
                     merged.forEach { seen.add(it.id) }
                     val nextPortal = if (kind == "lecture") {
                         s.portal.copy(
@@ -841,7 +876,22 @@ class WorkbenchViewModel(app: Application) : AndroidViewModel(app) {
 
     fun openArticle(article: PortalArticle) {
         _readerArticle.value = article
-        if (article.bodyText.isNotEmpty()) return
+        val hasValidDetail = article.detailFetched && (
+            article.blocks.isNotEmpty() ||
+                (article.bodyText.isNotEmpty() && !article.bodyText.startsWith("（正文为空"))
+            )
+        if (hasValidDetail) return
+        fetchReaderDetail(article)
+    }
+
+    fun refreshReaderArticle() {
+        val art = _readerArticle.value ?: return
+        art.blocks.filter { it.type == "img" }.forEach { portalImgCache.remove(it.src) }
+        _readerRefreshSeq.value += 1
+        fetchReaderDetail(art)
+    }
+
+    private fun fetchReaderDetail(article: PortalArticle) {
         val uc = _state.value.ucloud
         val cachedCk = _state.value.portal.cookieJarJson
         viewModelScope.launch {
@@ -862,6 +912,76 @@ class WorkbenchViewModel(app: Application) : AndroidViewModel(app) {
                 _readerLoading.value = false
             }
         }
+    }
+
+    suspend fun loadPortalImage(
+        url: String,
+        altUrl: String = "",
+        referer: String = "http://my.bupt.edu.cn/",
+        force: Boolean = false
+    ): List<ImageBitmap> {
+        if (!force) {
+            portalImgCache.get(url)?.let { return it }
+        } else {
+            portalImgCache.remove(url)
+        }
+        val (bytes, nextCookie) = portalImgSemaphore.withPermit {
+            if (!force) {
+                portalImgCache.get(url)?.let { return@loadPortalImage it }
+            }
+            val uc = _state.value.ucloud
+            val cachedCk = _state.value.portal.cookieJarJson
+            withContext(Dispatchers.IO) {
+                NativeClients.fetchPortalImageBytes(
+                    url = url,
+                    altUrl = altUrl,
+                    referer = referer,
+                    user = uc.id,
+                    pwd = uc.pwd,
+                    cachedCookieJson = cachedCk
+                )
+            }
+        }
+        if (nextCookie.isNotEmpty() && nextCookie != _state.value.portal.cookieJarJson) {
+            updateState { s ->
+                if (s.portal.cookieJarJson == nextCookie) s
+                else s.copy(portal = s.portal.copy(cookieJarJson = nextCookie))
+            }
+        }
+        val slices = withContext(Dispatchers.Default) { decodePortalImageSlices(bytes) }
+        portalImgCache.put(url, slices)
+        return slices
+    }
+
+    private fun decodePortalImageSlices(bytes: ByteArray): List<ImageBitmap> {
+        val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
+        BitmapFactory.decodeByteArray(bytes, 0, bytes.size, bounds)
+        if (bounds.outWidth <= 0 || bounds.outHeight <= 0) {
+            throw IllegalStateException("无法解码图片格式")
+        }
+        var sample = 1
+        while (bounds.outWidth / sample > 2048) {
+            sample *= 2
+        }
+        val opts = BitmapFactory.Options().apply {
+            inSampleSize = sample
+            inPreferredConfig = Bitmap.Config.ARGB_8888
+        }
+        val bmp = BitmapFactory.decodeByteArray(bytes, 0, bytes.size, opts)
+            ?: throw IllegalStateException("图片内存解码失败")
+        val maxSliceH = 2048
+        if (bmp.height <= maxSliceH) {
+            return listOf(bmp.asImageBitmap())
+        }
+        val slices = mutableListOf<ImageBitmap>()
+        var y = 0
+        while (y < bmp.height) {
+            val h = (bmp.height - y).coerceAtMost(maxSliceH)
+            slices += Bitmap.createBitmap(bmp, 0, y, bmp.width, h).asImageBitmap()
+            y += h
+        }
+        bmp.recycle()
+        return slices
     }
 
     fun closeReader() { _readerArticle.value = null }

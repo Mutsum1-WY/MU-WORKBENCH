@@ -68,17 +68,23 @@ fun CalendarScreen(vm: WorkbenchViewModel) {
         }
     }
 
-    val monthStats = remember(currentYm, state.todos, state.holidayManual, state.holidayCache) {
+    val monthMeta = remember(currentYm, state.todos, state.holidayManual, state.holidayCache) {
         var tot = 0
         var dn = 0
+        val cells = LinkedHashMap<Int, Triple<String, com.mu.workbench.data.HolidayEntry?, Pair<Boolean, Boolean>>>()
         for (d in 1..currentYm.lengthOfMonth()) {
-            val dk = TodoEngine.formatDate(currentYm.atDay(d))
+            val date = currentYm.atDay(d)
+            val dk = TodoEngine.formatDate(date)
+            val h = TodoEngine.holidayOf(dk, state, vm.builtinHolidays)
             val items = TodoEngine.dayItems(dk, state, vm.builtinHolidays)
             tot += items.size
             dn += items.count { it.isDone }
+            cells[d] = Triple(dk, h, items.any { !it.isDone } to items.any { it.isDone })
         }
-        tot to dn
+        Triple(tot, dn, cells)
     }
+    val monthStats = monthMeta.first to monthMeta.second
+    val monthDayCells = monthMeta.third
 
     val currentFlagMode = when {
         state.holidayManual[selectedKey]?.off == true -> "off"
@@ -174,13 +180,14 @@ fun CalendarScreen(vm: WorkbenchViewModel) {
                                     Spacer(Modifier.weight(1f).height(48.dp))
                                 } else {
                                     val d = currentYm.atDay(dayNum)
-                                    val dk = TodoEngine.formatDate(d)
+                                    val cellInfo = monthDayCells[dayNum]
+                                    val dk = cellInfo?.first ?: TodoEngine.formatDate(d)
                                     val isSel = d == selectedDate
                                     val isToday = d == today
-                                    val h = TodoEngine.holidayOf(dk, state, vm.builtinHolidays)
-                                    val dayTodos = TodoEngine.dayItems(dk, state, vm.builtinHolidays)
-                                    val hasPending = dayTodos.any { !it.isDone }
-                                    val hasDone = dayTodos.any { it.isDone }
+                                    val h = cellInfo?.second
+                                    val flags = cellInfo?.third ?: (false to false)
+                                    val hasPending = flags.first
+                                    val hasDone = flags.second
                                     val cellRadius = if (mu.style == ThemeStyle.P5R) 0.dp else 7.dp
 
                                     Box(

@@ -333,6 +333,29 @@ class WorkbenchRepository(private val ctx: Context) {
                         atts += PortalAttachment(att.optString("name"), att.optString("url"))
                     }
                 }
+                val blks = mutableListOf<PortalBlock>()
+                a.optJSONArray("blocks")?.let { ba ->
+                    for (j in 0 until ba.length()) {
+                        val b = ba.optJSONObject(j) ?: continue
+                        blks += PortalBlock(
+                            type = b.optString("type", "p"),
+                            text = b.optString("text"),
+                            src = b.optString("src"),
+                            altSrc = b.optString("altSrc"),
+                            level = b.optInt("level", 2),
+                            width = b.optInt("width", 0)
+                        )
+                    }
+                }
+                val lec = a.optJSONObject("lecture")?.let { lo ->
+                    PortalLectureMeta(
+                        whenText = lo.optString("whenText"),
+                        who = lo.optString("who"),
+                        host = lo.optString("host"),
+                        where = lo.optString("where"),
+                        abstractText = lo.optString("abstractText")
+                    )
+                }
                 res += PortalArticle(
                     id = a.optString("id"),
                     kind = a.optString("kind", "notice"),
@@ -341,6 +364,10 @@ class WorkbenchRepository(private val ctx: Context) {
                     dept = a.optString("dept"),
                     date = a.optString("date"),
                     bodyText = a.optString("bodyText"),
+                    blocks = blks,
+                    imageCount = a.optInt("imageCount", blks.count { it.type == "img" }),
+                    lecture = lec,
+                    detailFetched = a.optBoolean("detailFetched", false),
                     attachments = atts
                 )
             }
@@ -726,6 +753,31 @@ class WorkbenchRepository(private val ctx: Context) {
                         put("id", a.id); put("kind", a.kind); put("title", a.title)
                         put("url", a.url); put("dept", a.dept); put("date", a.date)
                         put("bodyText", a.bodyText)
+                        put("imageCount", a.imageCount)
+                        put("detailFetched", a.detailFetched)
+                        if (a.blocks.isNotEmpty()) {
+                            put("blocks", JSONArray().apply {
+                                a.blocks.forEach { b ->
+                                    put(JSONObject().apply {
+                                        put("type", b.type)
+                                        if (b.text.isNotEmpty()) put("text", b.text)
+                                        if (b.src.isNotEmpty()) put("src", b.src)
+                                        if (b.altSrc.isNotEmpty()) put("altSrc", b.altSrc)
+                                        if (b.level != 2) put("level", b.level)
+                                        if (b.width != 0) put("width", b.width)
+                                    })
+                                }
+                            })
+                        }
+                        a.lecture?.let { lec ->
+                            put("lecture", JSONObject().apply {
+                                put("whenText", lec.whenText)
+                                put("who", lec.who)
+                                put("host", lec.host)
+                                put("where", lec.where)
+                                put("abstractText", lec.abstractText)
+                            })
+                        }
                         put("attachments", JSONArray().apply {
                             a.attachments.forEach { att ->
                                 put(JSONObject().apply { put("name", att.name); put("url", att.url) })

@@ -31,7 +31,6 @@ import com.mu.workbench.ui.FocusSub
 import com.mu.workbench.ui.WorkbenchViewModel
 import com.mu.workbench.ui.components.MuCard
 import com.mu.workbench.ui.components.MuChip
-import com.mu.workbench.ui.components.MuPageBackground
 import com.mu.workbench.ui.components.MuSectionHeader
 import com.mu.workbench.ui.components.MuSegmentedRow
 import com.mu.workbench.ui.components.MuTabTransition
@@ -59,10 +58,7 @@ fun FocusScreen(vm: WorkbenchViewModel) {
             style = mu.style,
             modifier = Modifier.fillMaxSize()
         ) { sub ->
-            Box(modifier = Modifier.fillMaxSize().background(mu.paper)) {
-                MuPageBackground(chapterNumber = "03")
-                if (sub == FocusSub.CLOCK) ClockPane(vm) else ProjectsPane(vm)
-            }
+            if (sub == FocusSub.CLOCK) ClockPane(vm) else ProjectsPane(vm)
         }
     }
 }

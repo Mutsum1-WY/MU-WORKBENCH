@@ -10,6 +10,8 @@ import com.mu.workbench.data.HwTerm
 import com.mu.workbench.data.PeriodSlot
 import com.mu.workbench.data.PortalArticle
 import com.mu.workbench.data.PortalAttachment
+import com.mu.workbench.data.PortalBlock
+import com.mu.workbench.data.PortalLectureMeta
 import com.mu.workbench.data.TimetableData
 import com.mu.workbench.data.UcloudConfig
 import com.mu.workbench.data.UcloudDetailCache
@@ -1547,13 +1549,346 @@ object NativeClients {
         return html.substring(start, (start + 40000).coerceAtMost(html.length))
     }
 
-    fun fetchPortalDetail(
-        user: String,
-        pwd: String,
-        article: PortalArticle,
-        cachedCookieJson: String = ""
-    ): Pair<PortalArticle, String> {
-        val (src, nextCookieJson) = ptFetchHtml(article.url, user, pwd, cachedCookieJson)
+    private val portalLoginLock = Any()
+
+    @Volatile
+    private var portalLastRefreshPair: Pair<String, String>? = null
+
+    private data class HttpBytesResp(
+        val code: Int,
+        val bytes: ByteArray,
+        val contentType: String,
+        val finalUrl: String,
+        val location: String,
+        val stoppedOnCas: Boolean
+    )
+
+    private fun httpReqBytes(
+        url: String,
+        headers: Map<String, String> = emptyMap(),
+        externalJar: HostCookieJar? = null,
+        maxHops: Int = 6
+    ): HttpBytesResp {
+        var cur = url
+        val jar = externalJar ?: HostCookieJar()
+        var lastCode = 0
+        var lastBytes = ByteArray(0)
+        var lastCt = ""
+        var lastLoc = ""
+        var stoppedOnCas = false
+
+        for (hop in 0 until maxHops) {
+            val parsedUrl = URL(cur)
+            val host = parsedUrl.host ?: ""
+            val conn = (parsedUrl.openConnection() as HttpURLConnection).apply {
+                instanceFollowRedirects = false
+                connectTimeout = 15000
+                readTimeout = 30000
+                requestMethod = "GET"
+                setRequestProperty("User-Agent", UA)
+                setRequestProperty("Accept-Language", "zh-CN,zh;q=0.9")
+                headers.forEach { (k, v) -> setRequestProperty(k, v) }
+                val jarStr = jar.headerFor(cur)
+                if (jarStr.isNotEmpty()) {
+                    val existing = headers.entries.firstOrNull { it.key.equals("Cookie", true) }?.value
+                    setRequestProperty("Cookie", if (existing.isNullOrEmpty()) jarStr else "$existing; $jarStr")
+                }
+            }
+            lastCode = conn.responseCode
+            val respHeaders = conn.headerFields ?: emptyMap()
+            jar.absorb(host, respHeaders)
+            lastCt = header(respHeaders, "Content-Type").orEmpty()
+            val rawLoc = header(respHeaders, "Location").orEmpty()
+            lastLoc = if (rawLoc.isNotEmpty()) {
+                try { URL(parsedUrl, rawLoc).toString() } catch (_: Throwable) { rawLoc }
+            } else ""
+
+            val stream = if (lastCode in 200..399) conn.inputStream else conn.errorStream
+            lastBytes = if (stream != null) {
+                val buf = ByteArrayOutputStream()
+                stream.use { it.copyTo(buf) }
+                buf.toByteArray()
+            } else ByteArray(0)
+            conn.disconnect()
+
+            if (lastCode in listOf(301, 302, 303, 307, 308) && lastLoc.isNotEmpty()) {
+                if (lastLoc.contains("authserver", ignoreCase = true) || lastLoc.contains("/cas/", ignoreCase = true)) {
+                    stoppedOnCas = true
+                    break
+                }
+                cur = lastLoc
+                continue
+            }
+            break
+        }
+        return HttpBytesResp(lastCode, lastBytes, lastCt, cur, lastLoc, stoppedOnCas)
+    }
+
+    internal fun decodeBase64(input: String): ByteArray {
+        val clean = buildString(input.length) {
+            for (ch in input) {
+                when (ch) {
+                    '-' -> append('+')
+                    '_' -> append('/')
+                    in 'A'..'Z', in 'a'..'z', in '0'..'9', '+', '/', '=' -> append(ch)
+                }
+            }
+        }
+        if (clean.isEmpty()) return ByteArray(0)
+        val out = ByteArrayOutputStream((clean.length * 3) / 4 + 4)
+        var acc = 0
+        var bits = 0
+        for (ch in clean) {
+            if (ch == '=') break
+            val v = when (ch) {
+                in 'A'..'Z' -> ch.code - 'A'.code
+                in 'a'..'z' -> ch.code - 'a'.code + 26
+                in '0'..'9' -> ch.code - '0'.code + 52
+                '+' -> 62
+                '/' -> 63
+                else -> -1
+            }
+            if (v < 0) continue
+            acc = (acc shl 6) or v
+            bits += 6
+            if (bits >= 8) {
+                bits -= 8
+                out.write((acc shr bits) and 0xFF)
+            }
+        }
+        return out.toByteArray()
+    }
+
+    internal fun resolvePortalUrl(raw: String, baseUrl: String): String {
+        val cleaned = htmlUnescape(raw).trim()
+        if (cleaned.isEmpty() || cleaned.startsWith("javascript:", true) || cleaned.startsWith("#")) return ""
+        if (cleaned.startsWith("data:", true)) return cleaned
+        val abs = try {
+            val resolved = URL(URL(baseUrl.ifEmpty { PT_BASE }), cleaned)
+            val rawPath = resolved.path.orEmpty()
+            val normPath = if (rawPath.contains("/..") || rawPath.contains("/.")) {
+                val stack = ArrayList<String>()
+                for (seg in rawPath.split('/')) {
+                    when (seg) {
+                        "", "." -> Unit
+                        ".." -> if (stack.isNotEmpty()) stack.removeAt(stack.size - 1)
+                        else -> stack.add(seg)
+                    }
+                }
+                val trailingSlash = rawPath.endsWith("/") || rawPath.endsWith("/..") || rawPath.endsWith("/.")
+                "/" + stack.joinToString("/") + if (trailingSlash && stack.isNotEmpty()) "/" else ""
+            } else rawPath.ifEmpty { "/" }
+            val queryPart = resolved.query?.let { "?$it" }.orEmpty()
+            val refPart = resolved.ref?.let { "#$it" }.orEmpty()
+            val portPart = if (resolved.port != -1 && resolved.port != resolved.defaultPort) ":${resolved.port}" else ""
+            "${resolved.protocol}://${resolved.host}$portPart$normPath$queryPart$refPart"
+        } catch (_: Throwable) {
+            cleaned
+        }
+        val sb = StringBuilder(abs.length + 16)
+        for (ch in abs) {
+            when {
+                ch == ' ' -> sb.append("%20")
+                ch == '\t' || ch == '\r' || ch == '\n' -> Unit
+                ch.code > 0x7E -> {
+                    for (b in ch.toString().toByteArray(Charsets.UTF_8)) {
+                        sb.append('%')
+                        sb.append("%02X".format(b.toInt() and 0xFF))
+                    }
+                }
+                else -> sb.append(ch)
+            }
+        }
+        return sb.toString()
+    }
+
+    private fun extractTagAttr(attrs: String, name: String): String {
+        if (attrs.isBlank()) return ""
+        val dq = Regex("""(?:^|\s)$name\s*=\s*"([^"]*)"""", RegexOption.IGNORE_CASE).find(attrs)?.groupValues?.get(1)
+        if (dq != null) return dq
+        val sq = Regex("""(?:^|\s)$name\s*=\s*'([^']*)'""", RegexOption.IGNORE_CASE).find(attrs)?.groupValues?.get(1)
+        if (sq != null) return sq
+        val uq = Regex("""(?:^|\s)$name\s*=\s*([^\s>"']+)""", RegexOption.IGNORE_CASE).find(attrs)?.groupValues?.get(1)
+        return uq.orEmpty()
+    }
+
+    private fun isDecorativePortalImage(url: String): Boolean {
+        val lower = url.lowercase()
+        return lower.endsWith("/favicon.ico") ||
+            lower.contains("images/topback.gif") ||
+            lower.contains("images/drop-shadow.png") ||
+            lower.contains("images/bgligray.png") ||
+            lower.contains("loading.") && lower.endsWith(".gif") && !lower.contains("/__local/")
+    }
+
+    internal fun parsePortalBlocks(bodyHtml: String, baseUrl: String): List<PortalBlock> {
+        val src = bodyHtml
+            .replace(Regex("""<script[\s\S]*?</script>""", RegexOption.IGNORE_CASE), " ")
+            .replace(Regex("""<style[\s\S]*?</style>""", RegexOption.IGNORE_CASE), " ")
+            .replace(Regex("""<!--[\s\S]*?-->"""), " ")
+
+        val out = mutableListOf<PortalBlock>()
+        val buf = StringBuilder()
+        var kind = "p"
+        var level = 2
+
+        fun flush() {
+            if (buf.isEmpty()) return
+            val raw = buf.toString()
+            buf.setLength(0)
+            if (raw.replace(Regex("""<[^>]*>"""), "").isBlank()) return
+            val text = stripHtml(
+                raw.replace(Regex("""<br\s*/?>""", RegexOption.IGNORE_CASE), "\n")
+            )
+            if (text.isBlank()) return
+            if (kind == "p" && text.contains('\n')) {
+                text.lines().map { it.trim() }.filter { it.isNotEmpty() }.forEach { line ->
+                    out += PortalBlock(type = "p", text = line)
+                }
+            } else {
+                val single = text.lines().map { it.trim() }.filter { it.isNotEmpty() }.joinToString(" ")
+                if (single.isNotEmpty()) {
+                    out += PortalBlock(type = kind, text = single, level = level)
+                }
+            }
+        }
+
+        val blockTags = setOf(
+            "p", "div", "li", "tr", "td", "th", "table", "section", "article",
+            "blockquote", "ul", "ol", "dl", "dt", "dd", "pre", "form",
+            "h1", "h2", "h3", "h4", "h5", "h6"
+        )
+        val tagRe = Regex("""<(/?)([a-zA-Z][\w:-]*)((?:[^>"']|"[^"]*"|'[^']*')*)>""")
+        var last = 0
+        for (m in tagRe.findAll(src)) {
+            buf.append(src, last, m.range.first)
+            last = m.range.last + 1
+            val closing = m.groupValues[1].isNotEmpty()
+            val tag = m.groupValues[2].lowercase()
+            val attrs = m.groupValues[3]
+
+            when {
+                tag == "img" && !closing -> {
+                    flush()
+                    val sSrc = extractTagAttr(attrs, "src")
+                    val oriSrc = extractTagAttr(attrs, "orisrc")
+                    val dataSrc = extractTagAttr(attrs, "data-src")
+                        .ifEmpty { extractTagAttr(attrs, "data-original") }
+                    val oldSrc = extractTagAttr(attrs, "oldsrc")
+                    val primaryRaw = sSrc.ifEmpty { dataSrc }.ifEmpty { oriSrc }.ifEmpty { oldSrc }
+                    val altRaw = if (oriSrc.isNotEmpty() && oriSrc != primaryRaw) oriSrc
+                    else if (oldSrc.isNotEmpty() && oldSrc != primaryRaw) oldSrc else ""
+
+                    val absSrc = resolvePortalUrl(primaryRaw, baseUrl)
+                    val absAlt = resolvePortalUrl(altRaw, baseUrl)
+                    if (absSrc.isNotEmpty() && !isDecorativePortalImage(absSrc)) {
+                        val w = extractTagAttr(attrs, "width").toIntOrNull()
+                            ?: extractTagAttr(attrs, "vwidth").toIntOrNull()
+                            ?: 0
+                        out += PortalBlock(
+                            type = "img",
+                            src = absSrc,
+                            altSrc = if (absAlt != absSrc) absAlt else "",
+                            width = w
+                        )
+                    }
+                }
+                tag == "hr" && !closing -> {
+                    flush()
+                    out += PortalBlock(type = "hr")
+                }
+                tag == "br" -> {
+                    buf.append('\n')
+                }
+                tag in blockTags -> {
+                    flush()
+                    if (closing) {
+                        if (tag.startsWith("h") || tag == "li" || tag == "blockquote") {
+                            kind = "p"
+                            level = 2
+                        }
+                    } else {
+                        when {
+                            tag.length == 2 && tag[0] == 'h' && tag[1] in '1'..'6' -> {
+                                kind = "h"
+                                level = (tag[1] - '0').coerceIn(1, 6)
+                            }
+                            tag == "li" -> {
+                                kind = "li"
+                                level = 2
+                            }
+                            tag == "blockquote" -> {
+                                kind = "q"
+                                level = 2
+                            }
+                            else -> {
+                                kind = "p"
+                                level = 2
+                            }
+                        }
+                    }
+                }
+                else -> buf.append(m.value)
+            }
+        }
+        buf.append(src, last, src.length)
+        flush()
+        return out
+    }
+
+    private fun trimPortalBlocks(blocks: List<PortalBlock>, loose: Boolean): List<PortalBlock> {
+        val bareJsRe = Regex("""^[a-z_${'$'}][\w${'$'}]*\s*\([^)]*\)\s*;?$|^(?:function\s+\w+\s*\(|var\s+\w+\s*=|\}?\s*(?:if|for|while)\s*\()|_showDynClicks\(""", RegexOption.IGNORE_CASE)
+        val breadcrumbRe = Regex("""^(?:当前位置|您的位置|首页\s*[>›]|字体[:：]|字号|浏览[:：]|点击[:：])""")
+        val tailRe = if (loose) {
+            Regex("""^(?:公告附件|附件下载|附件[:：]|相关通知|相关新闻|相关阅读|相关链接|相关文章|打印$|关\s*闭$|上一篇|下一篇|上一条|下一条|返回列表|读取内容中|版权所有|Copyright|分享到|浏览次数|字体[:：]|字号|【?\s*(?:关闭|返回)|返回顶部|getRelateNews|function\s|var\s+\w+\s*=|window\.|document\.)""", RegexOption.IGNORE_CASE)
+        } else {
+            Regex("""^(?:公告附件|附件下载|相关通知|相关新闻|相关阅读|相关链接|相关文章|打印$|关\s*闭$|读取内容中|版权所有|Copyright|getRelateNews|function\s|var\s+\w+\s*=)""", RegexOption.IGNORE_CASE)
+        }
+
+        val cleaned = blocks.filter { b ->
+            if (b.type == "img" || b.type == "hr") return@filter true
+            val v = b.text.trim()
+            v.isNotEmpty() && !bareJsRe.containsMatchIn(v) && (loose || !breadcrumbRe.containsMatchIn(v))
+        }
+
+        // 从尾部剔除“公告附件 / 相关通知 / 打印 / 关闭 / 版权所有”等噪声块，绝不丢弃任何图片块
+        var end = cleaned.size
+        for (j in cleaned.indices.reversed()) {
+            val b = cleaned[j]
+            if (b.type == "img") break
+            if (b.type == "hr") {
+                if (end == j + 1) end = j
+                continue
+            }
+            val t = b.text.trim()
+            if (t.length > 80) break
+            if (tailRe.containsMatchIn(t)) end = j
+            else if (end == j + 1 && Regex("""^(?:打\s*印|关\s*闭|返\s*回)$""").matches(t)) end = j
+            else break
+        }
+        return if (end < cleaned.size) cleaned.subList(0, end) else cleaned
+    }
+
+    internal fun parsePortalDetailHtml(src: String, article: PortalArticle): PortalArticle {
+        val titleParsed = stripHtml(
+            Regex("""<h1[^>]*class=["'][^"']*text-center[^"']*["'][^>]*>([\s\S]{0,400}?)</h1>""", RegexOption.IGNORE_CASE)
+                .find(src)?.groupValues?.get(1).orEmpty()
+        ).ifEmpty {
+            stripHtml(
+                Regex("""<title>([\s\S]*?)</title>""", RegexOption.IGNORE_CASE)
+                    .find(src)?.groupValues?.get(1).orEmpty()
+                    .replace(Regex("""[-—]\s*欢迎访问信息服务门户\s*$"""), "")
+            )
+        }
+        val metaRaw = stripHtml(
+            Regex("""<div[^>]*class=["'][^"']*singlemeta[^"']*["'][^>]*>([\s\S]{0,800}?)</div>""", RegexOption.IGNORE_CASE)
+                .find(src)?.groupValues?.get(1).orEmpty()
+        )
+        val parsedDept = Regex("""(?:发布部门|发布单位)\s*[:：]\s*([^\s<]+)""").find(metaRaw)?.groupValues?.get(1).orEmpty()
+        val parsedDate = Regex("""发布时间\s*[:：]\s*(\d{4})\s*[-年./]\s*(\d{1,2})\s*[-月./]\s*(\d{1,2})""")
+            .find(metaRaw)?.let { m ->
+                "%s-%02d-%02d".format(m.groupValues[1], m.groupValues[2].toInt(), m.groupValues[3].toInt())
+            }.orEmpty()
 
         val pats = listOf(
             Regex("""<div[^>]*id=['"]vsb_content['"][^>]*>""", RegexOption.IGNORE_CASE),
@@ -1564,75 +1899,241 @@ object NativeClients {
             Regex("""<div[^>]*id=['"](?:content|mainContent|main_content)['"][^>]*>""", RegexOption.IGNORE_CASE)
         )
         var rawBody = ""
-        for (pat in pats) {
+        var pickIdx = -1
+        for ((idx, pat) in pats.withIndex()) {
             val cand = sliceBalancedDiv(src, pat)
-            if (cand.contains("<p", true) || cand.contains("<br", true) || stripHtml(cand).length > 40) {
+            if (cand.contains("<img", true) || cand.contains("<p", true) || cand.contains("<br", true) || stripHtml(cand).length > 40) {
                 rawBody = cand
+                pickIdx = idx
                 break
             }
         }
         if (rawBody.isEmpty()) {
-            // 挑含 <p> 且字数最多的 div 兜底
             var bestLen = 0
+            var bestImgFallback = ""
             val anyDiv = Regex("""<div[^>]*>""", RegexOption.IGNORE_CASE)
             var guard = 0
             for (m in anyDiv.findAll(src)) {
                 if (guard++ >= 120) break
                 if (Regex("""class=["'][^"']*(?:nav|menu|footer|header|crumb|search|sidebar|copyright|link)""", RegexOption.IGNORE_CASE).containsMatchIn(m.value)) continue
                 val sub = sliceBalancedDiv(src.substring(m.range.first), Regex("""<div[^>]*>""", RegexOption.IGNORE_CASE))
-                if (!sub.contains("<p", true)) continue
+                val hasImg = sub.contains("<img", true)
+                val hasP = sub.contains("<p", true)
+                if (!hasP && !hasImg) continue
                 val len = stripHtml(sub).length
                 if (len > bestLen) {
                     bestLen = len
                     rawBody = sub
+                } else if (hasImg && bestImgFallback.isEmpty()) {
+                    bestImgFallback = sub
                 }
             }
+            if (rawBody.isEmpty()) rawBody = bestImgFallback
         }
         if (rawBody.isEmpty()) rawBody = src
 
-        val tailStrongRe = Regex("""^(?:公告附件|附件下载|相关通知|相关新闻|相关阅读|相关链接|相关文章|打印$|关\s*闭$|读取内容中|版权所有|Copyright|getRelateNews|function\s|var\s+\w+\s*=)""", RegexOption.IGNORE_CASE)
-        val cleanText = stripHtml(
-            rawBody
-                .replace(Regex("""<br\s*/?>""", RegexOption.IGNORE_CASE), "\n")
-                .replace(Regex("""</(?:p|div|li|tr|h[1-6]|blockquote)>""", RegexOption.IGNORE_CASE), "\n")
-        ).lines()
-            .map { it.trim() }
-            .filter { line ->
-                line.isNotEmpty() &&
-                    !Regex("""^[a-z_\$][\w\$]*\s*\([^)]*\)\s*;$|^function\s+\w+\s*\(|^var\s+\w+\s*=""").containsMatchIn(line) &&
-                    !Regex("""^(?:当前位置|您的位置|首页\s*[>›]|字体[:：]|字号|浏览[:：]|点击[:：])""").containsMatchIn(line)
-            }
-            .let { lines ->
-                var end = lines.size
-                for (j in lines.indices.reversed()) {
-                    if (lines[j].length <= 80 && tailStrongRe.containsMatchIn(lines[j])) end = j
-                }
-                lines.subList(0, end)
-            }
-            .joinToString("\n")
-            .trim()
+        val exact = pickIdx == 0 || pickIdx == 1
+        val rawBlocks = parsePortalBlocks(rawBody, article.url.ifEmpty { PT_BASE })
+        val trimmedBlocks = trimPortalBlocks(rawBlocks, !exact)
 
+        val effectiveTitle = article.title.ifEmpty { titleParsed }
+        val textLines = trimmedBlocks
+            .filter { it.type in setOf("p", "h", "li", "q") }
+            .map { it.text }
+        var bodyText = textLines.joinToString("\n").trim()
+        if (effectiveTitle.isNotEmpty() && bodyText.startsWith(effectiveTitle)) {
+            bodyText = bodyText.removePrefix(effectiveTitle).trim()
+        }
+        val imageCount = trimmedBlocks.count { it.type == "img" }
+
+        // 解析讲座结构化字段
+        val fields = listOf("报告题目", "报告人", "主讲人", "主持人", "报告时间", "讲座时间", "腾讯会议", "会议号", "地点", "报告摘要", "专家简介")
+        val got = LinkedHashMap<String, String>()
+        val splitLines = bodyText.lines()
+        for (i in splitLines.indices) {
+            val line = splitLines[i].trim()
+            val colonIdx = line.indexOfFirst { it == '：' || it == ':' }
+            if (colonIdx <= 0) continue
+            val kCompact = line.substring(0, colonIdx).replace(Regex("""\s+"""), "")
+            if (kCompact !in fields || kCompact in got) continue
+            var v = line.substring(colonIdx + 1).trim()
+            if (v.isEmpty() && kCompact == "报告摘要" && i + 1 < splitLines.size) {
+                v = splitLines[i + 1].trim()
+            }
+            got[kCompact] = v
+        }
+        val lecMeta = if (article.kind == "lecture") {
+            val w = got["报告时间"].orEmpty().ifEmpty { got["讲座时间"].orEmpty() }
+            val who = got["报告人"].orEmpty().ifEmpty { got["主讲人"].orEmpty() }
+            val host = got["主持人"].orEmpty()
+            val where = got["地点"].orEmpty().ifEmpty { got["腾讯会议"].orEmpty() }.ifEmpty { got["会议号"].orEmpty() }
+            val abs = got["报告摘要"].orEmpty()
+            if (listOf(w, who, host, where, abs).any { it.isNotEmpty() }) {
+                PortalLectureMeta(whenText = w, who = who, host = host, where = where, abstractText = abs)
+            } else null
+        } else null
+
+        // 提取附件（保留扩展名补全）
         val atts = mutableListOf<PortalAttachment>()
         val seenAtt = HashSet<String>()
+        val fileExtRe = Regex("""\.(pdf|docx?|xlsx?|pptx?|zip|rar|7z|tar|gz|txt|csv|et|ett|wps|wpt|dps|dpt|ofd|ceb|png|jpe?g|gif|bmp|mp4|mp3|wav|mov)$""", RegexOption.IGNORE_CASE)
         val allLinkRe = Regex("""<a\b[^>]*href\s*=\s*["']([^"']+)["'][^>]*>([\s\S]{0,200}?)</a>""", RegexOption.IGNORE_CASE)
         for (am in allLinkRe.findAll(src)) {
             if (atts.size >= 24) break
             val href = htmlUnescape(am.groupValues[1]).trim()
             if (!Regex("""download\.jsp|wbfileid=|DownloadAttach|/(?:attach(?:ment)?s?|upload)s?/""", RegexOption.IGNORE_CASE).containsMatchIn(href)) continue
             if (href.startsWith("javascript:", true) || href.startsWith("#")) continue
-            val u = try { URL(URL(article.url), href).toString() } catch (_: Throwable) { href }
-            if (!seenAtt.add(u)) continue
-            val n = stripHtml(am.groupValues[2])
+            val u = resolvePortalUrl(href, article.url.ifEmpty { PT_BASE })
+            if (u.isEmpty() || !seenAtt.add(u)) continue
+            var n = stripHtml(am.groupValues[2])
                 .replace(Regex("""^(?:附\s*件\s*\d*\s*[.．、,，:：\-—–_]*|公告附件如下[:：]?|下载附件[:：]?)\s*"""), "")
+                .replace(Regex("""^[-—–·•.．、,，:：\s]+"""), "")
                 .replace(Regex("""[（(]\s*(?:点击)?下载\s*[)）]"""), "")
                 .trim()
-                .ifEmpty { "附件" }
-            atts += PortalAttachment(n, u)
+            if (n.isNotEmpty() && !fileExtRe.containsMatchIn(n)) {
+                val fromHref = Regex("""[?&](?:filename|name)=([^&]+)""", RegexOption.IGNORE_CASE).find(href)?.groupValues?.get(1)
+                val decodedHrefName = if (fromHref != null) try { URLDecoder.decode(fromHref, "UTF-8") } catch (_: Throwable) { fromHref } else ""
+                val ext = Regex("""\.(pdf|docx?|xlsx?|pptx?|zip|rar|7z|tar|gz|txt|csv|wps|ofd|png|jpe?g|gif|bmp|mp4|mp3)$""", RegexOption.IGNORE_CASE)
+                    .find(decodedHrefName)?.value
+                    ?: Regex("""\.(pdf|docx?|xlsx?|pptx?|zip|rar|7z|tar|gz|txt|csv|wps|ofd|png|jpe?g|gif|bmp|mp4|mp3)$""", RegexOption.IGNORE_CASE)
+                        .find(href)?.value.orEmpty()
+                if (ext.isNotEmpty()) n = n.replace(Regex("""[.．·\s]+$"""), "") + ext
+            }
+            atts += PortalAttachment(n.ifEmpty { "附件" }, u)
         }
+
         return article.copy(
-            bodyText = cleanText.ifEmpty { "（正文为空或仅含图片，可点右上角浏览器打开原文）" },
+            title = effectiveTitle,
+            dept = article.dept.ifEmpty { parsedDept },
+            date = article.date.ifEmpty { parsedDate },
+            bodyText = when {
+                bodyText.isNotEmpty() -> bodyText
+                imageCount > 0 -> ""
+                else -> "（正文为空，可点右上角浏览器打开原文）"
+            },
+            blocks = trimmedBlocks,
+            imageCount = imageCount,
+            lecture = lecMeta,
+            detailFetched = true,
             attachments = atts
-        ) to nextCookieJson
+        )
+    }
+
+    fun fetchPortalDetail(
+        user: String,
+        pwd: String,
+        article: PortalArticle,
+        cachedCookieJson: String = ""
+    ): Pair<PortalArticle, String> {
+        val (src, nextCookieJson) = ptFetchHtml(article.url, user, pwd, cachedCookieJson)
+        return parsePortalDetailHtml(src, article) to nextCookieJson
+    }
+
+    private fun looksLikeHtmlResponse(contentType: String, bytes: ByteArray): Boolean {
+        if (contentType.contains("text/html", ignoreCase = true) ||
+            contentType.contains("application/xhtml", ignoreCase = true)
+        ) return true
+        if (bytes.isEmpty()) return false
+        val probeLen = bytes.size.coerceAtMost(256)
+        val head = String(bytes, 0, probeLen, Charsets.ISO_8859_1)
+            .trimStart('\uFEFF', ' ', '\t', '\r', '\n')
+            .lowercase()
+        return head.startsWith("<html") ||
+            head.startsWith("<!doctype") ||
+            head.startsWith("<head") ||
+            head.startsWith("<script") ||
+            head.contains("authserver") ||
+            head.contains("统一身份认证")
+    }
+
+    fun fetchPortalImageBytes(
+        url: String,
+        altUrl: String = "",
+        referer: String = PT_BASE,
+        user: String,
+        pwd: String,
+        cachedCookieJson: String = ""
+    ): Pair<ByteArray, String> {
+        val trimmed = url.trim()
+        if (trimmed.startsWith("data:", ignoreCase = true)) {
+            val comma = trimmed.indexOf(',')
+            if (comma > 0) {
+                val decoded = decodeBase64(trimmed.substring(comma + 1))
+                if (decoded.isNotEmpty()) return decoded to cachedCookieJson
+            }
+            throw IllegalStateException("内嵌图片数据无效")
+        }
+
+        var jarJson = portalLastRefreshPair?.let { (oldCk, newCk) ->
+            if (oldCk == cachedCookieJson && newCk.isNotEmpty()) newCk else cachedCookieJson
+        } ?: cachedCookieJson
+
+        var jar = HostCookieJar.fromString(jarJson)
+        if (jar.headerForHost(PT_HOST).isEmpty() && user.isNotBlank() && pwd.isNotBlank()) {
+            synchronized(portalLoginLock) {
+                val refreshed = portalLastRefreshPair
+                if (refreshed != null && refreshed.first == cachedCookieJson && refreshed.second.isNotEmpty()) {
+                    jarJson = refreshed.second
+                    jar = HostCookieJar.fromString(jarJson)
+                } else {
+                    jar = portalLoginJar(user, pwd)
+                    jarJson = jar.toJsonString()
+                    portalLastRefreshPair = cachedCookieJson to jarJson
+                }
+            }
+        }
+
+        val candidates = listOf(url.trim(), altUrl.trim()).filter { it.isNotEmpty() }.distinct()
+        var lastErr = "图片下载失败"
+
+        for (targetUrl in candidates) {
+            var res = httpReqBytes(
+                url = targetUrl,
+                headers = mapOf(
+                    "Referer" to referer.ifEmpty { PT_BASE },
+                    "Accept" to "image/avif,image/webp,image/apng,image/*,*/*;q=0.8"
+                ),
+                externalJar = jar
+            )
+            val needRelogin = res.stoppedOnCas ||
+                res.code in listOf(401, 403) ||
+                looksLikeHtmlResponse(res.contentType, res.bytes)
+
+            if (needRelogin && user.isNotBlank() && pwd.isNotBlank()) {
+                val beforeCk = jarJson
+                synchronized(portalLoginLock) {
+                    val refreshed = portalLastRefreshPair
+                    if (refreshed != null && refreshed.first == beforeCk && refreshed.second.isNotEmpty()) {
+                        jarJson = refreshed.second
+                        jar = HostCookieJar.fromString(jarJson)
+                    } else {
+                        jar = portalLoginJar(user, pwd)
+                        jarJson = jar.toJsonString()
+                        portalLastRefreshPair = beforeCk to jarJson
+                    }
+                }
+                res = httpReqBytes(
+                    url = targetUrl,
+                    headers = mapOf(
+                        "Referer" to referer.ifEmpty { PT_BASE },
+                        "Accept" to "image/avif,image/webp,image/apng,image/*,*/*;q=0.8"
+                    ),
+                    externalJar = jar
+                )
+            }
+
+            if (res.code == 200 && res.bytes.isNotEmpty() && !looksLikeHtmlResponse(res.contentType, res.bytes)) {
+                return res.bytes to jar.toJsonString()
+            }
+
+            lastErr = when {
+                res.stoppedOnCas -> "门户会话已过期，请刷新或重登"
+                looksLikeHtmlResponse(res.contentType, res.bytes) -> "返回了登录页而非图片"
+                res.code != 200 -> "HTTP ${res.code}"
+                else -> "图片响应为空"
+            }
+        }
+        throw IllegalStateException(lastErr)
     }
 
     /* ===================== 5. 教务系统在线课表 ===================== */

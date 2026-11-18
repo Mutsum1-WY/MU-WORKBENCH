@@ -265,6 +265,23 @@ data class PortalAttachment(
     val url: String
 )
 
+data class PortalBlock(
+    val type: String,          // "p", "h", "li", "q", "hr", "img"
+    val text: String = "",
+    val src: String = "",      // 绝对图片 URL
+    val altSrc: String = "",   // 备用原图 URL（如 VSB orisrc）
+    val level: Int = 2,
+    val width: Int = 0
+)
+
+data class PortalLectureMeta(
+    val whenText: String = "",
+    val who: String = "",
+    val host: String = "",
+    val where: String = "",
+    val abstractText: String = ""
+)
+
 data class PortalArticle(
     val id: String,
     val kind: String, // "notice" or "lecture"
@@ -273,6 +290,10 @@ data class PortalArticle(
     val dept: String = "",
     val date: String = "",
     val bodyText: String = "",
+    val blocks: List<PortalBlock> = emptyList(),
+    val imageCount: Int = 0,
+    val lecture: PortalLectureMeta? = null,
+    val detailFetched: Boolean = false,
     val attachments: List<PortalAttachment> = emptyList(),
     val isNew: Boolean = false
 )

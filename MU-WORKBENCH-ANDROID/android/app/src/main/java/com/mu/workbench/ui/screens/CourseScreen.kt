@@ -33,7 +33,6 @@ import com.mu.workbench.ui.WorkbenchViewModel
 import com.mu.workbench.ui.components.CameraQrScanner
 import com.mu.workbench.ui.components.MuCard
 import com.mu.workbench.ui.components.MuChip
-import com.mu.workbench.ui.components.MuPageBackground
 import com.mu.workbench.ui.components.MuTabTransition
 import com.mu.workbench.ui.theme.LocalMuColors
 
@@ -43,7 +42,7 @@ fun CourseScreen(vm: WorkbenchViewModel) {
     val sub by vm.courseSub.collectAsState()
     val dir by vm.courseSubDir.collectAsState()
 
-    Column(modifier = Modifier.fillMaxSize().background(mu.paper)) {
+    Column(modifier = Modifier.fillMaxSize()) {
         // 吸顶可横滑子页签
         Row(
             modifier = Modifier
@@ -93,15 +92,12 @@ fun CourseScreen(vm: WorkbenchViewModel) {
             style = mu.style,
             modifier = Modifier.fillMaxSize()
         ) { cur ->
-            Box(modifier = Modifier.fillMaxSize().background(mu.paper)) {
-                MuPageBackground(chapterNumber = "05")
-                when (cur) {
-                    CourseSub.COURSE -> CourseRatioPane(vm)
-                    CourseSub.BONUS -> BonusPane(vm)
-                    CourseSub.SCAN -> ScanPane(vm)
-                    CourseSub.HW -> HwArchivePane(vm)
-                    CourseSub.ZZ -> ZzPane(vm)
-                }
+            when (cur) {
+                CourseSub.COURSE -> CourseRatioPane(vm)
+                CourseSub.BONUS -> BonusPane(vm)
+                CourseSub.SCAN -> ScanPane(vm)
+                CourseSub.HW -> HwArchivePane(vm)
+                CourseSub.ZZ -> ZzPane(vm)
             }
         }
     }
@@ -381,7 +377,7 @@ fun ScanPane(vm: WorkbenchViewModel, modifier: Modifier = Modifier) {
     val tokenFresh = hasToken && (System.currentTimeMillis() - uc.tokenAt) < 100 * 60 * 1000L
 
     LazyColumn(
-        modifier = modifier.fillMaxSize().background(mu.paper),
+        modifier = modifier.fillMaxSize(),
         contentPadding = PaddingValues(14.dp, 10.dp, 14.dp, 96.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {

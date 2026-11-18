@@ -87,7 +87,7 @@ fun BonusPane(vm: WorkbenchViewModel) {
     }
 
     LazyColumn(
-        modifier = Modifier.fillMaxSize().background(mu.paper),
+        modifier = Modifier.fillMaxSize(),
         contentPadding = PaddingValues(14.dp, 10.dp, 14.dp, 96.dp),
         verticalArrangement = Arrangement.spacedBy(10.dp)
     ) {
@@ -464,7 +464,7 @@ fun HwArchivePane(vm: WorkbenchViewModel) {
     }
 
     LazyColumn(
-        modifier = Modifier.fillMaxSize().background(mu.paper),
+        modifier = Modifier.fillMaxSize(),
         contentPadding = PaddingValues(14.dp, 10.dp, 14.dp, 96.dp),
         verticalArrangement = Arrangement.spacedBy(10.dp)
     ) {
@@ -754,7 +754,7 @@ fun ZzPane(vm: WorkbenchViewModel) {
     val total = basicScore * 0.1 + majorScore * 0.7 + devScore * 0.2
 
     LazyColumn(
-        modifier = Modifier.fillMaxSize().background(mu.paper),
+        modifier = Modifier.fillMaxSize(),
         contentPadding = PaddingValues(14.dp, 10.dp, 14.dp, 96.dp),
         verticalArrangement = Arrangement.spacedBy(10.dp)
     ) {
