@@ -1,7 +1,13 @@
 package com.mu.workbench.ui.screens
 
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -441,10 +447,66 @@ fun TodayScreen(vm: WorkbenchViewModel) {
                     val dueProgress = remember(u.endTime, detail?.beginTime) {
                         computeUcloudUrgency(u.endTime, detail?.beginTime.orEmpty())
                     }
+                    val ucProgAnim by animateFloatAsState(
+                        targetValue = if (uDone) 0f else dueProgress.second,
+                        animationSpec = MuMotion.floatSpring(mu.style),
+                        label = "ucProg"
+                    )
+                    val sheenTransition = rememberInfiniteTransition(label = "ucSheen")
+                    val sheenPhase by sheenTransition.animateFloat(
+                        initialValue = -0.35f,
+                        targetValue = 1.35f,
+                        animationSpec = infiniteRepeatable(
+                            animation = tween(durationMillis = 2600, easing = LinearEasing),
+                            repeatMode = RepeatMode.Restart
+                        ),
+                        label = "ucSheenPhase"
+                    )
+                    val showProg = !uDone && u.endTime.isNotEmpty()
 
                     MuCard(
                         backgroundColor = if (uDone) mu.paper2 else mu.surface1,
+                        borderColor = if (isOpen) mu.accent else null,
                         padding = 12.dp,
+                        behindContent = if (showProg) {
+                            {
+                                val fillW = (size.width * ucProgAnim).coerceIn(0f, size.width)
+                                if (fillW > 0f) {
+                                    drawRect(
+                                        brush = Brush.horizontalGradient(
+                                            colors = listOf(
+                                                dueProgress.third.copy(alpha = 0.15f),
+                                                dueProgress.third.copy(alpha = 0.05f)
+                                            ),
+                                            startX = 0f,
+                                            endX = fillW
+                                        ),
+                                        size = androidx.compose.ui.geometry.Size(fillW, size.height)
+                                    )
+                                    val edgeW = 2.dp.toPx()
+                                    drawRect(
+                                        color = dueProgress.third.copy(alpha = 0.45f),
+                                        topLeft = Offset((fillW - edgeW).coerceAtLeast(0f), 0f),
+                                        size = androidx.compose.ui.geometry.Size(edgeW, size.height)
+                                    )
+                                }
+                                val bandW = size.width * 0.36f
+                                val cx = sheenPhase * size.width
+                                drawRect(
+                                    brush = Brush.horizontalGradient(
+                                        colors = listOf(
+                                            Color.Transparent,
+                                            dueProgress.third.copy(alpha = 0.13f),
+                                            Color.White.copy(alpha = 0.10f),
+                                            Color.Transparent
+                                        ),
+                                        startX = cx - bandW,
+                                        endX = cx + bandW
+                                    ),
+                                    size = size
+                                )
+                            }
+                        } else null,
                         onClick = {
                             expandedUcloudId = if (isOpen) "" else u.id
                             if (!isOpen) vm.fetchUcloudTodoDetail(u.id)
@@ -487,23 +549,49 @@ fun TodayScreen(vm: WorkbenchViewModel) {
                                         )
                                     }
                                 }
-                                if (u.endTime.isNotEmpty()) {
-                                    Spacer(Modifier.height(5.dp))
-                                    Box(
-                                        modifier = Modifier
-                                            .fillMaxWidth()
-                                            .height(4.dp)
-                                            .clip(RoundedCornerShape(if (mu.style == ThemeStyle.IOS) 999.dp else 0.dp))
-                                            .background(mu.surface3)
-                                    ) {
-                                        Box(
-                                            modifier = Modifier
-                                                .fillMaxWidth(dueProgress.second)
-                                                .fillMaxHeight()
-                                                .background(dueProgress.third)
+                            }
+                        }
+                        if (u.endTime.isNotEmpty()) {
+                            Spacer(Modifier.height(8.dp))
+                            val barShape = RoundedCornerShape(if (mu.style == ThemeStyle.P5R) 0.dp else 999.dp)
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(9.dp)
+                                    .clip(barShape)
+                                    .background(dueProgress.third.copy(alpha = 0.14f))
+                                    .border(
+                                        width = if (mu.style == ThemeStyle.P5R) 1.dp else 0.5.dp,
+                                        color = if (mu.style == ThemeStyle.P5R) mu.ink else dueProgress.third.copy(alpha = 0.35f),
+                                        shape = barShape
+                                    )
+                            ) {
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxWidth(if (uDone) 0f else ucProgAnim)
+                                        .fillMaxHeight()
+                                        .background(
+                                            Brush.horizontalGradient(
+                                                listOf(dueProgress.third, dueProgress.third.copy(alpha = 0.78f))
+                                            )
                                         )
-                                    }
-                                }
+                                        .drawBehind {
+                                            val bw = size.width * 0.45f
+                                            val bx = sheenPhase * size.width
+                                            drawRect(
+                                                brush = Brush.horizontalGradient(
+                                                    colors = listOf(
+                                                        Color.Transparent,
+                                                        Color.White.copy(alpha = 0.42f),
+                                                        Color.Transparent
+                                                    ),
+                                                    startX = bx - bw,
+                                                    endX = bx + bw
+                                                ),
+                                                size = size
+                                            )
+                                        }
+                                )
                             }
                         }
 

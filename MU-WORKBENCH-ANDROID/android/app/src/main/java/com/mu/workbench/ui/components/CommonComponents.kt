@@ -22,8 +22,10 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.draw.drawWithCache
 import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
@@ -253,6 +255,7 @@ fun MuCard(
     borderColor: Color? = null,
     padding: Dp = 14.dp,
     showCornerAccent: Boolean = true,
+    behindContent: (DrawScope.() -> Unit)? = null,
     onClick: (() -> Unit)? = null,
     content: @Composable ColumnScope.() -> Unit
 ) {
@@ -291,6 +294,7 @@ fun MuCard(
     val finalMod = base
         .clip(shape)
         .background(bg)
+        .then(if (behindContent != null) Modifier.drawBehind { behindContent() } else Modifier)
         .border(mu.cardBorderWidth, bd, shape)
         .let { m ->
             if (!showCornerAccent || mu.style == ThemeStyle.IOS) m
