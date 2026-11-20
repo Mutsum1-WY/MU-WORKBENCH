@@ -11,13 +11,32 @@ enum class ThemeStyle(val key: String, val label: String, val desc: String) {
 }
 
 enum class AccentStyle(val key: String, val label: String, val hex: Long, val hex2: Long) {
-    BLUE("blue", "血红 / 经典蓝", 0xFFE4002B, 0xFFFF3355),
+    BLUE("blue", "主题默认", 0xFF007AFF, 0xFF5AC8FA),
+    RED("red", "绯红", 0xFFE4002B, 0xFFFF3355),
     CYAN("cyan", "青碧", 0xFF0D7F86, 0xFF14B8A6),
     VIOLET("violet", "紫电", 0xFF5B32C9, 0xFF8B5CF6),
     MINT("mint", "翠绿", 0xFF0F7A4F, 0xFF22C55E),
     SUNSET("sunset", "落日", 0xFFD94A1E, 0xFFF59E0B),
     ROSE("rose", "樱粉", 0xFFC2185B, 0xFFFB7185),
     P3BLUE("p3blue", "月蓝", 0xFF015FCC, 0xFF16CFFB);
+
+    fun previewHex(theme: ThemeStyle): Long = when (this) {
+        BLUE -> when (theme) {
+            ThemeStyle.IOS -> 0xFF007AFF
+            ThemeStyle.P3R -> 0xFF015FCC
+            ThemeStyle.P5R -> 0xFFE4002B
+        }
+        else -> hex
+    }
+
+    fun displayLabel(theme: ThemeStyle): String = when (this) {
+        BLUE -> when (theme) {
+            ThemeStyle.IOS -> "经典蓝（默认）"
+            ThemeStyle.P3R -> "月海蓝（默认）"
+            ThemeStyle.P5R -> "怪盗红（默认）"
+        }
+        else -> label
+    }
 
     companion object {
         fun fromKey(k: String?): AccentStyle = entries.firstOrNull { it.key == k } ?: BLUE

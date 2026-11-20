@@ -7,8 +7,10 @@ import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
@@ -117,21 +119,41 @@ fun SettingsScreen(
                             }
                         }
                         Spacer(Modifier.height(4.dp))
-                        Text("七套主题色", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = mu.ink2)
-                        Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                            AccentStyle.entries.forEach { ac ->
-                                val on = state.settings.accent == ac
-                                Box(
-                                    modifier = Modifier
-                                        .size(30.dp)
-                                        .clip(CircleShape)
-                                        .background(Color(ac.hex))
-                                        .border(if (on) 3.dp else 1.dp, if (on) mu.ink else Color.White, CircleShape)
-                                        .clickable {
-                                            vm.updateState { s -> s.copy(settings = s.settings.copy(accent = ac)) }
-                                        }
-                                )
-                            }
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Text("主题配色", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = mu.ink2)
+                            Spacer(Modifier.width(8.dp))
+                            Text(
+                                state.settings.accent.displayLabel(state.settings.theme),
+                                fontSize = 11.5.sp,
+                                fontWeight = FontWeight.SemiBold,
+                                color = mu.accentInk
+                            )
+                        }
+                        Row(
+                            modifier = Modifier.horizontalScroll(rememberScrollState()),
+                            horizontalArrangement = Arrangement.spacedBy(10.dp)
+                        ) {
+                            AccentStyle.entries
+                                .filterNot {
+                                    (state.settings.theme == ThemeStyle.P5R && it == AccentStyle.RED) ||
+                                        (state.settings.theme == ThemeStyle.P3R && it == AccentStyle.P3BLUE)
+                                }
+                                .forEach { ac ->
+                                    val on = state.settings.accent == ac ||
+                                        (state.settings.theme == ThemeStyle.P5R && state.settings.accent == AccentStyle.RED && ac == AccentStyle.BLUE) ||
+                                        (state.settings.theme == ThemeStyle.P3R && state.settings.accent == AccentStyle.P3BLUE && ac == AccentStyle.BLUE)
+                                    Box(
+                                        modifier = Modifier
+                                            .size(30.dp)
+                                            .clip(CircleShape)
+                                            .background(Color(ac.previewHex(state.settings.theme)))
+                                            .border(if (on) 3.dp else 1.dp, if (on) mu.ink else Color.White, CircleShape)
+                                            .clickable {
+                                                vm.updateState { s -> s.copy(settings = s.settings.copy(accent = ac)) }
+                                                vm.toast("配色已切换为 ${ac.displayLabel(state.settings.theme)}")
+                                            }
+                                    )
+                                }
                         }
                     }
                 }

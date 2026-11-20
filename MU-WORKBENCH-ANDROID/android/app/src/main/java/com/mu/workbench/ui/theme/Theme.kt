@@ -73,15 +73,16 @@ fun buildMuColors(style: ThemeStyle, accentStyle: AccentStyle, isDark: Boolean):
     val (acc, acc2, acc3) = when (accentStyle) {
         AccentStyle.BLUE -> when (style) {
             ThemeStyle.IOS -> Triple(Color(0xFF007AFF), Color(0xFF5AC8FA), Color(0xFF0056B3))
-            ThemeStyle.P3R -> Triple(Color(0xFF015FCC), Color(0xFF16CFFB), Color(0xFF031F64))
+            ThemeStyle.P3R -> Triple(Color(0xFF015FCC), Color(0xFF16CFFB), Color(0xFF014CA3))
             ThemeStyle.P5R -> Triple(Color(0xFFE4002B), Color(0xFFFF3355), Color(0xFFB3001F))
         }
+        AccentStyle.RED -> Triple(Color(0xFFE4002B), Color(0xFFFF5C70), Color(0xFFB3001F))
         AccentStyle.CYAN -> Triple(Color(0xFF0D7F86), Color(0xFF14B8A6), Color(0xFF09575C))
         AccentStyle.VIOLET -> Triple(Color(0xFF5B32C9), Color(0xFF8B5CF6), Color(0xFF3E208E))
         AccentStyle.MINT -> Triple(Color(0xFF0F7A4F), Color(0xFF22C55E), Color(0xFF0A5436))
         AccentStyle.SUNSET -> Triple(Color(0xFFD94A1E), Color(0xFFF59E0B), Color(0xFF9C3211))
         AccentStyle.ROSE -> Triple(Color(0xFFC2185B), Color(0xFFFB7185), Color(0xFF8A0E40))
-        AccentStyle.P3BLUE -> Triple(Color(0xFF015FCC), Color(0xFF16CFFB), Color(0xFF031F64))
+        AccentStyle.P3BLUE -> Triple(Color(0xFF015FCC), Color(0xFF16CFFB), Color(0xFF014CA3))
     }
 
     val p3Cyan = Color(0xFF16CFFB)
@@ -125,7 +126,7 @@ fun buildMuColors(style: ThemeStyle, accentStyle: AccentStyle, isDark: Boolean):
             MuColors(
                 style = style, isDark = false,
                 accent = acc, accent2 = acc2, accent3 = acc3,
-                accentInk = Color(0xFF014CA3), accentSoft = acc.copy(alpha = 0.12f),
+                accentInk = acc3, accentSoft = acc.copy(alpha = 0.12f),
                 paper = Color(0xFFEEF4FD), paper2 = Color(0xFFE2ECFB),
                 surface1 = Color.White, surface2 = Color(0xFFF6FAFF), surface3 = Color(0xFFE9F1FE),
                 ink = Color(0xFF031F64), ink2 = Color(0xFF27467E), ink3 = Color(0xFF5D6A88),
@@ -140,7 +141,7 @@ fun buildMuColors(style: ThemeStyle, accentStyle: AccentStyle, isDark: Boolean):
             MuColors(
                 style = style, isDark = true,
                 accent = acc, accent2 = acc2, accent3 = acc3,
-                accentInk = Color(0xFF7DE6FD), accentSoft = acc.copy(alpha = 0.24f),
+                accentInk = acc2, accentSoft = acc.copy(alpha = 0.24f),
                 paper = Color(0xFF020B20), paper2 = Color(0xFF051530),
                 surface1 = Color(0xFF0A1E42), surface2 = Color(0xFF0D2450), surface3 = Color(0xFF10295A),
                 ink = Color.White, ink2 = Color(0xFFCFE2FF), ink3 = Color(0xFF8DABDA),
@@ -157,7 +158,7 @@ fun buildMuColors(style: ThemeStyle, accentStyle: AccentStyle, isDark: Boolean):
             MuColors(
                 style = style, isDark = false,
                 accent = acc, accent2 = acc2, accent3 = acc3,
-                accentInk = Color(0xFFB3001F), accentSoft = acc.copy(alpha = 0.12f),
+                accentInk = acc3, accentSoft = acc.copy(alpha = 0.12f),
                 paper = Color(0xFFF7F4EC), paper2 = Color(0xFFECE7DA),
                 surface1 = Color.White, surface2 = Color(0xFFFAF8F2), surface3 = Color(0xFFE5DFD0),
                 ink = Color(0xFF0B0B0C), ink2 = Color(0xFF2C2C30), ink3 = Color(0xFF6B6860),
@@ -172,7 +173,7 @@ fun buildMuColors(style: ThemeStyle, accentStyle: AccentStyle, isDark: Boolean):
             MuColors(
                 style = style, isDark = true,
                 accent = acc, accent2 = acc2, accent3 = acc3,
-                accentInk = Color(0xFFFF8A99), accentSoft = acc.copy(alpha = 0.22f),
+                accentInk = acc2, accentSoft = acc.copy(alpha = 0.22f),
                 paper = Color(0xFF0B0B0C), paper2 = Color(0xFF17171A),
                 surface1 = Color(0xFF141416), surface2 = Color(0xFF19191D), surface3 = Color(0xFF232329),
                 ink = Color(0xFFF2EFE6), ink2 = Color(0xFFC9C4B8), ink3 = Color(0xFF918C82),
