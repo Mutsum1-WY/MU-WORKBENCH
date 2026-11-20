@@ -444,25 +444,29 @@ fun TodayScreen(vm: WorkbenchViewModel) {
                     val isOpen = expandedUcloudId == u.id
                     val detail = state.ucloud.details[u.id]
                     val typeLabel = when (u.type) { 1 -> "作业"; 2 -> "测验"; else -> "待办" }
-                    val dueProgress = remember(u.endTime, detail?.beginTime) {
-                        computeUcloudUrgency(u.endTime, detail?.beginTime.orEmpty())
+                    val dueProgress = remember(u.endTime, detail?.beginTime, today, nowTime.hour, nowTime.minute) {
+                        computeUcloudUrgency(u.endTime, detail?.beginTime.orEmpty(), LocalDateTime.of(today, nowTime))
                     }
-                    val ucProgAnim by animateFloatAsState(
+                    val ucProgAnimState = animateFloatAsState(
                         targetValue = if (uDone) 0f else dueProgress.second,
                         animationSpec = MuMotion.floatSpring(mu.style),
                         label = "ucProg"
                     )
-                    val sheenTransition = rememberInfiniteTransition(label = "ucSheen")
-                    val sheenPhase by sheenTransition.animateFloat(
-                        initialValue = -0.35f,
-                        targetValue = 1.35f,
-                        animationSpec = infiniteRepeatable(
-                            animation = tween(durationMillis = 2600, easing = LinearEasing),
-                            repeatMode = RepeatMode.Restart
-                        ),
-                        label = "ucSheenPhase"
-                    )
                     val showProg = !uDone && u.endTime.isNotEmpty()
+                    val sheenPhaseState = if (showProg) {
+                        val sheenTransition = rememberInfiniteTransition(label = "ucSheen")
+                        sheenTransition.animateFloat(
+                            initialValue = -0.35f,
+                            targetValue = 1.35f,
+                            animationSpec = infiniteRepeatable(
+                                animation = tween(durationMillis = 2600, easing = LinearEasing),
+                                repeatMode = RepeatMode.Restart
+                            ),
+                            label = "ucSheenPhase"
+                        )
+                    } else {
+                        remember { mutableFloatStateOf(-0.35f) }
+                    }
 
                     MuCard(
                         backgroundColor = if (uDone) mu.paper2 else mu.surface1,
@@ -470,41 +474,43 @@ fun TodayScreen(vm: WorkbenchViewModel) {
                         padding = 12.dp,
                         behindContent = if (showProg) {
                             {
-                                val fillW = (size.width * ucProgAnim).coerceIn(0f, size.width)
-                                if (fillW > 0f) {
+                                if (size.width > 1f && size.height > 1f) {
+                                    val fillW = (size.width * ucProgAnimState.value).coerceIn(0f, size.width)
+                                    if (fillW > 1f) {
+                                        drawRect(
+                                            brush = Brush.horizontalGradient(
+                                                colors = listOf(
+                                                    dueProgress.third.copy(alpha = 0.15f),
+                                                    dueProgress.third.copy(alpha = 0.05f)
+                                                ),
+                                                startX = 0f,
+                                                endX = fillW
+                                            ),
+                                            size = androidx.compose.ui.geometry.Size(fillW, size.height)
+                                        )
+                                        val edgeW = 2.dp.toPx().coerceAtMost(fillW)
+                                        drawRect(
+                                            color = dueProgress.third.copy(alpha = 0.45f),
+                                            topLeft = Offset((fillW - edgeW).coerceAtLeast(0f), 0f),
+                                            size = androidx.compose.ui.geometry.Size(edgeW, size.height)
+                                        )
+                                    }
+                                    val bandW = (size.width * 0.36f).coerceAtLeast(1f)
+                                    val cx = sheenPhaseState.value * size.width
                                     drawRect(
                                         brush = Brush.horizontalGradient(
                                             colors = listOf(
-                                                dueProgress.third.copy(alpha = 0.15f),
-                                                dueProgress.third.copy(alpha = 0.05f)
+                                                Color.Transparent,
+                                                dueProgress.third.copy(alpha = 0.13f),
+                                                Color.White.copy(alpha = 0.10f),
+                                                Color.Transparent
                                             ),
-                                            startX = 0f,
-                                            endX = fillW
+                                            startX = cx - bandW,
+                                            endX = cx + bandW
                                         ),
-                                        size = androidx.compose.ui.geometry.Size(fillW, size.height)
-                                    )
-                                    val edgeW = 2.dp.toPx()
-                                    drawRect(
-                                        color = dueProgress.third.copy(alpha = 0.45f),
-                                        topLeft = Offset((fillW - edgeW).coerceAtLeast(0f), 0f),
-                                        size = androidx.compose.ui.geometry.Size(edgeW, size.height)
+                                        size = size
                                     )
                                 }
-                                val bandW = size.width * 0.36f
-                                val cx = sheenPhase * size.width
-                                drawRect(
-                                    brush = Brush.horizontalGradient(
-                                        colors = listOf(
-                                            Color.Transparent,
-                                            dueProgress.third.copy(alpha = 0.13f),
-                                            Color.White.copy(alpha = 0.10f),
-                                            Color.Transparent
-                                        ),
-                                        startX = cx - bandW,
-                                        endX = cx + bandW
-                                    ),
-                                    size = size
-                                )
                             }
                         } else null,
                         onClick = {
@@ -554,30 +560,27 @@ fun TodayScreen(vm: WorkbenchViewModel) {
                         if (u.endTime.isNotEmpty()) {
                             Spacer(Modifier.height(8.dp))
                             val barShape = RoundedCornerShape(if (mu.style == ThemeStyle.P5R) 0.dp else 999.dp)
+                            val borderColor = if (mu.style == ThemeStyle.P5R) mu.ink else dueProgress.third.copy(alpha = 0.35f)
+                            val borderWidth = if (mu.style == ThemeStyle.P5R) 1.dp else 0.75.dp
                             Box(
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .height(9.dp)
                                     .clip(barShape)
                                     .background(dueProgress.third.copy(alpha = 0.14f))
-                                    .border(
-                                        width = if (mu.style == ThemeStyle.P5R) 1.dp else 0.5.dp,
-                                        color = if (mu.style == ThemeStyle.P5R) mu.ink else dueProgress.third.copy(alpha = 0.35f),
-                                        shape = barShape
-                                    )
-                            ) {
-                                Box(
-                                    modifier = Modifier
-                                        .fillMaxWidth(if (uDone) 0f else ucProgAnim)
-                                        .fillMaxHeight()
-                                        .background(
-                                            Brush.horizontalGradient(
-                                                listOf(dueProgress.third, dueProgress.third.copy(alpha = 0.78f))
+                                    .drawBehind {
+                                        val fillW = (size.width * ucProgAnimState.value).coerceIn(0f, size.width)
+                                        if (fillW > 1f && size.height > 0f) {
+                                            drawRect(
+                                                brush = Brush.horizontalGradient(
+                                                    colors = listOf(dueProgress.third, dueProgress.third.copy(alpha = 0.78f)),
+                                                    startX = 0f,
+                                                    endX = fillW
+                                                ),
+                                                size = androidx.compose.ui.geometry.Size(fillW, size.height)
                                             )
-                                        )
-                                        .drawBehind {
-                                            val bw = size.width * 0.45f
-                                            val bx = sheenPhase * size.width
+                                            val bw = (fillW * 0.45f).coerceAtLeast(1f)
+                                            val bx = sheenPhaseState.value * fillW
                                             drawRect(
                                                 brush = Brush.horizontalGradient(
                                                     colors = listOf(
@@ -588,11 +591,16 @@ fun TodayScreen(vm: WorkbenchViewModel) {
                                                     startX = bx - bw,
                                                     endX = bx + bw
                                                 ),
-                                                size = size
+                                                size = androidx.compose.ui.geometry.Size(fillW, size.height)
                                             )
                                         }
-                                )
-                            }
+                                    }
+                                    .border(
+                                        width = borderWidth,
+                                        color = borderColor,
+                                        shape = barShape
+                                    )
+                            )
                         }
 
                         AnimatedVisibility(visible = isOpen) {
@@ -1073,16 +1081,19 @@ private fun TodayHeroCard(
     }
 }
 
-private fun computeUcloudUrgency(endTime: String, beginTime: String): Triple<String, Float, Color> {
+private fun computeUcloudUrgency(
+    endTime: String,
+    beginTime: String,
+    now: LocalDateTime = LocalDateTime.now()
+): Triple<String, Float, Color> {
     val fmt = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")
     fun parseLdt(raw: String): LocalDateTime? {
-        val clean = raw.replace('T', ' ').trim().take(16)
+        val clean = raw.replace('T', ' ').replace('/', '-').trim().take(16)
         return try { LocalDateTime.parse(clean, fmt) } catch (_: Throwable) {
             try { LocalDateTime.parse("${clean.take(10)} 23:59", fmt) } catch (_: Throwable) { null }
         }
     }
     val due = parseLdt(endTime) ?: return Triple("截止 $endTime", 1f, Color(0xFF0D7F86))
-    val now = LocalDateTime.now()
     val leftMin = ChronoUnit.MINUTES.between(now, due)
     val label = when {
         leftMin < 0 -> "已超时 ${(-leftMin / 1440).coerceAtLeast(1)} 天"
@@ -1096,12 +1107,17 @@ private fun computeUcloudUrgency(endTime: String, beginTime: String): Triple<Str
         leftMin <= 4320 -> Color(0xFFD97706)
         else -> Color(0xFF0F7A4F)
     }
-    val begin = parseLdt(beginTime)
-    val frac = if (begin != null && due.isAfter(begin)) {
-        val span = ChronoUnit.MINUTES.between(begin, due).coerceAtLeast(1)
-        (leftMin.toFloat() / span.toFloat()).coerceIn(0.05f, 1f)
-    } else {
-        (leftMin.toFloat() / (14 * 1440f)).coerceIn(0.05f, 1f)
+    val frac = when {
+        leftMin <= 0 -> 0f
+        else -> {
+            val begin = parseLdt(beginTime)
+            if (begin != null && due.isAfter(begin)) {
+                val span = ChronoUnit.MINUTES.between(begin, due).coerceAtLeast(1)
+                (leftMin.toFloat() / span.toFloat()).coerceIn(0.03f, 1f)
+            } else {
+                (leftMin.toFloat() / (14 * 1440f)).coerceIn(0.03f, 1f)
+            }
+        }
     }
     return Triple(label, frac, col)
 }
