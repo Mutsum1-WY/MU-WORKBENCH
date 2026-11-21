@@ -15,6 +15,7 @@ import com.mu.workbench.MuKeepAlive
 import com.mu.workbench.MuNative
 import com.mu.workbench.alarm.NotificationHelper
 import com.mu.workbench.data.*
+import com.mu.workbench.domain.ByrDocsClient
 import com.mu.workbench.domain.NativeClients
 import com.mu.workbench.domain.ScheduleEngine
 import com.mu.workbench.domain.TodoEngine
@@ -45,10 +46,11 @@ enum class FocusSub(val label: String) { CLOCK("时钟"), PROJECTS("项目") }
 
 enum class CourseSub(val index: Int, val label: String) {
     COURSE(0, "课程性价比"),
-    BONUS(1, "课外加分"),
-    SCAN(2, "扫码签到"),
-    HW(3, "作业档案"),
-    ZZ(4, "综测")
+    BD(1, "找资料"),
+    BONUS(2, "课外加分"),
+    SCAN(3, "扫码签到"),
+    HW(4, "作业档案"),
+    ZZ(5, "综测")
 }
 
 data class SnackbarEvent(
@@ -1180,6 +1182,144 @@ class WorkbenchViewModel(app: Application) : AndroidViewModel(app) {
             ctx.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url)).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
         } catch (_: Throwable) {
             toast("无法打开链接")
+        }
+    }
+
+    /* ---------------- 找资料：BYR Docs 检索 ----------------
+       只有用户主动搜索时才联网。最近搜索词和「每门课有几条资料」存在单独的
+       SharedPreferences 里，不进 WorkbenchState，备份格式不变。 */
+
+    data class ByrDocsUi(
+        val query: String = "",
+        val type: ByrDocsClient.Type = ByrDocsClient.Type.ALL,
+        val limit: Int = 30,
+        val loading: Boolean = false,
+        val error: String = "",
+        val result: ByrDocsClient.Result? = null
+    )
+
+    private val bdPrefs by lazy { ctx.getSharedPreferences("mu_byrdocs", android.content.Context.MODE_PRIVATE) }
+    private val _bd = MutableStateFlow(ByrDocsUi())
+    val byrDocs: StateFlow<ByrDocsUi> = _bd.asStateFlow()
+    private val _bdRecent = MutableStateFlow(loadBdRecent())
+    val byrDocsRecent: StateFlow<List<String>> = _bdRecent.asStateFlow()
+    private val _bdCounts = MutableStateFlow(loadBdCounts())
+    val byrDocsCounts: StateFlow<Map<String, Int>> = _bdCounts.asStateFlow()
+    private val _bdCounting = MutableStateFlow(false)
+    val byrDocsCounting: StateFlow<Boolean> = _bdCounting.asStateFlow()
+    private var bdJob: kotlinx.coroutines.Job? = null
+
+    private fun loadBdRecent(): List<String> = try {
+        val a = org.json.JSONArray(bdPrefs.getString("recent", "[]"))
+        (0 until a.length()).map { a.getString(it) }.filter { it.isNotBlank() }.take(8)
+    } catch (_: Throwable) { emptyList() }
+
+    /** 缓存 3 天：{ 课名: { n: 条数, t: 时间戳 } }，过期的当作没数过 */
+    private fun loadBdCounts(): Map<String, Int> = try {
+        val o = org.json.JSONObject(bdPrefs.getString("cnt", "{}"))
+        val now = System.currentTimeMillis()
+        o.keys().asSequence().mapNotNull { k ->
+            val e = o.optJSONObject(k) ?: return@mapNotNull null
+            if (now - e.optLong("t") > 3L * 86_400_000L) null else k to e.optInt("n")
+        }.toMap()
+    } catch (_: Throwable) { emptyMap() }
+
+    private fun saveBdCount(name: String, n: Int) {
+        try {
+            val o = org.json.JSONObject(bdPrefs.getString("cnt", "{}"))
+            o.put(name, org.json.JSONObject().put("n", n).put("t", System.currentTimeMillis()))
+            bdPrefs.edit().putString("cnt", o.toString()).apply()
+        } catch (_: Throwable) {}
+    }
+
+    private fun rememberBdQuery(q: String) {
+        val list = (listOf(q) + _bdRecent.value.filter { it != q }).take(8)
+        _bdRecent.value = list
+        bdPrefs.edit().putString("recent", org.json.JSONArray(list).toString()).apply()
+    }
+
+    fun clearByrDocsRecent() {
+        _bdRecent.value = emptyList()
+        bdPrefs.edit().remove("recent").apply()
+    }
+
+    /** 本学期课表里的课名（去重），当成「一点就搜」的快捷词 */
+    fun termCourseNames(): List<String> =
+        activeTimetable().courses.map { it.name.trim() }.filter { it.isNotEmpty() }.distinct().take(16)
+
+    /** 改关键词：immediate=false 时等 400ms 没再输入才搜（打字时不要每个字都发请求） */
+    fun byrDocsQuery(q: String, immediate: Boolean = false) {
+        _bd.value = _bd.value.copy(query = q, limit = 30)
+        runByrDocs(if (immediate || q.isBlank()) 0L else 400L)
+    }
+
+    fun byrDocsType(t: ByrDocsClient.Type) {
+        if (_bd.value.type == t) return
+        _bd.value = _bd.value.copy(type = t, limit = 30)
+        runByrDocs(0L)
+    }
+
+    fun byrDocsMore() {
+        _bd.value = _bd.value.copy(limit = 100)
+        runByrDocs(0L)
+    }
+
+    fun byrDocsRetry() = runByrDocs(0L)
+
+    private fun runByrDocs(delayMs: Long) {
+        bdJob?.cancel()
+        val cur = _bd.value
+        val q = cur.query.trim()
+        if (q.isEmpty()) {
+            _bd.value = cur.copy(loading = false, error = "", result = null)
+            return
+        }
+        bdJob = viewModelScope.launch {
+            if (delayMs > 0) delay(delayMs)
+            _bd.value = _bd.value.copy(loading = true, error = "")
+            try {
+                val r = withContext(Dispatchers.IO) { ByrDocsClient.search(q, cur.type, cur.limit) }
+                // 期间又改了关键词 / 类型：这次结果作废（job 被 cancel 时也走不到这里）
+                if (_bd.value.query.trim() != q || _bd.value.type != cur.type) return@launch
+                _bd.value = _bd.value.copy(loading = false, result = r)
+                rememberBdQuery(q)
+            } catch (e: kotlinx.coroutines.CancellationException) {
+                throw e
+            } catch (e: Throwable) {
+                val msg = when (e) {
+                    is java.net.SocketTimeoutException -> "搜索超时，网络可能不太好"
+                    is java.net.UnknownHostException -> "连不上 BYR Docs，检查一下网络"
+                    else -> "搜索失败（${e.message ?: "未知错误"}）"
+                }
+                _bd.value = _bd.value.copy(loading = false, error = msg)
+            }
+        }
+    }
+
+    /** 数一下本学期每门课在 BYR Docs 里有几条资料（只数没缓存的，两路并发） */
+    fun countByrDocsCourses() {
+        if (_bdCounting.value) return
+        val todo = termCourseNames().filter { it !in _bdCounts.value }
+        if (todo.isEmpty()) return
+        _bdCounting.value = true
+        viewModelScope.launch {
+            val sem = Semaphore(2)
+            todo.map { name ->
+                launch {
+                    sem.withPermit {
+                        try {
+                            val r = withContext(Dispatchers.IO) { ByrDocsClient.search(name, ByrDocsClient.Type.ALL, 1) }
+                            saveBdCount(name, r.total)
+                            _bdCounts.value = _bdCounts.value + (name to r.total)
+                        } catch (e: kotlinx.coroutines.CancellationException) {
+                            throw e
+                        } catch (_: Throwable) {
+                            // 某门课没网失败了就跳过，下次进来再数
+                        }
+                    }
+                }
+            }.forEach { it.join() }
+            _bdCounting.value = false
         }
     }
 

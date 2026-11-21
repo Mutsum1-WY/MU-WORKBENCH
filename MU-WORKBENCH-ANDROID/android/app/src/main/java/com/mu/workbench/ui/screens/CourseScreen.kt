@@ -94,6 +94,7 @@ fun CourseScreen(vm: WorkbenchViewModel) {
         ) { cur ->
             when (cur) {
                 CourseSub.COURSE -> CourseRatioPane(vm)
+                CourseSub.BD -> ByrDocsPane(vm)
                 CourseSub.BONUS -> BonusPane(vm)
                 CourseSub.SCAN -> ScanPane(vm)
                 CourseSub.HW -> HwArchivePane(vm)
