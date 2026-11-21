@@ -13,6 +13,7 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material.icons.rounded.Search
+import androidx.compose.material.icons.rounded.Star
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -49,14 +50,23 @@ fun ByrDocsPane(vm: WorkbenchViewModel) {
     val focus = LocalFocusManager.current
     val courses = remember { vm.termCourseNames() }
 
-    // 进页面顺手数一下本学期每门课有几条资料（有 3 天缓存，大多数时候不发请求）
-    LaunchedEffect(Unit) { vm.countByrDocsCourses() }
+    val stats by vm.byrDocsStats.collectAsState()
+
+    // 进页面顺手数一下本学期每门课有几条资料、BYR Docs 一共收录多少（都有 3 天缓存，大多数时候不发请求）
+    LaunchedEffect(Unit) {
+        vm.countByrDocsCourses()
+        vm.loadByrDocsStats()
+    }
 
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
         contentPadding = PaddingValues(14.dp, 10.dp, 14.dp, 96.dp),
         verticalArrangement = Arrangement.spacedBy(10.dp)
     ) {
+        item(key = "bd_intro") {
+            BdIntroCard(stats) { vm.openExternalUrl(it) }
+        }
+
         item(key = "bd_search") {
             OutlinedTextField(
                 value = ui.query,
@@ -183,6 +193,72 @@ fun ByrDocsPane(vm: WorkbenchViewModel) {
                 modifier = Modifier.padding(top = 6.dp)
             )
         }
+    }
+}
+
+/** 页顶介绍卡：BYR Docs 是什么 + 收录数 + Star / 投稿 / 关于 三个入口（给 BYR Docs 引流） */
+@Composable
+private fun BdIntroCard(stats: ByrDocsClient.Stats?, open: (String) -> Unit) {
+    val mu = LocalMuColors.current
+    MuCard(padding = 14.dp) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Text("BYR Docs", fontSize = 17.sp, fontWeight = FontWeight.Black, color = mu.ink)
+            Spacer(Modifier.width(8.dp))
+            MuChip("北邮资料站", mu.accent, Color.White)
+        }
+        Spacer(Modifier.height(6.dp))
+        Text(
+            "北邮同学自己维护的开源资料库：电子教材、往年试题、复习笔记，免费、不登录就能搜。",
+            fontSize = 12.5.sp, lineHeight = 18.sp, color = mu.ink2
+        )
+        if (stats != null && stats.total > 0) {
+            Spacer(Modifier.height(8.dp))
+            Row(horizontalArrangement = Arrangement.spacedBy(18.dp)) {
+                BdStat("已收录", stats.total, mu.accentInk)
+                BdStat("试题", stats.test, mu.ink)
+                BdStat("教材", stats.book, mu.ink)
+                BdStat("资料", stats.doc, mu.ink)
+            }
+        }
+        Spacer(Modifier.height(8.dp))
+        Text(
+            "觉得有用就去 GitHub 点个 Star；手里有试题和笔记，也欢迎投稿，让下一届少走弯路。",
+            fontSize = 11.5.sp, lineHeight = 16.sp, color = mu.ink3
+        )
+        Spacer(Modifier.height(10.dp))
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
+            Button(
+                onClick = { open(ByrDocsClient.URL_STAR) },
+                shape = RoundedCornerShape(mu.cardRadius),
+                contentPadding = PaddingValues(horizontal = 8.dp),
+                modifier = Modifier.weight(1.25f).heightIn(min = 44.dp)
+            ) {
+                Icon(Icons.Rounded.Star, contentDescription = null, modifier = Modifier.size(16.dp))
+                Spacer(Modifier.width(4.dp))
+                Text("点个 Star", fontSize = 12.5.sp, fontWeight = FontWeight.Bold, maxLines = 1)
+            }
+            OutlinedButton(
+                onClick = { open(ByrDocsClient.URL_PUBLISH) },
+                shape = RoundedCornerShape(mu.cardRadius),
+                contentPadding = PaddingValues(horizontal = 8.dp),
+                modifier = Modifier.weight(1f).heightIn(min = 44.dp)
+            ) { Text("投稿资料", fontSize = 12.5.sp, fontWeight = FontWeight.Bold, maxLines = 1) }
+            OutlinedButton(
+                onClick = { open(ByrDocsClient.URL_ABOUT) },
+                shape = RoundedCornerShape(mu.cardRadius),
+                contentPadding = PaddingValues(horizontal = 8.dp),
+                modifier = Modifier.weight(1f).heightIn(min = 44.dp)
+            ) { Text("了解更多", fontSize = 12.5.sp, fontWeight = FontWeight.Bold, maxLines = 1) }
+        }
+    }
+}
+
+@Composable
+private fun BdStat(label: String, n: Int, color: Color) {
+    val mu = LocalMuColors.current
+    Column {
+        Text("$n", fontSize = 16.sp, fontWeight = FontWeight.Black, color = color)
+        Text(label, fontSize = 10.5.sp, fontWeight = FontWeight.Bold, color = mu.ink3)
     }
 }
 

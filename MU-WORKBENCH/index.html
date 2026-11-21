@@ -1448,6 +1448,21 @@ body.rd-on{overflow:hidden}
 .bd-acts .btn{min-height:36px;white-space:nowrap}
 .bd-more{display:block;width:100%;margin-top:12px;min-height:44px}
 .bd-foot{font-size:11px;line-height:1.6;color:var(--ink-3);margin:16px 2px 4px}
+.bd-intro{gap:8px}
+.bd-intro-h{display:flex;align-items:center;gap:8px}
+.bd-intro-h b{font-size:17px;font-weight:900;letter-spacing:-.01em;color:var(--ink)}
+.bd-intro-tag{font-size:10.5px;font-weight:900;padding:2px 7px;background:var(--accent);color:var(--chrome-ink)}
+html[data-theme="p3r"] .bd-intro-tag{border-radius:4px}
+.bd-intro-p{font-size:12.5px;line-height:1.6;color:var(--ink-2);margin:0}
+.bd-intro-s{font-size:11.5px;line-height:1.6;color:var(--ink-3);margin:0}
+.bd-stats{display:flex;gap:18px}
+.bd-stats[hidden]{display:none}
+.bd-stats div{display:flex;flex-direction:column}
+.bd-stats b{font-size:16px;font-weight:900;color:var(--ink);font-variant-numeric:tabular-nums;line-height:1.2}
+.bd-stats div:first-child b{color:var(--accent-ink)}
+.bd-stats span{font-size:10.5px;font-weight:800;color:var(--ink-3)}
+.bd-intro-acts{display:grid;grid-template-columns:1.25fr 1fr 1fr;gap:8px;margin-top:2px}
+.bd-intro-acts .btn{min-height:44px;justify-content:center;padding-left:6px;padding-right:6px;white-space:nowrap}
 .bd-skel{height:86px;border:var(--bw) solid var(--line-2);background:linear-gradient(90deg,var(--surface-1),var(--paper-2),var(--surface-1));background-size:200% 100%;animation:bdShimmer 1.1s linear 3}
 @keyframes bdShimmer{from{background-position:100% 0}to{background-position:-100% 0}}
 @media (prefers-reduced-motion:reduce){.bd-skel{animation:none}}
@@ -4202,6 +4217,18 @@ html[data-theme="ios"] .banner .bgo{border-radius:999px;border:0;background:#fff
 
       <!-- 子页：找资料（BYR Docs 检索：教材 / 试题 / 资料） -->
       <div id="crPaneBd" hidden>
+        <!-- 页顶介绍卡：给 BYR Docs 引流（Star / 投稿 / 关于） -->
+        <div class="cr-ctl bd-intro">
+          <div class="bd-intro-h"><b>BYR Docs</b><span class="bd-intro-tag">北邮资料站</span></div>
+          <p class="bd-intro-p">北邮同学自己维护的开源资料库：电子教材、往年试题、复习笔记，免费、不登录就能搜。</p>
+          <div class="bd-stats" id="bdStats" hidden></div>
+          <p class="bd-intro-s">觉得有用就去 GitHub 点个 Star；手里有试题和笔记，也欢迎投稿，让下一届少走弯路。</p>
+          <div class="bd-intro-acts">
+            <button class="btn primary" data-bdopen="https://github.com/byrdocs/byrdocs-archive">★ 点个 Star</button>
+            <button class="btn" data-bdopen="https://publish.byrdocs.org">投稿资料</button>
+            <button class="btn" data-bdopen="https://byrdocs.org/about">了解更多</button>
+          </div>
+        </div>
         <div class="cr-ctl">
           <div class="cr-search">
             <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6.4"/><path d="M15.8 15.8 20.5 20.5"/></svg>
@@ -15288,9 +15315,37 @@ function bdBind(){
     else if(a === 'clearRecent'){ try{ localStorage.removeItem('mu.bdRecent'); }catch(err){} bdRender(); }
   });
 }
+/* 介绍卡上的收录数：一次请求用 JMESPath 把三类条数一起数出来，缓存 3 天 */
+function bdStatsPaint(s){
+  var el = $('#bdStats'); if(!el || !s) return;
+  var tot = (s.b || 0) + (s.t || 0) + (s.d || 0);
+  if(!tot) return;
+  el.innerHTML = [['已收录', tot], ['试题', s.t], ['教材', s.b], ['资料', s.d]].map(function(x){
+    return '<div><b>' + x[1] + '</b><span>' + x[0] + '</span></div>';
+  }).join('');
+  el.hidden = false;
+}
+function bdLoadStats(){
+  var c = null;
+  try{ c = JSON.parse(localStorage.getItem('mu.bdStats') || 'null'); }catch(e){}
+  if(c && Date.now() - c.at < 3 * 86400000){ bdStatsPaint(c); return; }
+  fetch(BD_API, {
+    method:'POST',
+    headers:{ 'content-type':'application/json' },
+    body:JSON.stringify({ keyword:'', limit:1, jmespath:"{b: length([?type=='book']), t: length([?type=='test']), d: length([?type=='doc'])}" })
+  }).then(function(r){ if(!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
+    .then(function(d){
+      var s = d && d.results && d.results[0];
+      if(!s) return;
+      s.at = Date.now();
+      try{ localStorage.setItem('mu.bdStats', JSON.stringify(s)); }catch(e){}
+      bdStatsPaint(s);
+    }, function(){});   /* 拿不到就不显示数字，介绍卡照常显示 */
+}
 function bdEnter(){
   bdBind();
   bdRender();
+  bdLoadStats();
   bdCountCourses();
   if(bd.cntBusy && !bd.q) bdRender();   /* 显示「正在统计」 */
 }

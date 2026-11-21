@@ -1296,6 +1296,34 @@ class WorkbenchViewModel(app: Application) : AndroidViewModel(app) {
         }
     }
 
+    /** 介绍卡上的「已收录 N 份」：缓存 3 天 */
+    private val _bdStats = MutableStateFlow(loadBdStats())
+    val byrDocsStats: StateFlow<ByrDocsClient.Stats?> = _bdStats.asStateFlow()
+
+    private fun loadBdStats(): ByrDocsClient.Stats? = try {
+        val o = org.json.JSONObject(bdPrefs.getString("stats", "{}"))
+        if (System.currentTimeMillis() - o.optLong("t") > 3L * 86_400_000L) null
+        else ByrDocsClient.Stats(o.optInt("b"), o.optInt("t2"), o.optInt("d"))
+    } catch (_: Throwable) { null }
+
+    fun loadByrDocsStats() {
+        if (_bdStats.value != null) return
+        viewModelScope.launch {
+            try {
+                val s = withContext(Dispatchers.IO) { ByrDocsClient.stats() }
+                _bdStats.value = s
+                bdPrefs.edit().putString(
+                    "stats",
+                    org.json.JSONObject().put("b", s.book).put("t2", s.test).put("d", s.doc).put("t", System.currentTimeMillis()).toString()
+                ).apply()
+            } catch (e: kotlinx.coroutines.CancellationException) {
+                throw e
+            } catch (_: Throwable) {
+                // 拿不到就不显示数字，介绍卡照常显示
+            }
+        }
+    }
+
     /** 数一下本学期每门课在 BYR Docs 里有几条资料（只数没缓存的，两路并发） */
     fun countByrDocsCourses() {
         if (_bdCounting.value) return

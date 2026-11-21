@@ -17,6 +17,25 @@ object ByrDocsClient {
 
     private const val API = "https://search.byrdocs.org/api/search"
 
+    /* 介绍卡上的外链（核对过 byrdocs.org 前端里实际在用的地址） */
+    const val URL_STAR = "https://github.com/byrdocs/byrdocs-archive"   // 主仓库：资料元信息存档，站点也链到这里
+    const val URL_PUBLISH = "https://publish.byrdocs.org"                // 官方投稿工具
+    const val URL_ABOUT = "https://byrdocs.org/about"
+
+    data class Stats(val book: Int, val test: Int, val doc: Int) {
+        val total: Int get() = book + test + doc
+    }
+
+    /** 收录总数：一次请求用 JMESPath 把三类条数一起数出来。阻塞调用。 */
+    fun stats(): Stats {
+        val body = JSONObject()
+            .put("keyword", "")
+            .put("jmespath", "{b: length([?type=='book']), t: length([?type=='test']), d: length([?type=='doc'])}")
+            .put("limit", 1)
+        val o = post(body).optJSONArray("results")?.optJSONObject(0) ?: throw IllegalStateException("返回格式不对")
+        return Stats(o.optInt("b"), o.optInt("t"), o.optInt("d"))
+    }
+
     enum class Type(val key: String, val label: String) {
         ALL("all", "全部"),
         TEST("test", "试题"),
@@ -66,12 +85,19 @@ object ByrDocsClient {
     }
 
     private fun request(keyword: String, type: Type, limit: Int): Result {
-        val body = JSONObject()
-            .put("keyword", keyword)
-            .put("type", type.key)
-            .put("limit", limit.coerceIn(1, 100))
-            .toString()
-            .toByteArray(Charsets.UTF_8)
+        val o = post(
+            JSONObject()
+                .put("keyword", keyword)
+                .put("type", type.key)
+                .put("limit", limit.coerceIn(1, 100))
+        )
+        val arr = o.optJSONArray("results") ?: JSONArray()
+        val items = (0 until arr.length()).mapNotNull { i -> arr.optJSONObject(i)?.let(::parseItem) }
+        return Result(o.optInt("total", items.size), items, keyword)
+    }
+
+    private fun post(json: JSONObject): JSONObject {
+        val body = json.toString().toByteArray(Charsets.UTF_8)
         val conn = (URL(API).openConnection() as HttpURLConnection).apply {
             requestMethod = "POST"
             connectTimeout = 12000
@@ -85,10 +111,7 @@ object ByrDocsClient {
             val code = conn.responseCode
             if (code !in 200..299) throw IllegalStateException("HTTP $code")
             val text = conn.inputStream.bufferedReader(Charsets.UTF_8).use { it.readText() }
-            val o = JSONObject(text)
-            val arr = o.optJSONArray("results") ?: JSONArray()
-            val items = (0 until arr.length()).mapNotNull { i -> arr.optJSONObject(i)?.let(::parseItem) }
-            return Result(o.optInt("total", items.size), items, keyword)
+            return JSONObject(text)
         } finally {
             conn.disconnect()
         }
