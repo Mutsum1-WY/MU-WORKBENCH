@@ -106,8 +106,8 @@ fun NewsScreen(vm: WorkbenchViewModel) {
 
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
-        contentPadding = PaddingValues(start = 14.dp, end = 14.dp, top = 12.dp, bottom = 96.dp),
-        verticalArrangement = Arrangement.spacedBy(10.dp)
+        contentPadding = PaddingValues(start = 10.dp, end = 10.dp, top = 8.dp, bottom = 18.dp),
+        verticalArrangement = Arrangement.spacedBy(7.dp)
     ) {
         item(key = "pt_top") {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -197,7 +197,7 @@ fun NewsScreen(vm: WorkbenchViewModel) {
             }
         } else {
             items(filtered, key = { "${it.kind}_${it.id}" }) { art ->
-                MuCard(padding = 12.dp, onClick = { vm.openArticle(art) }) {
+                MuCard(padding = 10.dp, onClick = { vm.openArticle(art) }) {
                     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                         if (art.isNew) MuChip("新", mu.accent, Color.White)
                         Text(art.title, fontWeight = FontWeight.Bold, fontSize = 14.5.sp, color = mu.ink, modifier = Modifier.weight(1f))
@@ -310,8 +310,8 @@ fun ReaderOverlay(
                 .fillMaxSize()
                 .background(mu.paper)
                 .padding(pad),
-            contentPadding = PaddingValues(16.dp),
-            verticalArrangement = Arrangement.spacedBy(10.dp)
+            contentPadding = PaddingValues(12.dp, 10.dp, 12.dp, 16.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             item(key = "rd_head") {
                 Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {

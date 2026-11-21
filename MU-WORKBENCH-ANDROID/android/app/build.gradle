@@ -13,8 +13,8 @@ android {
         applicationId "com.mu.workbench"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 44
-        versionName "2.30"
+        versionCode 45
+        versionName "2.31"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
     }
 

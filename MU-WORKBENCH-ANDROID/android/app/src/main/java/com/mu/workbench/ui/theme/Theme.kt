@@ -287,6 +287,13 @@ fun MuWorkbenchTheme(
             onSurface = mu.ink,
             surfaceVariant = mu.surface2,
             onSurfaceVariant = mu.ink2,
+            surfaceContainer = mu.surface1,
+            surfaceContainerLow = mu.surface1,
+            surfaceContainerHigh = mu.surface2,
+            surfaceContainerHighest = mu.surface3,
+            surfaceContainerLowest = mu.paper,
+            inverseSurface = if (isDark) Color(0xFFF2F2F7) else Color(0xFF1C1C1E),
+            inverseOnSurface = if (isDark) Color(0xFF1C1C1E) else Color.White,
             outline = mu.line2,
             error = mu.danger
         )
@@ -301,6 +308,13 @@ fun MuWorkbenchTheme(
             onSurface = mu.ink,
             surfaceVariant = mu.surface2,
             onSurfaceVariant = mu.ink2,
+            surfaceContainer = mu.surface1,
+            surfaceContainerLow = mu.surface1,
+            surfaceContainerHigh = mu.surface2,
+            surfaceContainerHighest = mu.surface3,
+            surfaceContainerLowest = mu.paper,
+            inverseSurface = if (isDark) Color(0xFFF2F2F7) else Color(0xFF1C1C1E),
+            inverseOnSurface = if (isDark) Color(0xFF1C1C1E) else Color.White,
             outline = mu.line2,
             error = mu.danger
         )

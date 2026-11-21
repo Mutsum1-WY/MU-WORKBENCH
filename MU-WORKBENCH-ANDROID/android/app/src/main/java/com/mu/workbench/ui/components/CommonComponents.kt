@@ -39,6 +39,7 @@ import androidx.compose.ui.graphics.PaintingStyle
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.TileMode
+import androidx.compose.ui.graphics.compositeOver
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalHapticFeedback
@@ -253,7 +254,7 @@ fun MuCard(
     modifier: Modifier = Modifier,
     backgroundColor: Color? = null,
     borderColor: Color? = null,
-    padding: Dp = 14.dp,
+    padding: Dp = 11.dp,
     showCornerAccent: Boolean = true,
     behindContent: (DrawScope.() -> Unit)? = null,
     onClick: (() -> Unit)? = null,
@@ -262,11 +263,13 @@ fun MuCard(
     val mu = LocalMuColors.current
     val shape: Shape = RoundedCornerShape(mu.cardRadius)
     val bg = backgroundColor ?: mu.surface1
+    val solidBg = if (bg.alpha < 1f) bg.compositeOver(mu.surface1) else bg
     val bd = borderColor ?: mu.line
     val shadowCol = if (borderColor != null && mu.style == ThemeStyle.P5R) borderColor else mu.hardShadowColor
+    val rootMod = modifier.fillMaxWidth()
 
     val base = if (mu.style == ThemeStyle.P5R && mu.hardShadowDp > 0.dp) {
-        modifier
+        rootMod
             .padding(end = mu.hardShadowDp, bottom = mu.hardShadowDp)
             .drawWithCache {
                 val sh = mu.hardShadowDp.toPx()
@@ -276,7 +279,7 @@ fun MuCard(
                 }
             }
     } else if (mu.style == ThemeStyle.P3R) {
-        modifier
+        rootMod
             .padding(end = 2.dp, bottom = 3.dp)
             .drawWithCache {
                 val r = mu.cardRadius.toPx()
@@ -288,12 +291,12 @@ fun MuCard(
                 }
             }
     } else {
-        modifier.shadow(2.dp, shape, ambientColor = Color.Black.copy(alpha = 0.06f))
+        rootMod.shadow(2.dp, shape, ambientColor = Color.Black.copy(alpha = 0.06f))
     }
 
     val finalMod = base
         .clip(shape)
-        .background(bg)
+        .background(solidBg)
         .then(if (behindContent != null) Modifier.drawBehind { behindContent() } else Modifier)
         .border(mu.cardBorderWidth, bd, shape)
         .let { m ->
@@ -349,7 +352,7 @@ fun MuSectionHeader(
     Row(
         modifier = modifier
             .fillMaxWidth()
-            .padding(vertical = 4.dp),
+            .padding(vertical = 2.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
         when (mu.style) {
@@ -382,6 +385,9 @@ fun MuSectionHeader(
                             text = badge,
                             color = mu.chromeInk,
                             fontSize = 11.sp,
+                            lineHeight = 14.sp,
+                            maxLines = 1,
+                            softWrap = false,
                             fontWeight = FontWeight.Black
                         )
                     }
@@ -424,6 +430,9 @@ fun MuSectionHeader(
                             text = badge,
                             color = Color.White,
                             fontSize = 11.sp,
+                            lineHeight = 14.sp,
+                            maxLines = 1,
+                            softWrap = false,
                             fontWeight = FontWeight.ExtraBold
                         )
                     }
@@ -454,6 +463,9 @@ fun MuSectionHeader(
                             text = badge,
                             color = mu.ink2,
                             fontSize = 11.sp,
+                            lineHeight = 14.sp,
+                            maxLines = 1,
+                            softWrap = false,
                             fontWeight = FontWeight.Bold,
                             modifier = Modifier.padding(horizontal = 9.dp, vertical = 3.dp)
                         )
@@ -560,8 +572,10 @@ fun MuChip(
             text = text,
             color = textColor,
             fontSize = 11.sp,
+            lineHeight = 14.sp,
             fontWeight = FontWeight.Bold,
-            maxLines = 1
+            maxLines = 1,
+            softWrap = false
         )
     }
 }
@@ -684,7 +698,7 @@ fun TodoCardRow(
                 Row(
                     modifier = Modifier
                         .weight(1f)
-                        .padding(horizontal = 12.dp, vertical = 12.dp),
+                        .padding(horizontal = 10.dp, vertical = 9.dp),
                     verticalAlignment = Alignment.Top
                 ) {
                     val chkShape = when (mu.style) {
@@ -723,9 +737,9 @@ fun TodoCardRow(
                             fontWeight = FontWeight.ExtraBold,
                             textDecoration = if (isDone) TextDecoration.LineThrough else TextDecoration.None
                         )
-                        Spacer(Modifier.height(6.dp))
+                        Spacer(Modifier.height(4.dp))
                         Row(
-                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            horizontalArrangement = Arrangement.spacedBy(6.dp),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             if (overdueDays > 0 && !isDone) {

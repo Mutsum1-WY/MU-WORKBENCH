@@ -40,11 +40,13 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.compositeOver
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextDecoration
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.mu.workbench.data.ThemeStyle
@@ -101,6 +103,12 @@ fun TodayScreen(vm: WorkbenchViewModel) {
     var inspectWeek by remember(curWeek) { mutableStateOf(curWeek) }
     var expandedUcloudId by remember { mutableStateOf("") }
 
+    LaunchedEffect(state.ucloud.on, state.ucloud.items) {
+        if (state.ucloud.on && state.ucloud.items.isNotEmpty()) {
+            vm.prefetchUcloudTodoDetails()
+        }
+    }
+
     val pomoCount = if (state.todayPomoDate == todayKey) state.todayPomos else 0
     val weekStr = today.dayOfWeek.getDisplayName(TextStyle.SHORT, Locale.CHINA)
     val dayStatusSuffix = when {
@@ -112,8 +120,8 @@ fun TodayScreen(vm: WorkbenchViewModel) {
     LazyColumn(
         state = listState,
         modifier = Modifier.fillMaxSize(),
-        contentPadding = PaddingValues(start = 14.dp, end = 14.dp, top = 12.dp, bottom = 96.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp)
+        contentPadding = PaddingValues(start = 10.dp, end = 10.dp, top = 8.dp, bottom = 18.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
         // 顶部待办提醒横幅
         if (!bannerDismissed && pendingCount > 0) {
@@ -152,7 +160,7 @@ fun TodayScreen(vm: WorkbenchViewModel) {
 
         if (!wkStatus.inRange) {
             item(key = "kb_out") {
-                MuCard(backgroundColor = mu.surface2, padding = 14.dp) {
+                MuCard(backgroundColor = mu.surface2, padding = 10.dp, showCornerAccent = false) {
                     Text("课表不在本学期", fontWeight = FontWeight.Black, fontSize = 14.sp, color = mu.ink)
                     Spacer(Modifier.height(4.dp))
                     Text(
@@ -188,7 +196,7 @@ fun TodayScreen(vm: WorkbenchViewModel) {
 
             if (todayClasses.isEmpty()) {
                 item(key = "kb_empty") {
-                    MuCard(backgroundColor = mu.surface1, padding = 14.dp) {
+                    MuCard(backgroundColor = mu.surface1, padding = 10.dp, showCornerAccent = false) {
                         Text("今天没课 🎉", color = mu.ink, fontWeight = FontWeight.Black, fontSize = 14.5.sp)
                         Spacer(Modifier.height(4.dp))
                         val nextText = if (nextHint != null) {
@@ -205,40 +213,69 @@ fun TodayScreen(vm: WorkbenchViewModel) {
                 itemsIndexed(todayClasses, key = { idx, it -> "kb_${idx}_${it.item.name}_${it.item.start}" }) { _, cls ->
                     val isLive = cls.status == ScheduleEngine.ClassStatus.LIVE
                     val isPast = cls.status == ScheduleEngine.ClassStatus.PAST
+                    val cardBg = if (isLive) mu.accentSoft.compositeOver(mu.surface1) else if (isPast) mu.paper2 else mu.surface1
                     MuCard(
                         borderColor = if (isLive) mu.accent else null,
-                        backgroundColor = if (isLive) mu.accentSoft else if (isPast) mu.paper2 else mu.surface1,
-                        padding = 12.dp
+                        backgroundColor = cardBg,
+                        padding = 10.dp,
+                        showCornerAccent = false
                     ) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
-                            Column(horizontalAlignment = Alignment.End, modifier = Modifier.width(48.dp)) {
+                            Column(horizontalAlignment = Alignment.End, modifier = Modifier.widthIn(min = 52.dp)) {
                                 Text(
                                     cls.startTime,
                                     fontWeight = FontWeight.Black,
                                     fontStyle = if (mu.style != ThemeStyle.IOS) FontStyle.Italic else FontStyle.Normal,
                                     style = androidx.compose.ui.text.TextStyle(fontFeatureSettings = "tnum"),
                                     fontSize = 14.sp,
+                                    lineHeight = 17.sp,
+                                    maxLines = 1,
+                                    softWrap = false,
                                     color = if (isLive) mu.accentInk else if (isPast) mu.ink3 else mu.ink
                                 )
-                                Text(cls.endTime, fontSize = 10.5.sp, color = mu.ink3)
+                                Text(
+                                    cls.endTime,
+                                    fontSize = 10.5.sp,
+                                    lineHeight = 14.sp,
+                                    maxLines = 1,
+                                    softWrap = false,
+                                    style = androidx.compose.ui.text.TextStyle(fontFeatureSettings = "tnum"),
+                                    color = mu.ink3
+                                )
                             }
-                            Spacer(Modifier.width(12.dp))
+                            Spacer(Modifier.width(10.dp))
                             Column(modifier = Modifier.weight(1f)) {
                                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                                     Text(
                                         cls.item.name,
                                         fontWeight = FontWeight.ExtraBold,
                                         fontSize = 14.5.sp,
+                                        lineHeight = 19.sp,
+                                        maxLines = 2,
+                                        overflow = TextOverflow.Ellipsis,
                                         color = if (isPast) mu.ink3 else mu.ink,
                                         modifier = Modifier.weight(1f, fill = false)
                                     )
-                                    if (cls.item.practice) MuChip("实践", if (mu.style == ThemeStyle.P5R) mu.ink else mu.accentSoft, if (mu.style == ThemeStyle.P5R) mu.paper else mu.accentInk)
+                                    if (cls.item.practice) {
+                                        val chipBg = if (isLive) {
+                                            if (mu.style == ThemeStyle.P5R) mu.ink else mu.accent
+                                        } else {
+                                            if (mu.style == ThemeStyle.P5R) mu.ink else mu.accentSoft
+                                        }
+                                        val chipFg = if (isLive) {
+                                            if (mu.style == ThemeStyle.P5R) mu.paper else Color.White
+                                        } else {
+                                            if (mu.style == ThemeStyle.P5R) mu.paper else mu.accentInk
+                                        }
+                                        MuChip("实践", chipBg, chipFg)
+                                    }
                                 }
                                 Spacer(Modifier.height(3.dp))
                                 Text(
                                     "第 ${cls.item.start}-${cls.item.end} 节 · ${cls.room.ifEmpty { "地点待定" }}" +
                                         if (cls.teacherShort.isNotEmpty()) " · ${cls.teacherShort}" else "",
                                     fontSize = 12.sp,
+                                    lineHeight = 16.sp,
                                     color = mu.ink2
                                 )
                                 Spacer(Modifier.height(4.dp))
@@ -258,17 +295,26 @@ fun TodayScreen(vm: WorkbenchViewModel) {
                                         ) {
                                             Box(
                                                 modifier = Modifier
-                                                    .fillMaxWidth(progAnim)
+                                                    .fillMaxWidth(progAnim.coerceIn(0f, 1f))
                                                     .fillMaxHeight()
                                                     .background(mu.accent)
                                             )
                                         }
-                                        Text(cls.hintText, fontSize = 11.5.sp, fontWeight = FontWeight.Black, color = mu.accentInk)
+                                        Text(
+                                            cls.hintText,
+                                            fontSize = 11.5.sp,
+                                            lineHeight = 15.sp,
+                                            maxLines = 1,
+                                            softWrap = false,
+                                            fontWeight = FontWeight.Black,
+                                            color = mu.accentInk
+                                        )
                                     }
                                 } else {
                                     Text(
                                         cls.hintText,
                                         fontSize = 12.sp,
+                                        lineHeight = 16.sp,
                                         fontWeight = FontWeight.Bold,
                                         color = if (isPast) mu.ink3 else mu.accentInk
                                     )
@@ -285,7 +331,7 @@ fun TodayScreen(vm: WorkbenchViewModel) {
             val weekCourseCount = remember(tt, inspectWeek) {
                 (1..7).sumOf { d -> ScheduleEngine.classesForDay(tt, inspectWeek, d, nowTime).size }
             }
-            MuCard(padding = 12.dp, showCornerAccent = false) {
+            MuCard(padding = 10.dp, showCornerAccent = false) {
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -318,19 +364,24 @@ fun TodayScreen(vm: WorkbenchViewModel) {
                                 enabled = inspectWeek > 1,
                                 contentPadding = PaddingValues(horizontal = 8.dp, vertical = 2.dp),
                                 shape = RoundedCornerShape(mu.cardRadius),
-                                modifier = Modifier.height(32.dp)
+                                modifier = Modifier.heightIn(min = 32.dp)
                             ) {
                                 Icon(Icons.Rounded.ChevronLeft, null, modifier = Modifier.size(16.dp))
-                                Text("上一周", fontSize = 11.5.sp)
+                                Text("上一周", fontSize = 11.5.sp, lineHeight = 14.sp, maxLines = 1, softWrap = false)
                             }
                             TextButton(
                                 onClick = { inspectWeek = curWeek },
-                                modifier = Modifier.weight(1f).height(32.dp)
+                                contentPadding = PaddingValues(horizontal = 6.dp, vertical = 2.dp),
+                                modifier = Modifier.weight(1f).heightIn(min = 32.dp)
                             ) {
                                 Text(
                                     if (inspectWeek == curWeek) "第 $inspectWeek / ${tt.totalWeeks} 周（本周）"
                                     else "第 $inspectWeek / ${tt.totalWeeks} 周 · 回本周",
                                     fontSize = 12.sp,
+                                    lineHeight = 15.sp,
+                                    maxLines = 1,
+                                    softWrap = false,
+                                    overflow = TextOverflow.Ellipsis,
                                     fontWeight = FontWeight.Black,
                                     color = if (inspectWeek == curWeek) mu.ink else mu.accentInk
                                 )
@@ -340,9 +391,9 @@ fun TodayScreen(vm: WorkbenchViewModel) {
                                 enabled = inspectWeek < tt.totalWeeks,
                                 contentPadding = PaddingValues(horizontal = 8.dp, vertical = 2.dp),
                                 shape = RoundedCornerShape(mu.cardRadius),
-                                modifier = Modifier.height(32.dp)
+                                modifier = Modifier.heightIn(min = 32.dp)
                             ) {
-                                Text("下一周", fontSize = 11.5.sp)
+                                Text("下一周", fontSize = 11.5.sp, lineHeight = 14.sp, maxLines = 1, softWrap = false)
                                 Icon(Icons.Rounded.ChevronRight, null, modifier = Modifier.size(16.dp))
                             }
                         }
@@ -471,7 +522,7 @@ fun TodayScreen(vm: WorkbenchViewModel) {
                     MuCard(
                         backgroundColor = if (uDone) mu.paper2 else mu.surface1,
                         borderColor = if (isOpen) mu.accent else null,
-                        padding = 12.dp,
+                        padding = 10.dp,
                         behindContent = if (showProg) {
                             {
                                 if (size.width > 1f && size.height > 1f) {
@@ -556,51 +607,6 @@ fun TodayScreen(vm: WorkbenchViewModel) {
                                     }
                                 }
                             }
-                        }
-                        if (u.endTime.isNotEmpty()) {
-                            Spacer(Modifier.height(8.dp))
-                            val barShape = RoundedCornerShape(if (mu.style == ThemeStyle.P5R) 0.dp else 999.dp)
-                            val borderColor = if (mu.style == ThemeStyle.P5R) mu.ink else dueProgress.third.copy(alpha = 0.35f)
-                            val borderWidth = if (mu.style == ThemeStyle.P5R) 1.dp else 0.75.dp
-                            Box(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .height(9.dp)
-                                    .clip(barShape)
-                                    .background(dueProgress.third.copy(alpha = 0.14f))
-                                    .drawBehind {
-                                        val fillW = (size.width * ucProgAnimState.value).coerceIn(0f, size.width)
-                                        if (fillW > 1f && size.height > 0f) {
-                                            drawRect(
-                                                brush = Brush.horizontalGradient(
-                                                    colors = listOf(dueProgress.third, dueProgress.third.copy(alpha = 0.78f)),
-                                                    startX = 0f,
-                                                    endX = fillW
-                                                ),
-                                                size = androidx.compose.ui.geometry.Size(fillW, size.height)
-                                            )
-                                            val bw = (fillW * 0.45f).coerceAtLeast(1f)
-                                            val bx = sheenPhaseState.value * fillW
-                                            drawRect(
-                                                brush = Brush.horizontalGradient(
-                                                    colors = listOf(
-                                                        Color.Transparent,
-                                                        Color.White.copy(alpha = 0.42f),
-                                                        Color.Transparent
-                                                    ),
-                                                    startX = bx - bw,
-                                                    endX = bx + bw
-                                                ),
-                                                size = androidx.compose.ui.geometry.Size(fillW, size.height)
-                                            )
-                                        }
-                                    }
-                                    .border(
-                                        width = borderWidth,
-                                        color = borderColor,
-                                        shape = barShape
-                                    )
-                            )
                         }
 
                         AnimatedVisibility(visible = isOpen) {
@@ -721,7 +727,7 @@ private fun TodayAlertBanner(
                 ThemeStyle.IOS -> Modifier
             }
         )
-        .padding(horizontal = 14.dp, vertical = 11.dp)
+        .padding(horizontal = 12.dp, vertical = 7.dp)
 
     Row(modifier = mod, verticalAlignment = Alignment.CenterVertically) {
         Icon(
@@ -822,7 +828,7 @@ private fun TodayHeroCard(
                             drawPath(zebraPath, zebraCol, style = zebraStroke)
                         }
                     }
-                    .padding(start = 16.dp, end = 16.dp, top = 14.dp, bottom = 18.dp)
+                    .padding(start = 12.dp, end = 12.dp, top = 11.dp, bottom = 13.dp)
             ) {
                 Column {
                     Row(verticalAlignment = Alignment.CenterVertically) {
@@ -832,7 +838,7 @@ private fun TodayHeroCard(
                                     .graphicsLayer { rotationZ = -3f }
                                     .clip(parallelogramShape(0.22f))
                                     .background(mu.chromeInk)
-                                    .padding(horizontal = 10.dp, vertical = 2.dp)
+                                    .padding(horizontal = 9.dp, vertical = 2.dp)
                             ) {
                                 Text(
                                     "TODAY",
@@ -842,11 +848,11 @@ private fun TodayHeroCard(
                                     letterSpacing = 2.sp
                                 )
                             }
-                            Spacer(Modifier.height(8.dp))
+                            Spacer(Modifier.height(5.dp))
                             Text(
                                 text = monthDay,
                                 color = Color.White,
-                                fontSize = 29.sp,
+                                fontSize = 25.sp,
                                 fontWeight = FontWeight.Black,
                                 fontStyle = FontStyle.Normal,
                                 letterSpacing = (-0.5).sp
@@ -854,34 +860,34 @@ private fun TodayHeroCard(
                             Text(
                                 text = subLine,
                                 color = mu.chromeSoft,
-                                fontSize = 12.sp,
+                                fontSize = 11.5.sp,
                                 fontWeight = FontWeight.Bold
                             )
                         }
-                        Box(contentAlignment = Alignment.Center, modifier = Modifier.size(66.dp)) {
+                        Box(contentAlignment = Alignment.Center, modifier = Modifier.size(58.dp)) {
                             Canvas(modifier = Modifier.fillMaxSize()) {
                                 drawCircle(color = mu.chrome, radius = size.minDimension / 2f)
                                 drawCircle(color = Color.White, radius = size.minDimension / 2f, style = Stroke(2.dp.toPx()))
                                 drawArc(
                                     color = Color.White.copy(alpha = 0.2f),
                                     startAngle = 0f, sweepAngle = 360f, useCenter = false,
-                                    style = Stroke(6.5.dp.toPx())
+                                    style = Stroke(6.dp.toPx())
                                 )
                                 drawArc(
                                     color = mu.accent,
                                     startAngle = -90f, sweepAngle = animPct * 360f, useCenter = false,
-                                    style = Stroke(6.5.dp.toPx())
+                                    style = Stroke(6.dp.toPx())
                                 )
                             }
-                            Text("$doneCount/$totalCount", color = Color.White, fontSize = 13.5.sp, fontWeight = FontWeight.Black, fontStyle = FontStyle.Italic)
+                            Text("$doneCount/$totalCount", color = Color.White, fontSize = 12.5.sp, fontWeight = FontWeight.Black, fontStyle = FontStyle.Italic)
                         }
                     }
-                    Spacer(Modifier.height(14.dp))
+                    Spacer(Modifier.height(8.dp))
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Text(
                             "今日专注 $pomoCount 个番茄",
                             color = mu.chromeSoft,
-                            fontSize = 12.sp,
+                            fontSize = 11.5.sp,
                             fontWeight = FontWeight.Bold,
                             modifier = Modifier.weight(1f)
                         )
@@ -896,12 +902,12 @@ private fun TodayHeroCard(
                                 .background(mu.accent)
                                 .border(1.5.dp, Color.White)
                                 .clickable(onClick = onNewTodo)
-                                .padding(horizontal = 14.dp, vertical = 8.dp)
+                                .padding(horizontal = 12.dp, vertical = 6.dp)
                         ) {
                             Row(verticalAlignment = Alignment.CenterVertically) {
-                                Icon(Icons.Rounded.Add, null, tint = Color.White, modifier = Modifier.size(16.dp))
+                                Icon(Icons.Rounded.Add, null, tint = Color.White, modifier = Modifier.size(15.dp))
                                 Spacer(Modifier.width(4.dp))
-                                Text("新建待办", color = Color.White, fontWeight = FontWeight.Black, fontSize = 13.sp)
+                                Text("新建待办", color = Color.White, fontWeight = FontWeight.Black, fontSize = 12.5.sp)
                             }
                         }
                     }
@@ -934,15 +940,15 @@ private fun TodayHeroCard(
                             drawRect(barGrad, topLeft = Offset(0f, barTop), size = barSize)
                         }
                     }
-                    .padding(16.dp)
+                    .padding(12.dp)
             ) {
                 Text(
                     "01",
                     color = Color.White.copy(alpha = 0.11f),
-                    fontSize = 104.sp,
+                    fontSize = 90.sp,
                     fontWeight = FontWeight.Black,
                     fontStyle = FontStyle.Italic,
-                    modifier = Modifier.align(Alignment.BottomEnd).offset(x = 6.dp, y = 14.dp)
+                    modifier = Modifier.align(Alignment.BottomEnd).offset(x = 6.dp, y = 12.dp)
                 )
                 Column {
                     Row(verticalAlignment = Alignment.CenterVertically) {
@@ -957,7 +963,7 @@ private fun TodayHeroCard(
                                 }
                                 .clip(RoundedCornerShape(3.dp))
                                 .background(Color.White)
-                                .padding(horizontal = 13.dp, vertical = 8.dp)
+                                .padding(horizontal = 11.dp, vertical = 6.dp)
                         ) {
                             Column {
                                 Box(
@@ -968,45 +974,45 @@ private fun TodayHeroCard(
                                 ) {
                                     Text("TODAY", color = Color.White, fontSize = 9.sp, fontWeight = FontWeight.Black, letterSpacing = 2.sp)
                                 }
-                                Spacer(Modifier.height(3.dp))
+                                Spacer(Modifier.height(2.dp))
                                 Text(
                                     monthDay,
                                     color = mu.accent,
-                                    fontSize = 26.sp,
+                                    fontSize = 23.sp,
                                     fontWeight = FontWeight.Black,
                                     fontStyle = FontStyle.Normal,
                                     letterSpacing = (-0.5).sp
                                 )
-                                Text(subLine, color = mu.accent.copy(alpha = 0.85f), fontSize = 11.5.sp, fontWeight = FontWeight.Bold)
+                                Text(subLine, color = mu.accent.copy(alpha = 0.85f), fontSize = 11.sp, fontWeight = FontWeight.Bold)
                             }
                         }
                         Spacer(Modifier.weight(1f))
-                        Box(contentAlignment = Alignment.Center, modifier = Modifier.size(66.dp)) {
+                        Box(contentAlignment = Alignment.Center, modifier = Modifier.size(58.dp)) {
                             Canvas(modifier = Modifier.fillMaxSize()) {
                                 drawCircle(color = mu.accent, radius = size.minDimension / 2f)
                                 drawCircle(color = Color.White, radius = size.minDimension / 2f, style = Stroke(2.dp.toPx()))
                                 drawArc(
                                     color = Color.White.copy(alpha = 0.25f),
                                     startAngle = 0f, sweepAngle = 360f, useCenter = false,
-                                    style = Stroke(6.dp.toPx())
+                                    style = Stroke(5.5.dp.toPx())
                                 )
                                 drawArc(
                                     color = mu.p3Cyan,
                                     startAngle = -90f, sweepAngle = animPct * 360f, useCenter = false,
-                                    style = Stroke(6.dp.toPx())
+                                    style = Stroke(5.5.dp.toPx())
                                 )
                             }
-                            Text("$doneCount/$totalCount", color = Color.White, fontSize = 13.5.sp, fontWeight = FontWeight.Black)
+                            Text("$doneCount/$totalCount", color = Color.White, fontSize = 12.5.sp, fontWeight = FontWeight.Black)
                         }
                     }
-                    Spacer(Modifier.height(14.dp))
+                    Spacer(Modifier.height(8.dp))
                     HorizontalDivider(color = Color.White.copy(alpha = 0.22f))
-                    Spacer(Modifier.height(10.dp))
+                    Spacer(Modifier.height(6.dp))
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Text(
                             "今日专注 $pomoCount 个番茄",
                             color = Color(0xFFD6F2FF),
-                            fontSize = 12.sp,
+                            fontSize = 11.5.sp,
                             fontWeight = FontWeight.SemiBold,
                             modifier = Modifier.weight(1f)
                         )
@@ -1020,12 +1026,12 @@ private fun TodayHeroCard(
                                 .clip(parallelogramShape(0.2f))
                                 .background(mu.p3Cyan)
                                 .clickable(onClick = onNewTodo)
-                                .padding(horizontal = 15.dp, vertical = 8.dp)
+                                .padding(horizontal = 12.dp, vertical = 6.dp)
                         ) {
                             Row(verticalAlignment = Alignment.CenterVertically) {
-                                Icon(Icons.Rounded.Add, null, tint = mu.p3Deep, modifier = Modifier.size(16.dp))
+                                Icon(Icons.Rounded.Add, null, tint = mu.p3Deep, modifier = Modifier.size(15.dp))
                                 Spacer(Modifier.width(4.dp))
-                                Text("新建待办", color = mu.p3Deep, fontWeight = FontWeight.Black, fontSize = 13.sp)
+                                Text("新建待办", color = mu.p3Deep, fontWeight = FontWeight.Black, fontSize = 12.5.sp)
                             }
                         }
                     }
@@ -1039,7 +1045,7 @@ private fun TodayHeroCard(
                     .fillMaxWidth()
                     .clip(RoundedCornerShape(mu.cardRadius))
                     .background(Brush.linearGradient(listOf(mu.accent, mu.accent2)))
-                    .padding(18.dp)
+                    .padding(13.dp)
             ) {
                 Column {
                     Row(verticalAlignment = Alignment.CenterVertically) {
@@ -1047,32 +1053,33 @@ private fun TodayHeroCard(
                             Surface(color = Color.White.copy(alpha = 0.22f), shape = RoundedCornerShape(999.dp)) {
                                 Text("TODAY", color = Color.White, fontSize = 10.sp, fontWeight = FontWeight.Black, modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp))
                             }
-                            Spacer(Modifier.height(6.dp))
-                            Text(monthDay, color = Color.White, fontSize = 28.sp, fontWeight = FontWeight.Black)
-                            Text(subLine, color = Color.White.copy(alpha = 0.85f), fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
+                            Spacer(Modifier.height(4.dp))
+                            Text(monthDay, color = Color.White, fontSize = 24.sp, fontWeight = FontWeight.Black)
+                            Text(subLine, color = Color.White.copy(alpha = 0.85f), fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
                         }
-                        Box(contentAlignment = Alignment.Center, modifier = Modifier.size(66.dp)) {
+                        Box(contentAlignment = Alignment.Center, modifier = Modifier.size(58.dp)) {
                             Canvas(modifier = Modifier.fillMaxSize()) {
-                                drawArc(Color.White.copy(alpha = 0.22f), 0f, 360f, false, style = Stroke(7.dp.toPx(), cap = StrokeCap.Round))
-                                drawArc(Color.White, -90f, animPct * 360f, false, style = Stroke(7.dp.toPx(), cap = StrokeCap.Round))
+                                drawArc(Color.White.copy(alpha = 0.22f), 0f, 360f, false, style = Stroke(6.dp.toPx(), cap = StrokeCap.Round))
+                                drawArc(Color.White, -90f, animPct * 360f, false, style = Stroke(6.dp.toPx(), cap = StrokeCap.Round))
                             }
-                            Text("$doneCount/$totalCount", color = Color.White, fontSize = 14.sp, fontWeight = FontWeight.ExtraBold)
+                            Text("$doneCount/$totalCount", color = Color.White, fontSize = 13.sp, fontWeight = FontWeight.ExtraBold)
                         }
                     }
-                    Spacer(Modifier.height(14.dp))
+                    Spacer(Modifier.height(8.dp))
                     HorizontalDivider(color = Color.White.copy(alpha = 0.18f))
-                    Spacer(Modifier.height(10.dp))
+                    Spacer(Modifier.height(6.dp))
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        Text("今日专注 $pomoCount 个番茄", color = Color.White.copy(alpha = 0.9f), fontSize = 12.5.sp, modifier = Modifier.weight(1f))
+                        Text("今日专注 $pomoCount 个番茄", color = Color.White.copy(alpha = 0.9f), fontSize = 12.sp, modifier = Modifier.weight(1f))
                         Button(
                             onClick = onNewTodo,
                             colors = ButtonDefaults.buttonColors(containerColor = Color.White, contentColor = mu.accent),
                             shape = RoundedCornerShape(999.dp),
-                            contentPadding = PaddingValues(horizontal = 14.dp, vertical = 6.dp)
+                            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp),
+                            modifier = Modifier.height(34.dp)
                         ) {
-                            Icon(Icons.Rounded.Add, null, modifier = Modifier.size(16.dp))
+                            Icon(Icons.Rounded.Add, null, modifier = Modifier.size(15.dp))
                             Spacer(Modifier.width(4.dp))
-                            Text("新建待办", fontWeight = FontWeight.ExtraBold, fontSize = 13.sp)
+                            Text("新建待办", fontWeight = FontWeight.ExtraBold, fontSize = 12.5.sp)
                         }
                     }
                 }

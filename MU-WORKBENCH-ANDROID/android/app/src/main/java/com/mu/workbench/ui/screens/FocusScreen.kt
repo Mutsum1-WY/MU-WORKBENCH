@@ -45,7 +45,7 @@ fun FocusScreen(vm: WorkbenchViewModel) {
     val focusSub by vm.focusSub.collectAsState()
 
     Column(modifier = Modifier.fillMaxSize()) {
-        Box(modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp)) {
+        Box(modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp)) {
             MuSegmentedRow(
                 items = listOf(FocusSub.CLOCK to "时钟", FocusSub.PROJECTS to "项目"),
                 selected = focusSub,
@@ -78,14 +78,14 @@ private fun ClockPane(vm: WorkbenchViewModel) {
 
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
-        contentPadding = PaddingValues(start = 14.dp, end = 14.dp, bottom = 96.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp)
+        contentPadding = PaddingValues(start = 10.dp, end = 10.dp, bottom = 18.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
         // 紧凑表盘 + 数字时间并排卡片
         item {
-            MuCard(padding = 16.dp) {
-                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-                    AnalogClockCanvas(nowTime = nowTime, dayPct = dayPct, modifier = Modifier.size(110.dp))
+            MuCard(padding = 12.dp) {
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                    AnalogClockCanvas(nowTime = nowTime, dayPct = dayPct, modifier = Modifier.size(92.dp))
                     Column(modifier = Modifier.weight(1f)) {
                         Text(
                             "%02d:%02d:%02d".format(nowTime.hour, nowTime.minute, nowTime.second),
@@ -123,29 +123,29 @@ private fun ClockPane(vm: WorkbenchViewModel) {
             val secs = pomo.leftSec % 60
             val linkedTitle = todayItems.firstOrNull { it.todo.id == pomo.linkedTodoId }?.todo?.title
 
-            MuCard(padding = 16.dp) {
+            MuCard(padding = 12.dp) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text("番茄钟", fontWeight = FontWeight.ExtraBold, fontSize = 15.sp, color = mu.ink, modifier = Modifier.weight(1f))
                     MuChip(statusText, mu.accentSoft, mu.accentInk)
                 }
-                Spacer(Modifier.height(14.dp))
+                Spacer(Modifier.height(8.dp))
                 Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxWidth()) {
-                    Box(contentAlignment = Alignment.Center, modifier = Modifier.size(148.dp)) {
+                    Box(contentAlignment = Alignment.Center, modifier = Modifier.size(124.dp)) {
                         Canvas(modifier = Modifier.fillMaxSize()) {
                             drawArc(
                                 color = mu.surface3,
                                 startAngle = 0f, sweepAngle = 360f, useCenter = false,
-                                style = Stroke(width = 8.dp.toPx(), cap = StrokeCap.Round)
+                                style = Stroke(width = 7.dp.toPx(), cap = StrokeCap.Round)
                             )
                             drawArc(
                                 color = if (pomo.isFocus) mu.accent else mu.ok,
                                 startAngle = -90f, sweepAngle = pomoProg * 360f, useCenter = false,
-                                style = Stroke(width = 8.dp.toPx(), cap = StrokeCap.Round)
+                                style = Stroke(width = 7.dp.toPx(), cap = StrokeCap.Round)
                             )
                         }
                         Text(
                             "%02d:%02d".format(mins, secs),
-                            fontSize = 32.sp,
+                            fontSize = 28.sp,
                             fontWeight = FontWeight.Black,
                             fontStyle = if (mu.style != ThemeStyle.IOS) FontStyle.Italic else FontStyle.Normal,
                             style = TextStyle(fontFeatureSettings = "tnum"),
@@ -153,7 +153,7 @@ private fun ClockPane(vm: WorkbenchViewModel) {
                         )
                     }
                 }
-                Spacer(Modifier.height(14.dp))
+                Spacer(Modifier.height(8.dp))
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
                     Button(
                         onClick = { vm.startOrPausePomo() },
@@ -186,13 +186,13 @@ private fun ClockPane(vm: WorkbenchViewModel) {
 
         // 秒表 / 倒计时
         item {
-            MuCard(padding = 14.dp) {
+            MuCard(padding = 11.dp) {
                 MuSegmentedRow(
                     items = listOf(0 to "秒表", 1 to "倒计时"),
                     selected = toolTab,
                     onSelect = { toolTab = it }
                 )
-                Spacer(Modifier.height(12.dp))
+                Spacer(Modifier.height(8.dp))
                 if (toolTab == 0) {
                     val totalSec = sw.elapsedMs / 1000
                     val cs = (sw.elapsedMs % 1000) / 10
@@ -283,8 +283,8 @@ private fun ProjectsPane(vm: WorkbenchViewModel) {
 
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
-        contentPadding = PaddingValues(start = 14.dp, end = 14.dp, bottom = 96.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp)
+        contentPadding = PaddingValues(start = 10.dp, end = 10.dp, bottom = 18.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
         item {
             Row(verticalAlignment = Alignment.CenterVertically) {
@@ -306,7 +306,7 @@ private fun ProjectsPane(vm: WorkbenchViewModel) {
             items(state.projects, key = { it.id }) { p ->
                 val avg = if (p.items.isEmpty()) 0 else p.items.sumOf { it.progress } / p.items.size
                 val cardColor = Color(AccentStyle.fromKey(p.colorKey).hex)
-                MuCard(padding = 14.dp) {
+                MuCard(padding = 11.dp) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Box(
                             modifier = Modifier

@@ -1,13 +1,19 @@
 package com.mu.workbench.ui
 
 import android.app.Application
+import android.content.Context
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.net.Uri
+import android.os.Build
+import android.provider.Settings
 import android.util.LruCache
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.asImageBitmap
+import androidx.core.content.FileProvider
+import androidx.core.content.pm.PackageInfoCompat
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.mu.workbench.MuBgCheck
@@ -15,21 +21,27 @@ import com.mu.workbench.MuKeepAlive
 import com.mu.workbench.MuNative
 import com.mu.workbench.alarm.NotificationHelper
 import com.mu.workbench.data.*
+import com.mu.workbench.domain.AppUpdater
 import com.mu.workbench.domain.ByrDocsClient
 import com.mu.workbench.domain.NativeClients
 import com.mu.workbench.domain.ScheduleEngine
 import com.mu.workbench.domain.TodoEngine
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Semaphore
 import kotlinx.coroutines.sync.withPermit
 import kotlinx.coroutines.withContext
+import java.io.File
 import java.time.LocalDate
 import java.time.LocalTime
 import java.util.UUID
@@ -94,6 +106,22 @@ data class DlStatus(
     val err: String? = null
 )
 
+data class AppUpdateState(
+    val currentVersion: String = "",
+    val currentVersionCode: Long = 0L,
+    val checking: Boolean = false,
+    val checkedOnce: Boolean = false,
+    val latest: AppUpdater.ReleaseInfo? = null,
+    val hasUpdate: Boolean = false,
+    val downloading: Boolean = false,
+    val downloadPct: Int = 0,
+    val downloadedBytes: Long = 0L,
+    val totalBytes: Long = 0L,
+    val downloadedFilePath: String? = null,
+    val error: String? = null,
+    val showDialog: Boolean = false
+)
+
 class WorkbenchViewModel(app: Application) : AndroidViewModel(app) {
 
     private val ctx = app.applicationContext
@@ -143,6 +171,8 @@ class WorkbenchViewModel(app: Application) : AndroidViewModel(app) {
 
     private val portalImgCache = LruCache<String, List<ImageBitmap>>(48)
     private val portalImgSemaphore = Semaphore(3)
+    private val ucloudDetailInFlight = mutableSetOf<String>()
+    private val ucloudDetailSemaphore = Semaphore(2)
 
     private val _editingTodo = MutableStateFlow<TodoItem?>(null)
     val editingTodo: StateFlow<TodoItem?> = _editingTodo.asStateFlow()
@@ -215,6 +245,16 @@ class WorkbenchViewModel(app: Application) : AndroidViewModel(app) {
     private val _portalPageNotice = MutableStateFlow(1)
     private val _portalPageLecture = MutableStateFlow(1)
 
+    private val updatePrefs = ctx.getSharedPreferences("mu_updater", Context.MODE_PRIVATE)
+    private val _updateState = MutableStateFlow(
+        readInstalledVersion().let { (ver, code) ->
+            AppUpdateState(currentVersion = ver, currentVersionCode = code)
+        }
+    )
+    val updateState: StateFlow<AppUpdateState> = _updateState.asStateFlow()
+    private var updateDownloadJob: Job? = null
+    private var lastAutoCheckAttemptMs = 0L
+
     init {
         NotificationHelper.ensureChannels(ctx)
         NotificationHelper.rescheduleAll(ctx, _state.value, builtinHolidays)
@@ -242,11 +282,19 @@ class WorkbenchViewModel(app: Application) : AndroidViewModel(app) {
             ) {
                 syncTimetable(s.timetable.user, s.timetable.pwd, silent = true)
             }
-            if (s.ucloud.on && s.ucloud.id.isNotBlank() && s.ucloud.pwd.isNotBlank() &&
-                (nowMs - s.ucloud.lastSync) > 5 * 60 * 1000L
-            ) {
-                syncUcloudOnly(silent = true)
+            if (s.ucloud.on && s.ucloud.id.isNotBlank() && s.ucloud.pwd.isNotBlank()) {
+                if ((nowMs - s.ucloud.lastSync) > 5 * 60 * 1000L) {
+                    syncUcloudOnly(silent = true)
+                } else {
+                    prefetchUcloudTodoDetails()
+                }
             }
+        }
+
+        // 每次冷启动自动静默检查应用新版本
+        viewModelScope.launch {
+            delay(1000L)
+            checkForAppUpdate(manual = false)
         }
     }
 
@@ -346,9 +394,10 @@ class WorkbenchViewModel(app: Application) : AndroidViewModel(app) {
     fun openScanOverlay() { _scanStatus.value = null; _showScanOverlay.value = true }
     fun closeScanOverlay() { _showScanOverlay.value = false }
 
-    /** 返回键层级：确认框 -> 编辑器 -> 扫码页 -> 阅读页 -> 设置页 -> 非今日页回今日 -> 交给系统退出 */
+    /** 返回键层级：确认框 -> 更新框 -> 编辑器 -> 扫码页 -> 阅读页 -> 设置页 -> 非今日页回今日 -> 交给系统退出 */
     fun handleBack(): Boolean {
         if (_confirmDialog.value != null) { _confirmDialog.value = null; return true }
+        if (_updateState.value.showDialog) { dismissUpdateDialog(); return true }
         if (_showTodoEditor.value) { _showTodoEditor.value = false; return true }
         if (_showProjectEditor.value) { _showProjectEditor.value = false; return true }
         if (_showScanOverlay.value) { _showScanOverlay.value = false; return true }
@@ -705,6 +754,7 @@ class WorkbenchViewModel(app: Application) : AndroidViewModel(app) {
                     val nextPortal = if (prev.id != cfg.id) s.portal.copy(cookieJarJson = "") else s.portal
                     s.copy(ucloud = cfg, portal = nextPortal)
                 }
+                prefetchUcloudTodoDetails()
                 toast("云邮已同步：${items.size} 条未完成")
             } catch (e: Throwable) {
                 val msg = e.message ?: "登录失败"
@@ -727,6 +777,7 @@ class WorkbenchViewModel(app: Application) : AndroidViewModel(app) {
             try {
                 val (cfg, items) = withContext(Dispatchers.IO) { NativeClients.syncUcloudTodos(cur) }
                 updateState { s -> s.copy(ucloud = cfg) }
+                prefetchUcloudTodoDetails()
                 if (!silent) toast("云邮已更新（${items.size} 条）")
             } catch (e: Throwable) {
                 val msg = e.message ?: "同步失败"
@@ -738,22 +789,75 @@ class WorkbenchViewModel(app: Application) : AndroidViewModel(app) {
         }
     }
 
+    private fun mergeUcloudDetail(activityId: String, nextCfg: UcloudConfig, det: UcloudDetailCache) {
+        updateState { s ->
+            s.copy(
+                ucloud = nextCfg.copy(
+                    items = s.ucloud.items,
+                    done = s.ucloud.done,
+                    seen = s.ucloud.seen,
+                    seenInit = s.ucloud.seenInit,
+                    courseMap = s.ucloud.courseMap,
+                    details = s.ucloud.details + (activityId to det)
+                )
+            )
+        }
+    }
+
     fun fetchUcloudTodoDetail(activityId: String) {
         val cur = _state.value.ucloud
         if (cur.id.isBlank() || cur.pwd.isBlank()) return
         val cached = cur.details[activityId]
         if (cached != null && cached.error.isEmpty() && cached.fetchedAt > 0L) return
+        if (!ucloudDetailInFlight.add(activityId)) return
         viewModelScope.launch {
             try {
                 val (nextCfg, det) = withContext(Dispatchers.IO) {
                     NativeClients.fetchUcloudTodoDetail(cur, activityId)
                 }
-                updateState { s ->
-                    s.copy(ucloud = nextCfg.copy(details = s.ucloud.details + (activityId to det)))
-                }
+                mergeUcloudDetail(activityId, nextCfg, det)
+            } catch (e: CancellationException) {
+                throw e
             } catch (e: Throwable) {
                 updateState { s ->
                     s.copy(ucloud = s.ucloud.copy(details = s.ucloud.details + (activityId to UcloudDetailCache(error = e.message ?: "读取失败"))))
+                }
+            } finally {
+                ucloudDetailInFlight.remove(activityId)
+            }
+        }
+    }
+
+    /** 静默预拉取未缓存详情的云邮待办，补全真实发布时间（beginTime）使进度条自动准确。 */
+    fun prefetchUcloudTodoDetails() {
+        val cur = _state.value.ucloud
+        if (!cur.on || cur.id.isBlank() || cur.pwd.isBlank()) return
+        val missing = cur.items.filter { u ->
+            u.id !in cur.done &&
+                u.endTime.isNotEmpty() &&
+                u.id !in ucloudDetailInFlight &&
+                cur.details[u.id]?.let { it.error.isEmpty() && it.fetchedAt > 0L } != true
+        }
+        if (missing.isEmpty()) return
+        missing.forEach { ucloudDetailInFlight.add(it.id) }
+        viewModelScope.launch {
+            missing.forEach { item ->
+                launch {
+                    try {
+                        ucloudDetailSemaphore.withPermit {
+                            val latestCfg = _state.value.ucloud
+                            val (nextCfg, det) = withContext(Dispatchers.IO) {
+                                NativeClients.fetchUcloudTodoDetail(latestCfg, item.id)
+                            }
+                            mergeUcloudDetail(item.id, nextCfg, det)
+                        }
+                    } catch (e: CancellationException) {
+                        throw e
+                    } catch (_: Throwable) {
+                        // 静默预拉取失败时不写入 error 缓存，保留手动点击重试能力
+                    } finally {
+                        ucloudDetailInFlight.remove(item.id)
+                    }
                 }
             }
         }
@@ -1376,5 +1480,229 @@ class WorkbenchViewModel(app: Application) : AndroidViewModel(app) {
         repo.save(fresh)
         NotificationHelper.rescheduleAll(ctx, fresh, builtinHolidays)
         toast("全部本地数据已清空")
+    }
+
+    /* ---------------- 应用内检查更新 ---------------- */
+
+    private fun readInstalledVersion(): Pair<String, Long> {
+        return try {
+            val pm = ctx.packageManager
+            val info = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                pm.getPackageInfo(ctx.packageName, PackageManager.PackageInfoFlags.of(0))
+            } else {
+                @Suppress("DEPRECATION")
+                pm.getPackageInfo(ctx.packageName, 0)
+            }
+            val verName = info.versionName?.takeIf { it.isNotBlank() } ?: "2.31"
+            val verCode = PackageInfoCompat.getLongVersionCode(info)
+            verName to verCode
+        } catch (_: Throwable) {
+            "2.31" to 0L
+        }
+    }
+
+    private fun targetApkFile(rel: AppUpdater.ReleaseInfo): File {
+        val dir = File(ctx.cacheDir, "updates")
+        val rawName = rel.apkName.ifEmpty { "MU-WORKBENCH-${rel.tagName}.apk" }
+        val safeName = rawName.replace(Regex("[^a-zA-Z0-9._-]"), "_")
+        return File(dir, safeName)
+    }
+
+    fun onAppForegrounded() {
+        val snap = _updateState.value
+        if (snap.checking || snap.downloading || snap.downloadedFilePath != null || snap.showDialog) return
+        if (System.currentTimeMillis() - lastAutoCheckAttemptMs < 30_000L) return
+        checkForAppUpdate(manual = false)
+    }
+
+    fun checkForAppUpdate(manual: Boolean = true) {
+        val snap = _updateState.value
+        if (snap.checking || snap.downloading) return
+        lastAutoCheckAttemptMs = System.currentTimeMillis()
+        _updateState.update { it.copy(checking = true, error = null) }
+        viewModelScope.launch {
+            try {
+                val rel = withContext(Dispatchers.IO) { AppUpdater.fetchLatestRelease() }
+                updatePrefs.edit().putLong("last_check_ms", System.currentTimeMillis()).apply()
+                val curVer = _updateState.value.currentVersion
+                val newer = AppUpdater.isNewer(rel.versionName, curVer)
+                val cachedApk = targetApkFile(rel)
+                val readyPath = if (
+                    newer &&
+                    cachedApk.exists() &&
+                    cachedApk.length() > 1024L &&
+                    (rel.apkSize <= 0L || cachedApk.length() == rel.apkSize)
+                ) {
+                    cachedApk.absolutePath
+                } else null
+                val ignored = updatePrefs.getString("ignored_tag", "").orEmpty()
+                if (manual && newer) {
+                    updatePrefs.edit().remove("ignored_tag").apply()
+                }
+                val popup = newer && (manual || rel.tagName != ignored)
+                _updateState.update {
+                    it.copy(
+                        checking = false,
+                        checkedOnce = true,
+                        latest = rel,
+                        hasUpdate = newer,
+                        downloadedFilePath = readyPath,
+                        error = null,
+                        showDialog = if (popup) true else it.showDialog
+                    )
+                }
+                if (!newer && manual) {
+                    toast("当前已是最新版本（v$curVer）")
+                }
+            } catch (e: CancellationException) {
+                _updateState.update { it.copy(checking = false) }
+                throw e
+            } catch (e: Throwable) {
+                val msg = e.message?.takeIf { it.isNotBlank() } ?: "检查更新失败"
+                _updateState.update {
+                    it.copy(
+                        checking = false,
+                        error = if (manual) msg else it.error
+                    )
+                }
+                if (manual) {
+                    toast("检查更新失败：$msg")
+                }
+            }
+        }
+    }
+
+    fun openUpdateDialog() {
+        if (_updateState.value.latest != null) {
+            _updateState.update { it.copy(showDialog = true) }
+        }
+    }
+
+    fun dismissUpdateDialog() {
+        _updateState.update { it.copy(showDialog = false) }
+    }
+
+    fun ignoreCurrentUpdate() {
+        val tag = _updateState.value.latest?.tagName.orEmpty()
+        if (tag.isNotEmpty()) {
+            updatePrefs.edit().putString("ignored_tag", tag).apply()
+        }
+        _updateState.update { it.copy(showDialog = false) }
+    }
+
+    fun startUpdateDownload() {
+        val cur = _updateState.value
+        val rel = cur.latest ?: return
+        if (cur.downloading) return
+        if (rel.apkUrl.isBlank()) {
+            openExternalUrl(rel.htmlUrl)
+            return
+        }
+        val ready = cur.downloadedFilePath?.let { File(it) }
+        if (ready != null && ready.exists() && ready.length() > 1024L) {
+            installDownloadedUpdate()
+            return
+        }
+        val target = targetApkFile(rel)
+        if (target.exists() && target.length() > 1024L && (rel.apkSize <= 0L || target.length() == rel.apkSize)) {
+            _updateState.update { it.copy(downloadedFilePath = target.absolutePath) }
+            installDownloadedUpdate()
+            return
+        }
+
+        _updateState.update {
+            it.copy(
+                downloading = true,
+                downloadPct = 0,
+                downloadedBytes = 0L,
+                totalBytes = rel.apkSize.coerceAtLeast(0L),
+                downloadedFilePath = null,
+                error = null
+            )
+        }
+        updateDownloadJob = viewModelScope.launch {
+            try {
+                val saved = withContext(Dispatchers.IO) {
+                    AppUpdater.downloadApk(
+                        url = rel.apkUrl,
+                        targetFile = target,
+                        expectedSize = rel.apkSize,
+                        expectedSha256 = rel.sha256,
+                        isCancelled = { !isActive },
+                        onProgress = { downloaded, total, pct ->
+                            _updateState.update {
+                                it.copy(
+                                    downloading = true,
+                                    downloadedBytes = downloaded,
+                                    totalBytes = if (total > 0L) total else it.totalBytes,
+                                    downloadPct = pct
+                                )
+                            }
+                        }
+                    )
+                }
+                _updateState.update {
+                    it.copy(
+                        downloading = false,
+                        downloadPct = 100,
+                        downloadedBytes = saved.length(),
+                        totalBytes = maxOf(it.totalBytes, saved.length()),
+                        downloadedFilePath = saved.absolutePath,
+                        error = null
+                    )
+                }
+                installDownloadedUpdate()
+            } catch (e: CancellationException) {
+                _updateState.update {
+                    it.copy(downloading = false, downloadPct = 0, downloadedBytes = 0L)
+                }
+            } catch (e: Throwable) {
+                val msg = e.message?.takeIf { it.isNotBlank() } ?: "下载失败"
+                _updateState.update { it.copy(downloading = false, error = msg) }
+                toast("下载更新失败：$msg")
+            }
+        }
+    }
+
+    fun cancelUpdateDownload() {
+        updateDownloadJob?.cancel()
+        updateDownloadJob = null
+        _updateState.update { it.copy(downloading = false, downloadPct = 0, downloadedBytes = 0L) }
+    }
+
+    fun installDownloadedUpdate() {
+        val path = _updateState.value.downloadedFilePath
+        if (path.isNullOrBlank()) {
+            toast("安装包尚未下载完成")
+            return
+        }
+        val file = File(path)
+        if (!file.exists() || file.length() <= 1024L) {
+            _updateState.update { it.copy(downloadedFilePath = null) }
+            toast("安装包不存在，请重新下载")
+            return
+        }
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O && !ctx.packageManager.canRequestPackageInstalls()) {
+            toast("请先开启「允许安装未知应用」，返回后再点立即安装")
+            try {
+                val permIntent = Intent(
+                    Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES,
+                    Uri.parse("package:${ctx.packageName}")
+                ).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                ctx.startActivity(permIntent)
+            } catch (_: Throwable) {
+                toast("请前往系统设置授予安装未知应用权限")
+            }
+            return
+        }
+        try {
+            val uri = FileProvider.getUriForFile(ctx, "${ctx.packageName}.fileprovider", file)
+            val installIntent = Intent(Intent.ACTION_VIEW)
+                .setDataAndType(uri, "application/vnd.android.package-archive")
+                .addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_ACTIVITY_NEW_TASK)
+            ctx.startActivity(installIntent)
+        } catch (e: Throwable) {
+            toast("无法调起系统安装器：${e.message}")
+        }
     }
 }

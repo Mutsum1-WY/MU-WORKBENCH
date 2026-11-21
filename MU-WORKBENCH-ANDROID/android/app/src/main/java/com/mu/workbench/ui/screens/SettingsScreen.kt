@@ -24,13 +24,16 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.mu.workbench.alarm.NotificationHelper
 import com.mu.workbench.data.AccentStyle
 import com.mu.workbench.data.ThemeStyle
+import com.mu.workbench.domain.AppUpdater
 import com.mu.workbench.ui.WorkbenchViewModel
 import com.mu.workbench.ui.components.MuCard
+import com.mu.workbench.ui.components.MuChip
 import com.mu.workbench.ui.components.MuSectionHeader
 import com.mu.workbench.ui.components.MuSegmentedRow
 import com.mu.workbench.ui.theme.LocalMuColors
@@ -45,6 +48,7 @@ fun SettingsScreen(
     val mu = LocalMuColors.current
     val ctx = LocalContext.current
     val state by vm.state.collectAsState()
+    val updateState by vm.updateState.collectAsState()
 
     var focusStr by remember(state.settings.focusMinutes) { mutableStateOf(state.settings.focusMinutes.toString()) }
     var brkStr by remember(state.settings.breakMinutes) { mutableStateOf(state.settings.breakMinutes.toString()) }
@@ -88,14 +92,14 @@ fun SettingsScreen(
     ) { pad ->
         LazyColumn(
             modifier = Modifier.fillMaxSize().background(mu.paper).padding(pad),
-            contentPadding = PaddingValues(14.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
+            contentPadding = PaddingValues(10.dp, 8.dp, 10.dp, 20.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             // 主题风格与配色
             item {
                 MuSectionHeader("主题风格与色彩")
-                Spacer(Modifier.height(6.dp))
-                MuCard(padding = 14.dp) {
+                Spacer(Modifier.height(4.dp))
+                MuCard(padding = 11.dp) {
                     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                         ThemeStyle.entries.forEach { ts ->
                             val on = state.settings.theme == ts
@@ -162,8 +166,8 @@ fun SettingsScreen(
             // 提醒与番茄钟
             item {
                 MuSectionHeader("提醒与专注")
-                Spacer(Modifier.height(6.dp))
-                MuCard(padding = 14.dp) {
+                Spacer(Modifier.height(4.dp))
+                MuCard(padding = 11.dp) {
                     Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Column(modifier = Modifier.weight(1f)) {
@@ -219,8 +223,8 @@ fun SettingsScreen(
             // 云邮账号
             item {
                 MuSectionHeader("云邮教学空间 / 门户凭据")
-                Spacer(Modifier.height(6.dp))
-                MuCard(padding = 14.dp) {
+                Spacer(Modifier.height(4.dp))
+                MuCard(padding = 11.dp) {
                     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Text("在今日页显示云邮待办卡片", modifier = Modifier.weight(1f), color = mu.ink, fontWeight = FontWeight.Bold)
@@ -253,8 +257,8 @@ fun SettingsScreen(
             item {
                 val activeTt = vm.activeTimetable()
                 MuSectionHeader("教务系统 · 在线课表")
-                Spacer(Modifier.height(6.dp))
-                MuCard(padding = 14.dp) {
+                Spacer(Modifier.height(4.dp))
+                MuCard(padding = 11.dp) {
                     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Column(modifier = Modifier.weight(1f)) {
@@ -341,8 +345,8 @@ fun SettingsScreen(
             // 后台检查与常驻
             item {
                 MuSectionHeader("后台检查与常驻（原生服务）")
-                Spacer(Modifier.height(6.dp))
-                MuCard(padding = 14.dp) {
+                Spacer(Modifier.height(4.dp))
+                MuCard(padding = 11.dp) {
                     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Text("每 15 分钟检查云邮/门户新内容", modifier = Modifier.weight(1f), color = mu.ink, fontWeight = FontWeight.Bold)
@@ -389,8 +393,8 @@ fun SettingsScreen(
             // 节假日与数据备份
             item {
                 MuSectionHeader("节假日与数据备份")
-                Spacer(Modifier.height(6.dp))
-                MuCard(padding = 14.dp) {
+                Spacer(Modifier.height(4.dp))
+                MuCard(padding = 11.dp) {
                     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                         OutlinedButton(onClick = { vm.updateHolidaysOnline() }, modifier = Modifier.fillMaxWidth()) {
                             Text("联网更新节假日数据（去年/今年/明年）")
@@ -414,6 +418,117 @@ fun SettingsScreen(
                             colors = ButtonDefaults.outlinedButtonColors(contentColor = mu.danger),
                             modifier = Modifier.fillMaxWidth()
                         ) { Text("清空全部本地数据") }
+                    }
+                }
+            }
+
+            // 关于与应用更新
+            item {
+                MuSectionHeader("关于与应用更新")
+                Spacer(Modifier.height(4.dp))
+                MuCard(padding = 11.dp) {
+                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(
+                                    "MU WORKBENCH v${updateState.currentVersion}",
+                                    fontWeight = FontWeight.Black,
+                                    fontSize = 14.5.sp,
+                                    color = mu.ink
+                                )
+                                Text(
+                                    "Build ${updateState.currentVersionCode} · ${AppUpdater.REPO_OWNER}/${AppUpdater.REPO_NAME}",
+                                    fontSize = 11.5.sp,
+                                    color = mu.ink3
+                                )
+                            }
+                            when {
+                                updateState.checking -> MuChip("检查中", mu.surface2, mu.ink2)
+                                updateState.hasUpdate && updateState.latest != null ->
+                                    MuChip("新版 v${updateState.latest!!.versionName}", mu.accent, Color.White)
+                                updateState.checkedOnce && updateState.error == null ->
+                                    MuChip("已是最新", mu.ok.copy(alpha = 0.14f), mu.ok)
+                                else -> MuChip("GitHub", mu.surface2, mu.ink2)
+                            }
+                        }
+                        if (updateState.downloading) {
+                            if (updateState.totalBytes > 0L) {
+                                LinearProgressIndicator(
+                                    progress = { (updateState.downloadPct / 100f).coerceIn(0f, 1f) },
+                                    modifier = Modifier.fillMaxWidth(),
+                                    color = mu.accent,
+                                    trackColor = mu.surface3
+                                )
+                                Text(
+                                    "正在下载 ${updateState.downloadPct}%（${AppUpdater.formatBytes(updateState.downloadedBytes)} / ${AppUpdater.formatBytes(updateState.totalBytes)}）",
+                                    fontSize = 11.5.sp,
+                                    color = mu.accentInk,
+                                    fontWeight = FontWeight.SemiBold
+                                )
+                            } else {
+                                LinearProgressIndicator(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    color = mu.accent,
+                                    trackColor = mu.surface3
+                                )
+                                Text("正在下载更新包...", fontSize = 11.5.sp, color = mu.accentInk)
+                            }
+                        } else if (updateState.downloadedFilePath != null && updateState.latest != null) {
+                            Text(
+                                "v${updateState.latest!!.versionName} 安装包已就绪，点击下方按钮立即安装",
+                                fontSize = 11.5.sp,
+                                color = mu.ok,
+                                fontWeight = FontWeight.SemiBold
+                            )
+                        } else if (updateState.hasUpdate && updateState.latest != null) {
+                            val rel = updateState.latest!!
+                            val sizeStr = AppUpdater.formatBytes(rel.apkSize)
+                            val info = buildList {
+                                add("发现新版本 ${rel.tagName}")
+                                if (rel.publishedDate.isNotEmpty()) add(rel.publishedDate)
+                                if (sizeStr.isNotEmpty()) add(sizeStr)
+                            }.joinToString(" · ")
+                            Text(info, fontSize = 11.5.sp, color = mu.accentInk, fontWeight = FontWeight.SemiBold)
+                        }
+                        if (updateState.error != null) {
+                            Text(updateState.error!!, fontSize = 11.5.sp, color = mu.danger)
+                        }
+                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            Button(
+                                onClick = {
+                                    when {
+                                        updateState.downloadedFilePath != null -> vm.installDownloadedUpdate()
+                                        updateState.hasUpdate && updateState.latest != null -> vm.openUpdateDialog()
+                                        else -> vm.checkForAppUpdate(manual = true)
+                                    }
+                                },
+                                enabled = !updateState.checking && !updateState.downloading,
+                                modifier = Modifier.weight(1f)
+                            ) {
+                                Text(
+                                    when {
+                                        updateState.checking -> "检查中..."
+                                        updateState.downloading -> "下载中 ${updateState.downloadPct}%"
+                                        updateState.downloadedFilePath != null -> "立即安装"
+                                        updateState.hasUpdate && updateState.latest != null -> "更新 v${updateState.latest!!.versionName}"
+                                        else -> "检查更新"
+                                    },
+                                    maxLines = 1,
+                                    softWrap = false,
+                                    overflow = TextOverflow.Ellipsis
+                                )
+                            }
+                            OutlinedButton(
+                                onClick = { vm.openExternalUrl(updateState.latest?.htmlUrl ?: AppUpdater.RELEASES_PAGE_URL) },
+                                modifier = Modifier.weight(1f)
+                            ) {
+                                Text("GitHub 发布页", maxLines = 1, softWrap = false, overflow = TextOverflow.Ellipsis)
+                            }
+                        }
                     }
                 }
             }

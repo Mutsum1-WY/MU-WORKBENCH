@@ -49,7 +49,7 @@ fun CourseScreen(vm: WorkbenchViewModel) {
                 .fillMaxWidth()
                 .background(if (mu.style == ThemeStyle.P5R) mu.chrome else mu.paper2)
                 .horizontalScroll(rememberScrollState())
-                .padding(horizontal = 12.dp, vertical = 8.dp),
+                .padding(horizontal = 10.dp, vertical = 5.dp),
             horizontalArrangement = Arrangement.spacedBy(6.dp)
         ) {
             CourseSub.entries.forEach { tab ->
@@ -80,7 +80,7 @@ fun CourseScreen(vm: WorkbenchViewModel) {
                         color = chipTxt,
                         fontSize = 12.5.sp,
                         fontWeight = FontWeight.Bold,
-                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 7.dp)
+                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp)
                     )
                 }
             }
@@ -169,8 +169,8 @@ private fun CourseRatioPane(vm: WorkbenchViewModel) {
 
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
-        contentPadding = PaddingValues(14.dp, 10.dp, 14.dp, 96.dp),
-        verticalArrangement = Arrangement.spacedBy(10.dp)
+        contentPadding = PaddingValues(10.dp, 8.dp, 10.dp, 18.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
         // 专业与培养方案结构
         item(key = "cr_majors") {
@@ -379,8 +379,8 @@ fun ScanPane(vm: WorkbenchViewModel, modifier: Modifier = Modifier) {
 
     LazyColumn(
         modifier = modifier.fillMaxSize(),
-        contentPadding = PaddingValues(14.dp, 10.dp, 14.dp, 96.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp)
+        contentPadding = PaddingValues(10.dp, 8.dp, 10.dp, 18.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
         // 状态 HUD：云邮登录状态 & identity & 防翘课提示
         item(key = "sc_hud") {

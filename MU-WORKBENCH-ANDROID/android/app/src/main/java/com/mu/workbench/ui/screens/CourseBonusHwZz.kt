@@ -88,8 +88,8 @@ fun BonusPane(vm: WorkbenchViewModel) {
 
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
-        contentPadding = PaddingValues(14.dp, 10.dp, 14.dp, 96.dp),
-        verticalArrangement = Arrangement.spacedBy(10.dp)
+        contentPadding = PaddingValues(10.dp, 8.dp, 10.dp, 18.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
         // 双线积分看板
         item(key = "bonus_board") {
@@ -465,8 +465,8 @@ fun HwArchivePane(vm: WorkbenchViewModel) {
 
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
-        contentPadding = PaddingValues(14.dp, 10.dp, 14.dp, 96.dp),
-        verticalArrangement = Arrangement.spacedBy(10.dp)
+        contentPadding = PaddingValues(10.dp, 8.dp, 10.dp, 18.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
         item(key = "hw_head") {
             Row(verticalAlignment = Alignment.CenterVertically) {
@@ -755,8 +755,8 @@ fun ZzPane(vm: WorkbenchViewModel) {
 
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
-        contentPadding = PaddingValues(14.dp, 10.dp, 14.dp, 96.dp),
-        verticalArrangement = Arrangement.spacedBy(10.dp)
+        contentPadding = PaddingValues(10.dp, 8.dp, 10.dp, 18.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
         // 总分看板
         item(key = "zz_hero") {

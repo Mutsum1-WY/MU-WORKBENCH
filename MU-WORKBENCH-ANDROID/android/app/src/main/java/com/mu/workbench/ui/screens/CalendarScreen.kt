@@ -99,27 +99,38 @@ fun CalendarScreen(vm: WorkbenchViewModel) {
 
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
-        contentPadding = PaddingValues(start = 14.dp, end = 14.dp, top = 12.dp, bottom = 96.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp)
+        contentPadding = PaddingValues(start = 10.dp, end = 10.dp, top = 8.dp, bottom = 18.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
         item(key = "cal_grid") {
-            MuCard(padding = 12.dp) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    IconButton(onClick = { currentYm = currentYm.minusMonths(1) }) {
+            MuCard(padding = 10.dp) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.height(38.dp)
+                ) {
+                    IconButton(onClick = { currentYm = currentYm.minusMonths(1) }, modifier = Modifier.size(34.dp)) {
                         Icon(Icons.Rounded.ChevronLeft, contentDescription = "上个月", tint = mu.ink)
                     }
-                    TextButton(onClick = { showYmPicker = !showYmPicker }, modifier = Modifier.weight(1f)) {
-                        Text("${currentYm.year} 年 ${currentYm.monthValue} 月 ▾", fontSize = 16.sp, fontWeight = FontWeight.ExtraBold, color = mu.ink)
+                    TextButton(
+                        onClick = { showYmPicker = !showYmPicker },
+                        contentPadding = PaddingValues(horizontal = 8.dp, vertical = 2.dp),
+                        modifier = Modifier.weight(1f).height(34.dp)
+                    ) {
+                        Text("${currentYm.year} 年 ${currentYm.monthValue} 月 ▾", fontSize = 15.sp, fontWeight = FontWeight.ExtraBold, color = mu.ink)
                     }
                     if (currentYm != YearMonth.from(today) || selectedDate != today) {
-                        TextButton(onClick = {
-                            currentYm = YearMonth.from(today)
-                            selectedDate = today
-                        }) {
-                            Text("回今天", fontWeight = FontWeight.Black, color = mu.accentInk)
+                        TextButton(
+                            onClick = {
+                                currentYm = YearMonth.from(today)
+                                selectedDate = today
+                            },
+                            contentPadding = PaddingValues(horizontal = 6.dp, vertical = 2.dp),
+                            modifier = Modifier.height(32.dp)
+                        ) {
+                            Text("回今天", fontSize = 12.sp, fontWeight = FontWeight.Black, color = mu.accentInk)
                         }
                     }
-                    IconButton(onClick = { currentYm = currentYm.plusMonths(1) }) {
+                    IconButton(onClick = { currentYm = currentYm.plusMonths(1) }, modifier = Modifier.size(34.dp)) {
                         Icon(Icons.Rounded.ChevronRight, contentDescription = "下个月", tint = mu.ink)
                     }
                 }
@@ -168,16 +179,16 @@ fun CalendarScreen(vm: WorkbenchViewModel) {
                         }
                     }
                 }
-                Spacer(Modifier.height(6.dp))
+                Spacer(Modifier.height(4.dp))
 
-                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                Column(verticalArrangement = Arrangement.spacedBy(3.dp)) {
                     for (row in 0 until (totalCells / 7)) {
-                        Row(horizontalArrangement = Arrangement.spacedBy(4.dp), modifier = Modifier.fillMaxWidth()) {
+                        Row(horizontalArrangement = Arrangement.spacedBy(3.dp), modifier = Modifier.fillMaxWidth()) {
                             for (col in 0 until 7) {
                                 val cellIdx = row * 7 + col
                                 val dayNum = cellIdx - firstColOffset + 1
                                 if (dayNum !in 1..daysInMonth) {
-                                    Spacer(Modifier.weight(1f).height(48.dp))
+                                    Spacer(Modifier.weight(1f).height(40.dp))
                                 } else {
                                     val d = currentYm.atDay(dayNum)
                                     val cellInfo = monthDayCells[dayNum]
@@ -193,7 +204,7 @@ fun CalendarScreen(vm: WorkbenchViewModel) {
                                     Box(
                                         modifier = Modifier
                                             .weight(1f)
-                                            .height(48.dp)
+                                            .height(40.dp)
                                             .clip(RoundedCornerShape(cellRadius))
                                             .background(if (isSel) mu.accent else mu.surface2)
                                             .border(
@@ -260,7 +271,7 @@ fun CalendarScreen(vm: WorkbenchViewModel) {
                         }
                     }
                 }
-                Spacer(Modifier.height(8.dp))
+                Spacer(Modifier.height(5.dp))
                 val (mTotal, mDone) = monthStats
                 Text(
                     text = if (mTotal > 0) "本月安排 $mTotal 个待办 · 已完成 $mDone 个 · 长按日期可快速新建"
@@ -274,7 +285,7 @@ fun CalendarScreen(vm: WorkbenchViewModel) {
 
         // 选中日期控制条
         item(key = "cal_day_ctrl") {
-            MuCard(padding = 12.dp) {
+            MuCard(padding = 10.dp) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Column(modifier = Modifier.weight(1f)) {
                         Text(selectedKey, fontWeight = FontWeight.ExtraBold, fontSize = 16.sp, color = mu.ink)
@@ -289,7 +300,7 @@ fun CalendarScreen(vm: WorkbenchViewModel) {
                         Text("加待办", fontSize = 12.sp)
                     }
                 }
-                Spacer(Modifier.height(10.dp))
+                Spacer(Modifier.height(6.dp))
                 MuSegmentedRow(
                     items = listOf("auto" to "自动", "off" to "标为放假", "work" to "调休上班"),
                     selected = currentFlagMode,

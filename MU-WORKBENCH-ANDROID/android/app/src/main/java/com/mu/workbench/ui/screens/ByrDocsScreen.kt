@@ -60,8 +60,8 @@ fun ByrDocsPane(vm: WorkbenchViewModel) {
 
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
-        contentPadding = PaddingValues(14.dp, 10.dp, 14.dp, 96.dp),
-        verticalArrangement = Arrangement.spacedBy(10.dp)
+        contentPadding = PaddingValues(10.dp, 8.dp, 10.dp, 18.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
         item(key = "bd_intro") {
             BdIntroCard(stats) { vm.openExternalUrl(it) }
@@ -200,55 +200,55 @@ fun ByrDocsPane(vm: WorkbenchViewModel) {
 @Composable
 private fun BdIntroCard(stats: ByrDocsClient.Stats?, open: (String) -> Unit) {
     val mu = LocalMuColors.current
-    MuCard(padding = 14.dp) {
+    MuCard(padding = 11.dp) {
         Row(verticalAlignment = Alignment.CenterVertically) {
-            Text("BYR Docs", fontSize = 17.sp, fontWeight = FontWeight.Black, color = mu.ink)
+            Text("BYR Docs", fontSize = 16.sp, fontWeight = FontWeight.Black, color = mu.ink)
             Spacer(Modifier.width(8.dp))
             MuChip("北邮资料站", mu.accent, Color.White)
         }
-        Spacer(Modifier.height(6.dp))
+        Spacer(Modifier.height(4.dp))
         Text(
             "北邮同学自己维护的开源资料库：电子教材、往年试题、复习笔记，免费、不登录就能搜。",
-            fontSize = 12.5.sp, lineHeight = 18.sp, color = mu.ink2
+            fontSize = 12.sp, lineHeight = 17.sp, color = mu.ink2
         )
         if (stats != null && stats.total > 0) {
-            Spacer(Modifier.height(8.dp))
-            Row(horizontalArrangement = Arrangement.spacedBy(18.dp)) {
+            Spacer(Modifier.height(5.dp))
+            Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
                 BdStat("已收录", stats.total, mu.accentInk)
                 BdStat("试题", stats.test, mu.ink)
                 BdStat("教材", stats.book, mu.ink)
                 BdStat("资料", stats.doc, mu.ink)
             }
         }
-        Spacer(Modifier.height(8.dp))
+        Spacer(Modifier.height(5.dp))
         Text(
             "觉得有用就去 GitHub 点个 Star；手里有试题和笔记，也欢迎投稿，让下一届少走弯路。",
-            fontSize = 11.5.sp, lineHeight = 16.sp, color = mu.ink3
+            fontSize = 11.sp, lineHeight = 15.sp, color = mu.ink3
         )
-        Spacer(Modifier.height(10.dp))
+        Spacer(Modifier.height(7.dp))
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
             Button(
                 onClick = { open(ByrDocsClient.URL_STAR) },
                 shape = RoundedCornerShape(mu.cardRadius),
                 contentPadding = PaddingValues(horizontal = 8.dp),
-                modifier = Modifier.weight(1.25f).heightIn(min = 44.dp)
+                modifier = Modifier.weight(1.25f).height(36.dp)
             ) {
-                Icon(Icons.Rounded.Star, contentDescription = null, modifier = Modifier.size(16.dp))
+                Icon(Icons.Rounded.Star, contentDescription = null, modifier = Modifier.size(15.dp))
                 Spacer(Modifier.width(4.dp))
-                Text("点个 Star", fontSize = 12.5.sp, fontWeight = FontWeight.Bold, maxLines = 1)
+                Text("点个 Star", fontSize = 12.sp, fontWeight = FontWeight.Bold, maxLines = 1)
             }
             OutlinedButton(
                 onClick = { open(ByrDocsClient.URL_PUBLISH) },
                 shape = RoundedCornerShape(mu.cardRadius),
                 contentPadding = PaddingValues(horizontal = 8.dp),
-                modifier = Modifier.weight(1f).heightIn(min = 44.dp)
-            ) { Text("投稿资料", fontSize = 12.5.sp, fontWeight = FontWeight.Bold, maxLines = 1) }
+                modifier = Modifier.weight(1f).height(36.dp)
+            ) { Text("投稿资料", fontSize = 12.sp, fontWeight = FontWeight.Bold, maxLines = 1) }
             OutlinedButton(
                 onClick = { open(ByrDocsClient.URL_ABOUT) },
                 shape = RoundedCornerShape(mu.cardRadius),
                 contentPadding = PaddingValues(horizontal = 8.dp),
-                modifier = Modifier.weight(1f).heightIn(min = 44.dp)
-            ) { Text("了解更多", fontSize = 12.5.sp, fontWeight = FontWeight.Bold, maxLines = 1) }
+                modifier = Modifier.weight(1f).height(36.dp)
+            ) { Text("了解更多", fontSize = 12.sp, fontWeight = FontWeight.Bold, maxLines = 1) }
         }
     }
 }

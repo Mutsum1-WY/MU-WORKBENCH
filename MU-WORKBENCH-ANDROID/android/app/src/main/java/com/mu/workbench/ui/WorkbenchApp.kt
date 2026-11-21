@@ -12,7 +12,9 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.MenuBook
 import androidx.compose.material.icons.rounded.*
@@ -29,10 +31,15 @@ import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.mu.workbench.data.ThemeStyle
+import com.mu.workbench.domain.AppUpdater
 import com.mu.workbench.domain.TodoEngine
 import com.mu.workbench.ui.components.MuPageBackground
 import com.mu.workbench.ui.components.MuTabTransition
@@ -73,9 +80,29 @@ private fun WorkbenchShell(vm: WorkbenchViewModel) {
     val showProjectEditor by vm.showProjectEditor.collectAsState()
     val editingProject by vm.editingProject.collectAsState()
     val confirmDialog by vm.confirmDialog.collectAsState()
+    val updateState by vm.updateState.collectAsState()
     val busyLabel by vm.busyLabel.collectAsState()
 
     val snackbarHostState = remember { SnackbarHostState() }
+    val lifecycleOwner = LocalLifecycleOwner.current
+    var wasStopped by remember { mutableStateOf(false) }
+
+    DisposableEffect(lifecycleOwner) {
+        val obs = LifecycleEventObserver { _, event ->
+            when (event) {
+                Lifecycle.Event.ON_STOP -> wasStopped = true
+                Lifecycle.Event.ON_START -> {
+                    if (wasStopped) {
+                        wasStopped = false
+                        vm.onAppForegrounded()
+                    }
+                }
+                else -> Unit
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(obs)
+        onDispose { lifecycleOwner.lifecycle.removeObserver(obs) }
+    }
 
     LaunchedEffect(Unit) {
         vm.snackbars.collect { ev ->
@@ -90,7 +117,7 @@ private fun WorkbenchShell(vm: WorkbenchViewModel) {
         }
     }
 
-    val hasOverlay = showSettings || showScan || readerArticle != null || showTodoEditor || showProjectEditor || confirmDialog != null || tab != MainTab.TODAY
+    val hasOverlay = showSettings || showScan || readerArticle != null || showTodoEditor || showProjectEditor || confirmDialog != null || updateState.showDialog || tab != MainTab.TODAY
     BackHandler(enabled = hasOverlay) {
         vm.handleBack()
     }
@@ -118,9 +145,14 @@ private fun WorkbenchShell(vm: WorkbenchViewModel) {
             containerColor = mu.paper,
             snackbarHost = {
                 SnackbarHost(snackbarHostState) { data ->
+                    val snackContainer = when (mu.style) {
+                        ThemeStyle.P3R -> mu.p3Deep
+                        ThemeStyle.IOS -> if (mu.isDark) Color(0xF22C2C2E) else Color(0xEB1C1C1E)
+                        ThemeStyle.P5R -> mu.chrome
+                    }
                     Snackbar(
                         snackbarData = data,
-                        containerColor = if (mu.style == ThemeStyle.P3R) mu.p3Deep else mu.chrome,
+                        containerColor = snackContainer,
                         contentColor = Color.White,
                         actionColor = if (mu.style == ThemeStyle.P3R) mu.p3Cyan else mu.accent2,
                         shape = RoundedCornerShape(
@@ -138,6 +170,7 @@ private fun WorkbenchShell(vm: WorkbenchViewModel) {
                     todayText = "${today.monthValue}月${today.dayOfMonth}日 $weekStr · Jetpack 原生版",
                     chapterBadge = chapterPair.second,
                     pendingCount = pendingCount,
+                    hasUpdate = updateState.hasUpdate,
                     busy = busyLabel != null,
                     onSettings = { vm.openSettings() },
                     onScan = { vm.openScanOverlay() }
@@ -297,6 +330,7 @@ private fun WorkbenchShell(vm: WorkbenchViewModel) {
                 containerColor = mu.surface1,
                 titleContentColor = mu.ink,
                 textContentColor = mu.ink2,
+                tonalElevation = 0.dp,
                 shape = RoundedCornerShape(mu.cardRadius),
                 title = { Text(dlg.title, fontWeight = FontWeight.ExtraBold) },
                 text = { Text(dlg.message) },
@@ -314,7 +348,148 @@ private fun WorkbenchShell(vm: WorkbenchViewModel) {
                     ) { Text(dlg.confirmLabel, fontWeight = FontWeight.Bold) }
                 },
                 dismissButton = {
-                    TextButton(onClick = { vm.dismissConfirm() }) { Text("取消") }
+                    TextButton(
+                        onClick = { vm.dismissConfirm() },
+                        colors = ButtonDefaults.textButtonColors(contentColor = mu.ink2)
+                    ) { Text("取消") }
+                }
+            )
+        }
+
+        // 应用更新弹窗
+        if (updateState.showDialog && updateState.latest != null) {
+            val rel = updateState.latest!!
+            val sizeText = AppUpdater.formatBytes(rel.apkSize)
+            val metaParts = buildList {
+                if (rel.publishedDate.isNotEmpty()) add("发布于 ${rel.publishedDate}")
+                if (sizeText.isNotEmpty()) add("大小 $sizeText")
+            }
+            AlertDialog(
+                onDismissRequest = { vm.dismissUpdateDialog() },
+                containerColor = mu.surface1,
+                titleContentColor = mu.ink,
+                textContentColor = mu.ink2,
+                tonalElevation = 0.dp,
+                shape = RoundedCornerShape(mu.cardRadius),
+                title = {
+                    Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                        Text("发现新版本 v${rel.versionName}", fontWeight = FontWeight.ExtraBold)
+                        Text(
+                            "当前 v${updateState.currentVersion} → 新版 v${rel.versionName}",
+                            fontSize = 12.sp,
+                            color = mu.accentInk,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+                },
+                text = {
+                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        if (metaParts.isNotEmpty()) {
+                            Text(metaParts.joinToString(" · "), fontSize = 11.5.sp, color = mu.ink3)
+                        }
+                        if (rel.notes.isNotEmpty()) {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .heightIn(max = 200.dp)
+                                    .clip(RoundedCornerShape(if (mu.style == ThemeStyle.P5R) 0.dp else 10.dp))
+                                    .background(mu.surface2)
+                                    .padding(10.dp)
+                                    .verticalScroll(rememberScrollState())
+                            ) {
+                                Text(rel.notes, fontSize = 12.5.sp, lineHeight = 18.sp, color = mu.ink2)
+                            }
+                        }
+                        if (updateState.downloading) {
+                            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                                if (updateState.totalBytes > 0L) {
+                                    LinearProgressIndicator(
+                                        progress = { (updateState.downloadPct / 100f).coerceIn(0f, 1f) },
+                                        modifier = Modifier.fillMaxWidth(),
+                                        color = mu.accent,
+                                        trackColor = mu.surface3
+                                    )
+                                    Text(
+                                        "正在下载 ${updateState.downloadPct}%（${AppUpdater.formatBytes(updateState.downloadedBytes)} / ${AppUpdater.formatBytes(updateState.totalBytes)}）",
+                                        fontSize = 11.5.sp,
+                                        color = mu.accentInk,
+                                        fontWeight = FontWeight.SemiBold
+                                    )
+                                } else {
+                                    LinearProgressIndicator(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        color = mu.accent,
+                                        trackColor = mu.surface3
+                                    )
+                                    val dlStr = AppUpdater.formatBytes(updateState.downloadedBytes)
+                                    Text(
+                                        if (dlStr.isNotEmpty()) "正在下载 $dlStr..." else "正在连接下载服务器...",
+                                        fontSize = 11.5.sp,
+                                        color = mu.accentInk,
+                                        fontWeight = FontWeight.SemiBold
+                                    )
+                                }
+                            }
+                        } else if (updateState.downloadedFilePath != null) {
+                            Text(
+                                "安装包已就绪，点击下方「立即安装」开始更新",
+                                fontSize = 12.sp,
+                                color = mu.ok,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
+                        if (updateState.error != null) {
+                            Text(updateState.error!!, fontSize = 12.sp, color = mu.danger)
+                        }
+                        Text(
+                            "在浏览器中打开 Release 页面",
+                            fontSize = 12.sp,
+                            color = mu.accentInk,
+                            textDecoration = TextDecoration.Underline,
+                            modifier = Modifier.clickable { vm.openExternalUrl(rel.htmlUrl) }
+                        )
+                    }
+                },
+                confirmButton = {
+                    Button(
+                        onClick = {
+                            when {
+                                updateState.downloadedFilePath != null -> vm.installDownloadedUpdate()
+                                updateState.downloading -> vm.cancelUpdateDownload()
+                                rel.apkUrl.isNotEmpty() -> vm.startUpdateDownload()
+                                else -> vm.openExternalUrl(rel.htmlUrl)
+                            }
+                        },
+                        shape = RoundedCornerShape(mu.cardRadius),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = if (updateState.downloading) mu.danger else mu.accent,
+                            contentColor = Color.White
+                        )
+                    ) {
+                        Text(
+                            when {
+                                updateState.downloadedFilePath != null -> "立即安装"
+                                updateState.downloading -> "取消下载"
+                                rel.apkUrl.isNotEmpty() -> "立即更新"
+                                else -> "前往下载页"
+                            },
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+                },
+                dismissButton = {
+                    Row(horizontalArrangement = Arrangement.spacedBy(2.dp)) {
+                        if (!updateState.downloading && updateState.downloadedFilePath == null) {
+                            TextButton(
+                                onClick = { vm.ignoreCurrentUpdate() },
+                                colors = ButtonDefaults.textButtonColors(contentColor = mu.ink3)
+                            ) { Text("忽略此版") }
+                        }
+                        TextButton(
+                            onClick = { vm.dismissUpdateDialog() },
+                            colors = ButtonDefaults.textButtonColors(contentColor = mu.ink2)
+                        ) { Text(if (updateState.downloading) "后台下载" else "稍后再说") }
+                    }
                 }
             )
         }
@@ -326,6 +501,7 @@ private fun MuTopBar(
     todayText: String,
     chapterBadge: String,
     pendingCount: Int,
+    hasUpdate: Boolean,
     busy: Boolean,
     onSettings: () -> Unit,
     onScan: () -> Unit
@@ -346,7 +522,7 @@ private fun MuTopBar(
             modifier = Modifier
                 .fillMaxWidth()
                 .statusBarsPadding()
-                .padding(horizontal = 14.dp, vertical = 10.dp),
+                .padding(horizontal = 12.dp, vertical = 6.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             // 主题化 Logo
@@ -359,7 +535,7 @@ private fun MuTopBar(
                                 val d = 3.dp.toPx()
                                 drawRect(Color.Black.copy(alpha = 0.65f), topLeft = Offset(d, d), size = size)
                             }
-                            .size(36.dp)
+                            .size(32.dp)
                             .graphicsLayer { rotationZ = -6f }
                             .background(mu.accent)
                             .border(2.dp, Color.White),
@@ -370,7 +546,7 @@ private fun MuTopBar(
                             color = Color.White,
                             fontWeight = FontWeight.Black,
                             fontStyle = FontStyle.Italic,
-                            fontSize = 14.sp
+                            fontSize = 13.sp
                         )
                     }
                 }
@@ -382,7 +558,7 @@ private fun MuTopBar(
                                 val d = 3.dp.toPx()
                                 drawRect(mu.p3Pink, topLeft = Offset(d, d), size = size)
                             }
-                            .size(35.dp)
+                            .size(32.dp)
                             .graphicsLayer { rotationZ = -4f }
                             .clip(RoundedCornerShape(4.dp))
                             .background(Color.White),
@@ -393,19 +569,19 @@ private fun MuTopBar(
                             color = mu.accent,
                             fontWeight = FontWeight.Black,
                             fontStyle = FontStyle.Italic,
-                            fontSize = 14.sp
+                            fontSize = 13.sp
                         )
                     }
                 }
                 ThemeStyle.IOS -> {
                     Box(
                         modifier = Modifier
-                            .size(36.dp)
-                            .clip(RoundedCornerShape(10.dp))
+                            .size(32.dp)
+                            .clip(RoundedCornerShape(9.dp))
                             .background(Brush.linearGradient(listOf(mu.accent, mu.accent2))),
                         contentAlignment = Alignment.Center
                     ) {
-                        Text("MU", color = Color.White, fontWeight = FontWeight.Black, fontSize = 14.sp)
+                        Text("MU", color = Color.White, fontWeight = FontWeight.Black, fontSize = 13.sp)
                     }
                 }
             }
@@ -453,7 +629,7 @@ private fun MuTopBar(
                 )
                 MuTopActionBtn(
                     icon = { Icon(Icons.Rounded.Settings, contentDescription = "设置", tint = mu.chromeInk, modifier = Modifier.size(20.dp)) },
-                    showDot = pendingCount > 0 && mu.style == ThemeStyle.P5R,
+                    showDot = hasUpdate || (pendingCount > 0 && mu.style == ThemeStyle.P5R),
                     onClick = onSettings
                 )
             }
@@ -496,7 +672,7 @@ private fun MuTopActionBtn(
     }
     Box(
         modifier = Modifier
-            .size(38.dp)
+            .size(34.dp)
             .clip(shape)
             .then(
                 when (mu.style) {
@@ -551,8 +727,8 @@ private fun MuBottomBar(
             modifier = Modifier
                 .fillMaxWidth()
                 .navigationBarsPadding()
-                .height(60.dp)
-                .padding(horizontal = 4.dp, vertical = 4.dp),
+                .height(58.dp)
+                .padding(horizontal = 4.dp, vertical = 3.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             MainTab.entries.forEach { t ->
@@ -635,25 +811,38 @@ private fun MuBottomBar(
                     contentAlignment = Alignment.Center
                 ) {
                     Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
-                        Box(contentAlignment = Alignment.TopEnd) {
+                        Box(modifier = Modifier.size(22.dp), contentAlignment = Alignment.Center) {
                             Icon(
                                 imageVector = icon,
                                 contentDescription = t.label,
                                 tint = itemContentColor,
-                                modifier = Modifier.size(21.dp)
+                                modifier = Modifier.size(21.dp).align(Alignment.Center)
                             )
                             if (badgeCount > 0) {
-                                val badgeBg = if (mu.style == ThemeStyle.P3R) Color(0xFFF0182C) else mu.accent
+                                val badgeBg = when {
+                                    mu.style == ThemeStyle.P3R -> Color(0xFFF0182C)
+                                    isOn && mu.style == ThemeStyle.P5R -> Color(0xFF0B0B0C)
+                                    else -> mu.accent
+                                }
                                 val badgeText = if (badgeCount > 9) "9+" else "$badgeCount"
                                 Box(
                                     modifier = Modifier
-                                        .offset(x = 9.dp, y = (-4).dp)
+                                        .align(Alignment.TopEnd)
+                                        .offset(x = 8.dp, y = (-5).dp)
                                         .clip(if (mu.style == ThemeStyle.IOS) RoundedCornerShape(999.dp) else parallelogramShape(0.2f))
                                         .background(badgeBg)
-                                        .padding(horizontal = 4.dp, vertical = 0.5.dp),
+                                        .padding(horizontal = 4.dp, vertical = 1.dp),
                                     contentAlignment = Alignment.Center
                                 ) {
-                                    Text(badgeText, color = Color.White, fontSize = 8.5.sp, fontWeight = FontWeight.Black)
+                                    Text(
+                                        text = badgeText,
+                                        color = Color.White,
+                                        fontSize = 8.5.sp,
+                                        lineHeight = 10.sp,
+                                        maxLines = 1,
+                                        softWrap = false,
+                                        fontWeight = FontWeight.Black
+                                    )
                                 }
                             }
                         }
@@ -662,6 +851,9 @@ private fun MuBottomBar(
                             text = t.label,
                             color = itemContentColor,
                             fontSize = 10.5.sp,
+                            lineHeight = 13.sp,
+                            maxLines = 1,
+                            softWrap = false,
                             fontWeight = if (isOn) FontWeight.Black else FontWeight.Bold
                         )
                     }
