@@ -101,6 +101,9 @@ object AppUpdater {
 
         val preferred = apkAssets.firstOrNull {
             val n = it.optString("name", "")
+            n.startsWith("MU-WORKBENCH-v", ignoreCase = true) && !n.contains("debug", ignoreCase = true)
+        } ?: apkAssets.firstOrNull {
+            val n = it.optString("name", "")
             n.startsWith("MU-WORKBENCH-v", ignoreCase = true) ||
                 (versionName.isNotEmpty() && n.contains(versionName, ignoreCase = true))
         } ?: apkAssets.firstOrNull()
@@ -165,7 +168,7 @@ object AppUpdater {
                 val tag = parseTagFromRedirectUrl(resolved)
                 if (!tag.isNullOrEmpty()) {
                     val ver = normalizeVersion(tag)
-                    val apkName = "MU-WORKBENCH-$tag-debug.apk"
+                    val apkName = "MU-WORKBENCH-$tag-release.apk"
                     val apkUrl = "https://github.com/$REPO_OWNER/$REPO_NAME/releases/download/$tag/$apkName"
                     return ReleaseInfo(
                         tagName = tag,

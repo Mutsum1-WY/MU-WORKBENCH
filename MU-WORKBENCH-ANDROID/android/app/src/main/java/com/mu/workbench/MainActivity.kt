@@ -17,6 +17,9 @@ class MainActivity : ComponentActivity() {
         setTheme(R.style.AppTheme_NoActionBar)
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            window.isNavigationBarContrastEnforced = false
+        }
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             if (ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS)

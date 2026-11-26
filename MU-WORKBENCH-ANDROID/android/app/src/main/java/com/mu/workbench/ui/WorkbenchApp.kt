@@ -1,5 +1,6 @@
 package com.mu.workbench.ui
 
+import android.app.Activity
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.slideInHorizontally
@@ -29,11 +30,13 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.core.view.WindowCompat
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
@@ -84,18 +87,31 @@ private fun WorkbenchShell(vm: WorkbenchViewModel) {
     val busyLabel by vm.busyLabel.collectAsState()
 
     val snackbarHostState = remember { SnackbarHostState() }
+    val view = LocalView.current
+    val useLightBars = mu.style == ThemeStyle.IOS && !mu.isDark
+    if (!view.isInEditMode) {
+        SideEffect {
+            val window = (view.context as? Activity)?.window ?: return@SideEffect
+            val ctrl = WindowCompat.getInsetsController(window, view)
+            ctrl.isAppearanceLightStatusBars = useLightBars
+            ctrl.isAppearanceLightNavigationBars = useLightBars
+        }
+    }
+
     val lifecycleOwner = LocalLifecycleOwner.current
     var wasStopped by remember { mutableStateOf(false) }
 
     DisposableEffect(lifecycleOwner) {
         val obs = LifecycleEventObserver { _, event ->
             when (event) {
-                Lifecycle.Event.ON_STOP -> wasStopped = true
+                Lifecycle.Event.ON_STOP -> {
+                    wasStopped = true
+                    vm.onAppBackgrounded()
+                }
                 Lifecycle.Event.ON_START -> {
-                    if (wasStopped) {
-                        wasStopped = false
-                        vm.onAppForegrounded()
-                    }
+                    val returning = wasStopped
+                    wasStopped = false
+                    vm.onAppForegrounded(fromBackground = returning)
                 }
                 else -> Unit
             }

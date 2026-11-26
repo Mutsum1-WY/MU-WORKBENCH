@@ -2,6 +2,7 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
     <application
+        android:hardwareAccelerated="true"
         android:networkSecurityConfig="@xml/network_security_config"
         android:allowBackup="true"
         android:icon="@mipmap/ic_launcher"
@@ -10,12 +11,17 @@
         android:supportsRtl="true"
         android:theme="@style/AppTheme">
 
+        <meta-data
+            android:name="android.max_aspect"
+            android:value="2.4" />
+
         <activity
             android:configChanges="orientation|keyboardHidden|keyboard|screenSize|locale|smallestScreenSize|screenLayout|uiMode|navigation"
             android:name=".MainActivity"
             android:label="@string/title_activity_main"
             android:theme="@style/AppTheme.NoActionBarLaunch"
             android:launchMode="singleTask"
+            android:resizeableActivity="true"
             android:windowSoftInputMode="adjustResize"
             android:exported="true">
 

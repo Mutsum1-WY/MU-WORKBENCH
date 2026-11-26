@@ -29,6 +29,7 @@ import com.mu.workbench.domain.TodoEngine
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -254,15 +255,36 @@ class WorkbenchViewModel(app: Application) : AndroidViewModel(app) {
     val updateState: StateFlow<AppUpdateState> = _updateState.asStateFlow()
     private var updateDownloadJob: Job? = null
     private var lastAutoCheckAttemptMs = 0L
+    private val saveChannel = Channel<WorkbenchState>(Channel.CONFLATED)
+    private var alarmJob: Job? = null
+    private var isForeground = true
 
     init {
         NotificationHelper.ensureChannels(ctx)
-        NotificationHelper.rescheduleAll(ctx, _state.value, builtinHolidays)
+        viewModelScope.launch(Dispatchers.Default) {
+            NotificationHelper.rescheduleAll(ctx, _state.value, builtinHolidays)
+        }
 
-        // 1 秒实时心跳：时钟、今日课程剩余时间进度条、番茄钟、秒表、倒计时
+        // 单队列合并落盘协程：避免高频点击/勾选在主线程同步序列化写文件
+        viewModelScope.launch(Dispatchers.IO) {
+            for (pending in saveChannel) {
+                delay(120L)
+                var latest = pending
+                while (true) {
+                    latest = saveChannel.tryReceive().getOrNull() ?: break
+                }
+                repo.save(latest)
+            }
+        }
+
+        // 1 秒实时心跳：时钟、今日课程剩余时间进度条、番茄钟、秒表、倒计时（后台无计时器时暂停空转）
         viewModelScope.launch {
             while (true) {
                 delay(1000L)
+                val p = _pomo.value
+                val swv = _sw.value
+                val hasRunningTimer = p.running || swv.running || swv.cdRunning
+                if (!isForeground && !hasRunningTimer) continue
                 val now = LocalTime.now()
                 _nowTime.value = now
                 val curMin = now.withSecond(0).withNano(0)
@@ -356,10 +378,25 @@ class WorkbenchViewModel(app: Application) : AndroidViewModel(app) {
     fun updateState(rescheduleAlarms: Boolean = false, block: (WorkbenchState) -> WorkbenchState) {
         val next = block(_state.value)
         _state.value = next
-        repo.save(next)
+        saveChannel.trySend(next)
         if (rescheduleAlarms) {
-            NotificationHelper.rescheduleAll(ctx, next, builtinHolidays)
+            alarmJob?.cancel()
+            alarmJob = viewModelScope.launch(Dispatchers.Default) {
+                NotificationHelper.rescheduleAll(ctx, next, builtinHolidays)
+            }
         }
+    }
+
+    fun flushPendingSave() {
+        val snapshot = _state.value
+        viewModelScope.launch(Dispatchers.IO) {
+            repo.save(snapshot)
+        }
+    }
+
+    fun onAppBackgrounded() {
+        isForeground = false
+        flushPendingSave()
     }
 
     /* ---------------- 导航 ---------------- */
@@ -1493,11 +1530,11 @@ class WorkbenchViewModel(app: Application) : AndroidViewModel(app) {
                 @Suppress("DEPRECATION")
                 pm.getPackageInfo(ctx.packageName, 0)
             }
-            val verName = info.versionName?.takeIf { it.isNotBlank() } ?: "2.31"
+            val verName = info.versionName?.takeIf { it.isNotBlank() } ?: "2.32"
             val verCode = PackageInfoCompat.getLongVersionCode(info)
             verName to verCode
         } catch (_: Throwable) {
-            "2.31" to 0L
+            "2.32" to 0L
         }
     }
 
@@ -1508,11 +1545,22 @@ class WorkbenchViewModel(app: Application) : AndroidViewModel(app) {
         return File(dir, safeName)
     }
 
-    fun onAppForegrounded() {
-        val snap = _updateState.value
-        if (snap.checking || snap.downloading || snap.downloadedFilePath != null || snap.showDialog) return
-        if (System.currentTimeMillis() - lastAutoCheckAttemptMs < 30_000L) return
-        checkForAppUpdate(manual = false)
+    fun onAppForegrounded(fromBackground: Boolean = true) {
+        isForeground = true
+        val now = LocalTime.now()
+        _nowTime.value = now
+        val curMin = now.withSecond(0).withNano(0)
+        if (curMin != _nowMinute.value) _nowMinute.value = curMin
+        val today = LocalDate.now()
+        if (today != _nowDate.value) _nowDate.value = today
+        tickTimers()
+
+        if (fromBackground) {
+            val snap = _updateState.value
+            if (snap.checking || snap.downloading || snap.downloadedFilePath != null || snap.showDialog) return
+            if (System.currentTimeMillis() - lastAutoCheckAttemptMs < 30_000L) return
+            checkForAppUpdate(manual = false)
+        }
     }
 
     fun checkForAppUpdate(manual: Boolean = true) {

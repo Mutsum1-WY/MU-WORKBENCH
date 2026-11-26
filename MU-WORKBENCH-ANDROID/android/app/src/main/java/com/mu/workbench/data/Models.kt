@@ -1,5 +1,7 @@
 package com.mu.workbench.data
 
+import androidx.compose.runtime.Immutable
+
 enum class ThemeStyle(val key: String, val label: String, val desc: String) {
     P5R("p5r", "P5R · 红黑斜切", "Persona 5 Royal 视觉致敬：米纸底、粗黑描边、硬投影与斜切角标。"),
     P3R("p3r", "P3R · 蓝白斜切", "Persona 3 Reload 视觉致敬：蓝白斜切、冰青高光与白昼/月夜双模式。"),
@@ -67,12 +69,14 @@ enum class TodoPriority(val key: String, val label: String, val colorHex: Long) 
     }
 }
 
+@Immutable
 data class SubStep(
     val id: String,
     val text: String,
     val done: Boolean = false
 )
 
+@Immutable
 data class TodoItem(
     val id: String,
     val title: String,
@@ -91,12 +95,14 @@ data class TodoItem(
     val createdAt: Long = System.currentTimeMillis()
 )
 
+@Immutable
 data class SkillItem(
     val id: String,
     val name: String,
     val progress: Int = 0
 )
 
+@Immutable
 data class ProjectCard(
     val id: String,
     val title: String,
@@ -106,21 +112,25 @@ data class ProjectCard(
     val items: List<SkillItem> = emptyList()
 )
 
+@Immutable
 data class HolidayEntry(
     val off: Boolean,
     val name: String = ""
 )
 
+@Immutable
 data class PeriodSlot(
     val no: Int,
     val time: String
 )
 
+@Immutable
 data class CourseSegment(
     val weeks: String,
     val room: String
 )
 
+@Immutable
 data class CourseScheduleItem(
     val name: String,
     val teacher: String,
@@ -133,6 +143,7 @@ data class CourseScheduleItem(
     val segments: List<CourseSegment> = emptyList()
 )
 
+@Immutable
 data class TimetableData(
     val semester: String = "",
     val semesterLabel: String = "",
@@ -144,6 +155,7 @@ data class TimetableData(
     val courses: List<CourseScheduleItem> = emptyList()
 )
 
+@Immutable
 data class TimetableConfig(
     val user: String = "",
     val pwd: String = "",
@@ -158,6 +170,7 @@ data class TimetableConfig(
     val trace: List<String> = emptyList()
 )
 
+@Immutable
 data class UcloudTodoItem(
     val id: String,
     val title: String,
@@ -168,6 +181,7 @@ data class UcloudTodoItem(
     val content: String = ""
 )
 
+@Immutable
 data class UcloudDetailCache(
     val content: String = "",
     val fullMark: Double = 0.0,
@@ -179,6 +193,7 @@ data class UcloudDetailCache(
     val error: String = ""
 )
 
+@Immutable
 data class UcloudConfig(
     val on: Boolean = true,
     val id: String = "",
@@ -203,12 +218,14 @@ data class UcloudConfig(
     val done: Set<String> = emptySet()
 )
 
+@Immutable
 data class HwTerm(
     val id: String,
     val name: String,
     val isCurrent: Boolean = false
 )
 
+@Immutable
 data class HwCourse(
     val siteId: String,
     val termId: String,
@@ -217,6 +234,7 @@ data class HwCourse(
     val termName: String = ""
 )
 
+@Immutable
 data class HwAttachment(
     val resourceId: String,
     val name: String,
@@ -225,6 +243,7 @@ data class HwAttachment(
     val recordFlag: Int = 0
 )
 
+@Immutable
 data class HwExcellentItem(
     val audiencesId: String,
     val teamId: String = "",
@@ -239,6 +258,7 @@ data class HwExcellentItem(
     val files: List<HwAttachment> = emptyList()
 )
 
+@Immutable
 data class HwSubmissionItem(
     val id: String,
     val siteId: String,
@@ -263,6 +283,7 @@ data class HwSubmissionItem(
     val gradedSeenAt: Long = 0L
 )
 
+@Immutable
 data class HwTermCache(
     val termId: String,
     val fetchedAt: Long = 0L,
@@ -270,6 +291,7 @@ data class HwTermCache(
     val err: String = ""
 )
 
+@Immutable
 data class HwArchiveState(
     val terms: List<HwTerm> = emptyList(),
     val courses: List<HwCourse> = emptyList(),
@@ -279,11 +301,13 @@ data class HwArchiveState(
     val gradedSeen: Map<String, Long> = emptyMap()
 )
 
+@Immutable
 data class PortalAttachment(
     val name: String,
     val url: String
 )
 
+@Immutable
 data class PortalBlock(
     val type: String,          // "p", "h", "li", "q", "hr", "img"
     val text: String = "",
@@ -293,6 +317,7 @@ data class PortalBlock(
     val width: Int = 0
 )
 
+@Immutable
 data class PortalLectureMeta(
     val whenText: String = "",
     val who: String = "",
@@ -301,6 +326,7 @@ data class PortalLectureMeta(
     val abstractText: String = ""
 )
 
+@Immutable
 data class PortalArticle(
     val id: String,
     val kind: String, // "notice" or "lecture"
@@ -317,6 +343,7 @@ data class PortalArticle(
     val isNew: Boolean = false
 )
 
+@Immutable
 data class PortalConfig(
     val on: Boolean = true,
     val kind: String = "notice",
@@ -329,6 +356,7 @@ data class PortalConfig(
     val seenInit: Boolean = false
 )
 
+@Immutable
 data class CourseMajorInfo(
     val key: String,
     val shortName: String,
@@ -336,6 +364,7 @@ data class CourseMajorInfo(
     val structureDesc: String
 )
 
+@Immutable
 data class CourseCatalogItem(
     val code: String,
     val name: String,
@@ -352,12 +381,14 @@ data class CourseCatalogItem(
     val note: String
 )
 
+@Immutable
 data class CourseCatalog(
     val gradCredits: Int,
     val majors: List<CourseMajorInfo>,
     val byMajor: Map<String, List<CourseCatalogItem>>
 )
 
+@Immutable
 data class BonusEntry(
     val id: String,
     val title: String,
@@ -369,18 +400,20 @@ data class BonusEntry(
     val note: String = ""
 )
 
+@Immutable
 data class BonusState(
     val entries: List<BonusEntry> = emptyList(),
     val hasCityDc: Boolean = false
 )
 
-data class BonusGradeRule(val key: String, val name: String, val rule: String)
-data class BonusLevel(val key: String, val name: String, val pi: List<Double>, val tui: List<Double?>, val src: String, val note: String = "")
-data class BonusComp(val level: String, val name: String)
-data class BonusOther(val key: String, val cat: String, val name: String, val pi: Double, val tui: Double, val h: Double, val p: Double, val ach: Boolean, val note: String = "")
-data class BonusStep(val title: String, val desc: String, val src: String)
-data class BonusDoc(val title: String, val no: String, val org: String, val url: String, val keyPoint: String, val primary: Boolean = false)
+@Immutable data class BonusGradeRule(val key: String, val name: String, val rule: String)
+@Immutable data class BonusLevel(val key: String, val name: String, val pi: List<Double>, val tui: List<Double?>, val src: String, val note: String = "")
+@Immutable data class BonusComp(val level: String, val name: String)
+@Immutable data class BonusOther(val key: String, val cat: String, val name: String, val pi: Double, val tui: Double, val h: Double, val p: Double, val ach: Boolean, val note: String = "")
+@Immutable data class BonusStep(val title: String, val desc: String, val src: String)
+@Immutable data class BonusDoc(val title: String, val no: String, val org: String, val url: String, val keyPoint: String, val primary: Boolean = false)
 
+@Immutable
 data class BonusData(
     val grades: List<BonusGradeRule>,
     val levels: List<BonusLevel>,
@@ -391,6 +424,7 @@ data class BonusData(
     val docs: List<BonusDoc>
 )
 
+@Immutable
 data class ZzCustomCourse(
     val id: String,
     val name: String,
@@ -398,6 +432,7 @@ data class ZzCustomCourse(
     val score: String
 )
 
+@Immutable
 data class ZzDeductItem(
     val key: String,
     val label: String,
@@ -406,6 +441,7 @@ data class ZzDeductItem(
     val maxPoint: Double
 )
 
+@Immutable
 data class ZzDevItem(
     val key: String,
     val category: String,
@@ -414,18 +450,21 @@ data class ZzDevItem(
     val desc: String = ""
 )
 
+@Immutable
 data class ZzRuleSection(
     val no: String,
     val title: String,
     val body: String
 )
 
+@Immutable
 data class ZzRuleChapter(
     val no: String,
     val title: String,
     val sections: List<ZzRuleSection>
 )
 
+@Immutable
 data class ZzData(
     val deductItems: List<ZzDeductItem>,
     val devItems: List<ZzDevItem>,
@@ -437,6 +476,7 @@ data class ZzData(
     val metaUrl: String = ""
 )
 
+@Immutable
 data class ZzState(
     val major: String = "se",
     val selfScore: String = "",
@@ -451,6 +491,7 @@ data class ZzState(
     val devScores: Map<String, String> = emptyMap()
 )
 
+@Immutable
 data class SettingsState(
     val theme: ThemeStyle = ThemeStyle.P5R,
     val accent: AccentStyle = AccentStyle.BLUE,
@@ -471,6 +512,7 @@ data class SettingsState(
     val kOut: Double = 0.15
 )
 
+@Immutable
 data class WorkbenchState(
     val todos: List<TodoItem> = emptyList(),
     val projects: List<ProjectCard> = emptyList(),

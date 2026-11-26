@@ -67,13 +67,11 @@ fun FocusScreen(vm: WorkbenchViewModel) {
 private fun ClockPane(vm: WorkbenchViewModel) {
     val mu = LocalMuColors.current
     val state by vm.state.collectAsState()
-    val nowTime by vm.nowTime.collectAsState()
     val today by vm.nowDate.collectAsState()
     val pomo by vm.pomo.collectAsState()
     val sw by vm.sw.collectAsState()
     var toolTab by remember { mutableStateOf(0) } // 0=秒表 1=倒计时
 
-    val dayPct = (nowTime.hour * 3600 + nowTime.minute * 60 + nowTime.second) / 86400f
     val todayItems = remember(state.todos, today) { TodoEngine.todayItems(state, vm.builtinHolidays, today).filter { !it.isDone } }
 
     LazyColumn(
@@ -81,31 +79,9 @@ private fun ClockPane(vm: WorkbenchViewModel) {
         contentPadding = PaddingValues(start = 10.dp, end = 10.dp, bottom = 18.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
-        // 紧凑表盘 + 数字时间并排卡片
+        // 紧凑表盘 + 数字时间并排卡片（仅时钟卡随秒级心跳重组，隔离番茄钟与秒表卡片）
         item {
-            MuCard(padding = 12.dp) {
-                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                    AnalogClockCanvas(nowTime = nowTime, dayPct = dayPct, modifier = Modifier.size(92.dp))
-                    Column(modifier = Modifier.weight(1f)) {
-                        Text(
-                            "%02d:%02d:%02d".format(nowTime.hour, nowTime.minute, nowTime.second),
-                            fontSize = 32.sp,
-                            fontWeight = FontWeight.Black,
-                            fontStyle = if (mu.style != ThemeStyle.IOS) FontStyle.Italic else FontStyle.Normal,
-                            style = TextStyle(fontFeatureSettings = "tnum"),
-                            color = mu.ink
-                        )
-                        Spacer(Modifier.height(4.dp))
-                        Text("${today.year}年${today.monthValue}月${today.dayOfMonth}日", color = mu.ink2, fontSize = 13.sp)
-                        Spacer(Modifier.height(8.dp))
-                        Text("今日已过 ${(dayPct * 100).toInt()}%", fontSize = 11.5.sp, color = mu.ink3)
-                        Spacer(Modifier.height(4.dp))
-                        Box(modifier = Modifier.fillMaxWidth().height(5.dp).clip(RoundedCornerShape(999.dp)).background(mu.surface3)) {
-                            Box(modifier = Modifier.fillMaxWidth(dayPct).fillMaxHeight().background(mu.accent))
-                        }
-                    }
-                }
-            }
+            ClockHeroCard(vm = vm, today = today)
         }
 
         // 番茄钟（进入首屏）
@@ -225,6 +201,40 @@ private fun ClockPane(vm: WorkbenchViewModel) {
                     Button(onClick = { vm.toggleCountdown() }, modifier = Modifier.fillMaxWidth()) {
                         Text(if (sw.cdRunning) "暂停倒计时" else "开始倒计时")
                     }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun ClockHeroCard(
+    vm: WorkbenchViewModel,
+    today: java.time.LocalDate
+) {
+    val mu = LocalMuColors.current
+    val nowTime by vm.nowTime.collectAsState()
+    val dayPct = (nowTime.hour * 3600 + nowTime.minute * 60 + nowTime.second) / 86400f
+
+    MuCard(padding = 12.dp) {
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            AnalogClockCanvas(nowTime = nowTime, dayPct = dayPct, modifier = Modifier.size(92.dp))
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    "%02d:%02d:%02d".format(nowTime.hour, nowTime.minute, nowTime.second),
+                    fontSize = 32.sp,
+                    fontWeight = FontWeight.Black,
+                    fontStyle = if (mu.style != ThemeStyle.IOS) FontStyle.Italic else FontStyle.Normal,
+                    style = TextStyle(fontFeatureSettings = "tnum"),
+                    color = mu.ink
+                )
+                Spacer(Modifier.height(4.dp))
+                Text("${today.year}年${today.monthValue}月${today.dayOfMonth}日", color = mu.ink2, fontSize = 13.sp)
+                Spacer(Modifier.height(8.dp))
+                Text("今日已过 ${(dayPct * 100).toInt()}%", fontSize = 11.5.sp, color = mu.ink3)
+                Spacer(Modifier.height(4.dp))
+                Box(modifier = Modifier.fillMaxWidth().height(5.dp).clip(RoundedCornerShape(999.dp)).background(mu.surface3)) {
+                    Box(modifier = Modifier.fillMaxWidth(dayPct).fillMaxHeight().background(mu.accent))
                 }
             }
         }

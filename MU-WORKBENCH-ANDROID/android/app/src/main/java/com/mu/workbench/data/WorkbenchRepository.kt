@@ -9,6 +9,7 @@ import java.io.File
 class WorkbenchRepository(private val ctx: Context) {
 
     private val file = File(ctx.filesDir, "mu_workbench_v1.json")
+    private val saveLock = Any()
 
     fun load(): WorkbenchState {
         if (!file.exists()) return defaultState()
@@ -21,12 +22,14 @@ class WorkbenchRepository(private val ctx: Context) {
     }
 
     fun save(state: WorkbenchState) {
-        try {
-            val tmp = File(ctx.filesDir, "mu_workbench_v1.json.tmp")
-            tmp.writeText(toJson(state).toString(), Charsets.UTF_8)
-            tmp.renameTo(file)
-            syncBgCheckPrefs(state)
-        } catch (_: Throwable) {
+        synchronized(saveLock) {
+            try {
+                val tmp = File(ctx.filesDir, "mu_workbench_v1.json.tmp")
+                tmp.writeText(toJson(state).toString(), Charsets.UTF_8)
+                tmp.renameTo(file)
+                syncBgCheckPrefs(state)
+            } catch (_: Throwable) {
+            }
         }
     }
 

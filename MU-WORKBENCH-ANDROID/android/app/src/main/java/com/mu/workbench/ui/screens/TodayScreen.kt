@@ -36,12 +36,14 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.draw.drawWithCache
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.compositeOver
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.drawscope.withTransform
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
@@ -49,6 +51,9 @@ import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import com.mu.workbench.data.ThemeStyle
 import com.mu.workbench.domain.ScheduleEngine
 import com.mu.workbench.domain.TodoEngine
@@ -107,6 +112,40 @@ fun TodayScreen(vm: WorkbenchViewModel) {
         if (state.ucloud.on && state.ucloud.items.isNotEmpty()) {
             vm.prefetchUcloudTodoDetails()
         }
+    }
+
+    // 仅在前台 RESUMED 且存在未完成云邮待办时运行单一共享流光动画，息屏/切后台/无待办时允许 LTPO 降频
+    val lifecycleOwner = LocalLifecycleOwner.current
+    var isScreenResumed by remember(lifecycleOwner) {
+        mutableStateOf(lifecycleOwner.lifecycle.currentState.isAtLeast(Lifecycle.State.RESUMED))
+    }
+    DisposableEffect(lifecycleOwner) {
+        val obs = LifecycleEventObserver { _, event ->
+            when (event) {
+                Lifecycle.Event.ON_RESUME -> isScreenResumed = true
+                Lifecycle.Event.ON_PAUSE -> isScreenResumed = false
+                else -> Unit
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(obs)
+        onDispose { lifecycleOwner.lifecycle.removeObserver(obs) }
+    }
+    val hasActiveUcloudProgress = remember(state.ucloud.on, state.ucloud.items, state.ucloud.done) {
+        state.ucloud.on && state.ucloud.items.any { it.id !in state.ucloud.done && it.endTime.isNotEmpty() }
+    }
+    val sheenPhaseState: State<Float> = if (isScreenResumed && hasActiveUcloudProgress) {
+        val sheenTransition = rememberInfiniteTransition(label = "ucSheenShared")
+        sheenTransition.animateFloat(
+            initialValue = -0.35f,
+            targetValue = 1.35f,
+            animationSpec = infiniteRepeatable(
+                animation = tween(durationMillis = 2600, easing = LinearEasing),
+                repeatMode = RepeatMode.Restart
+            ),
+            label = "ucSheenPhaseShared"
+        )
+    } else {
+        remember { mutableFloatStateOf(-0.35f) }
     }
 
     val pomoCount = if (state.todayPomoDate == todayKey) state.todayPomos else 0
@@ -504,66 +543,17 @@ fun TodayScreen(vm: WorkbenchViewModel) {
                         label = "ucProg"
                     )
                     val showProg = !uDone && u.endTime.isNotEmpty()
-                    val sheenPhaseState = if (showProg) {
-                        val sheenTransition = rememberInfiniteTransition(label = "ucSheen")
-                        sheenTransition.animateFloat(
-                            initialValue = -0.35f,
-                            targetValue = 1.35f,
-                            animationSpec = infiniteRepeatable(
-                                animation = tween(durationMillis = 2600, easing = LinearEasing),
-                                repeatMode = RepeatMode.Restart
-                            ),
-                            label = "ucSheenPhase"
-                        )
-                    } else {
-                        remember { mutableFloatStateOf(-0.35f) }
-                    }
 
                     MuCard(
                         backgroundColor = if (uDone) mu.paper2 else mu.surface1,
                         borderColor = if (isOpen) mu.accent else null,
                         padding = 10.dp,
-                        behindContent = if (showProg) {
-                            {
-                                if (size.width > 1f && size.height > 1f) {
-                                    val fillW = (size.width * ucProgAnimState.value).coerceIn(0f, size.width)
-                                    if (fillW > 1f) {
-                                        drawRect(
-                                            brush = Brush.horizontalGradient(
-                                                colors = listOf(
-                                                    dueProgress.third.copy(alpha = 0.15f),
-                                                    dueProgress.third.copy(alpha = 0.05f)
-                                                ),
-                                                startX = 0f,
-                                                endX = fillW
-                                            ),
-                                            size = androidx.compose.ui.geometry.Size(fillW, size.height)
-                                        )
-                                        val edgeW = 2.dp.toPx().coerceAtMost(fillW)
-                                        drawRect(
-                                            color = dueProgress.third.copy(alpha = 0.45f),
-                                            topLeft = Offset((fillW - edgeW).coerceAtLeast(0f), 0f),
-                                            size = androidx.compose.ui.geometry.Size(edgeW, size.height)
-                                        )
-                                    }
-                                    val bandW = (size.width * 0.36f).coerceAtLeast(1f)
-                                    val cx = sheenPhaseState.value * size.width
-                                    drawRect(
-                                        brush = Brush.horizontalGradient(
-                                            colors = listOf(
-                                                Color.Transparent,
-                                                dueProgress.third.copy(alpha = 0.13f),
-                                                Color.White.copy(alpha = 0.10f),
-                                                Color.Transparent
-                                            ),
-                                            startX = cx - bandW,
-                                            endX = cx + bandW
-                                        ),
-                                        size = size
-                                    )
-                                }
-                            }
-                        } else null,
+                        backdropModifier = Modifier.ucloudProgressBackdrop(
+                            enabled = showProg,
+                            accentColor = dueProgress.third,
+                            progressProvider = { ucProgAnimState.value },
+                            sheenPhaseProvider = { sheenPhaseState.value }
+                        ),
                         onClick = {
                             expandedUcloudId = if (isOpen) "" else u.id
                             if (!isOpen) vm.fetchUcloudTodoDetail(u.id)
@@ -1127,4 +1117,61 @@ private fun computeUcloudUrgency(
         }
     }
     return Triple(label, frac, col)
+}
+
+/** 缓存渐变与扫光 Shader，逐帧仅通过画布平移重绘，零堆分配与零重组 */
+private fun Modifier.ucloudProgressBackdrop(
+    enabled: Boolean,
+    accentColor: Color,
+    progressProvider: () -> Float,
+    sheenPhaseProvider: () -> Float
+): Modifier {
+    if (!enabled) return this
+    return this.drawWithCache {
+        val fillBrush = Brush.horizontalGradient(
+            colors = listOf(
+                accentColor.copy(alpha = 0.15f),
+                accentColor.copy(alpha = 0.05f)
+            ),
+            startX = 0f,
+            endX = size.width.coerceAtLeast(1f)
+        )
+        val edgeColor = accentColor.copy(alpha = 0.45f)
+        val edgeW = 2.dp.toPx()
+        val bandW = (size.width * 0.36f).coerceAtLeast(1f)
+        val sheenBrush = Brush.horizontalGradient(
+            colors = listOf(
+                Color.Transparent,
+                accentColor.copy(alpha = 0.13f),
+                Color.White.copy(alpha = 0.10f),
+                Color.Transparent
+            ),
+            startX = -bandW,
+            endX = bandW
+        )
+        val sheenSize = Size(bandW * 2f, size.height)
+
+        onDrawBehind {
+            if (size.width > 1f && size.height > 1f) {
+                val fillW = (size.width * progressProvider()).coerceIn(0f, size.width)
+                if (fillW > 1f) {
+                    drawRect(brush = fillBrush, size = Size(fillW, size.height))
+                    val clampedEdgeW = edgeW.coerceAtMost(fillW)
+                    drawRect(
+                        color = edgeColor,
+                        topLeft = Offset((fillW - clampedEdgeW).coerceAtLeast(0f), 0f),
+                        size = Size(clampedEdgeW, size.height)
+                    )
+                }
+                val cx = sheenPhaseProvider() * size.width
+                withTransform({ translate(left = cx) }) {
+                    drawRect(
+                        brush = sheenBrush,
+                        topLeft = Offset(-bandW, 0f),
+                        size = sheenSize
+                    )
+                }
+            }
+        }
+    }
 }

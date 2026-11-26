@@ -124,10 +124,11 @@ fun CameraQrScanner(
                 .height(280.dp)
                 .clip(RoundedCornerShape(mu.cardRadius))
                 .background(Color.Black)
-                .pointerInput(cameraRef, zoomRatio) {
+                .pointerInput(cameraRef, zoomRatio, maxHwZoom) {
                     detectTransformGestures { _, _, zoomChange, _ ->
                         if (zoomChange != 1f) {
-                            onZoomChange((zoomRatio * zoomChange).coerceIn(1f, 4f))
+                            val upper = maxHwZoom.coerceIn(1f, 8f)
+                            onZoomChange((zoomRatio * zoomChange).coerceIn(1f, upper))
                         }
                     }
                 }
@@ -146,37 +147,59 @@ fun CameraQrScanner(
             val zoomState by rememberUpdatedState(zoomRatio)
             val maxHwZoomState by rememberUpdatedState(maxHwZoom)
             val onResultState by rememberUpdatedState(onResult)
+            var providerRef by remember { mutableStateOf<ProcessCameraProvider?>(null) }
+            var disposed by remember { mutableStateOf(false) }
 
             DisposableEffect(Unit) {
                 onDispose {
-                    analyzerExecutor.shutdown()
+                    disposed = true
+                    try {
+                        cameraRef?.cameraControl?.enableTorch(false)
+                    } catch (_: Throwable) {
+                    }
+                    try {
+                        providerRef?.unbindAll()
+                    } catch (_: Throwable) {
+                    }
+                    analyzerExecutor.shutdownNow()
                 }
             }
 
             AndroidView(
                 factory = { context ->
                     val pv = PreviewView(context).apply {
+                        implementationMode = PreviewView.ImplementationMode.COMPATIBLE
                         scaleType = PreviewView.ScaleType.FILL_CENTER
                     }
                     previewViewRef = pv
                     val future = ProcessCameraProvider.getInstance(context)
                     future.addListener({
+                        if (disposed || analyzerExecutor.isShutdown) return@addListener
                         try {
                             val provider = future.get()
-                            val resSelector = ResolutionSelector.Builder()
+                            providerRef = provider
+                            val previewResSelector = ResolutionSelector.Builder()
                                 .setResolutionStrategy(
                                     ResolutionStrategy(
-                                        Size(1920, 1080),
+                                        Size(1280, 720),
                                         ResolutionStrategy.FALLBACK_RULE_CLOSEST_HIGHER_THEN_LOWER
                                     )
                                 )
                                 .build()
+                            val analysisResSelector = ResolutionSelector.Builder()
+                                .setResolutionStrategy(
+                                    ResolutionStrategy(
+                                        Size(1280, 720),
+                                        ResolutionStrategy.FALLBACK_RULE_CLOSEST_LOWER_THEN_HIGHER
+                                    )
+                                )
+                                .build()
                             val preview = Preview.Builder()
-                                .setResolutionSelector(resSelector)
+                                .setResolutionSelector(previewResSelector)
                                 .build()
                                 .also { it.surfaceProvider = pv.surfaceProvider }
                             val analysis = ImageAnalysis.Builder()
-                                .setResolutionSelector(resSelector)
+                                .setResolutionSelector(analysisResSelector)
                                 .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
                                 .build()
 
@@ -185,7 +208,7 @@ fun CameraQrScanner(
 
                             analysis.setAnalyzer(analyzerExecutor) { proxy ->
                                 try {
-                                    if (!pausedState) {
+                                    if (!disposed && !pausedState) {
                                         val extraDigitalCrop = if (zoomState > maxHwZoomState) {
                                             (zoomState / maxHwZoomState.coerceAtLeast(1f)).coerceIn(1f, 3f)
                                         } else 1f
@@ -213,7 +236,7 @@ fun CameraQrScanner(
                             maxHwZoom = cam.cameraInfo.zoomState.value?.maxZoomRatio ?: 4f
                             cam.cameraControl.setZoomRatio(zoomState.coerceIn(1f, maxHwZoom))
                             pv.post {
-                                if (pv.width > 0 && pv.height > 0) {
+                                if (!disposed && pv.width > 0 && pv.height > 0) {
                                     triggerFocus(cam, pv, pv.width / 2f, pv.height / 2f)
                                 }
                             }
@@ -290,11 +313,12 @@ fun CameraQrScanner(
         }
 
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            val sliderUpper = maxHwZoom.coerceIn(2f, 8f)
             Text("变焦 ${"%.1f".format(zoomRatio)}×", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = mu.ink2)
             Slider(
-                value = zoomRatio,
+                value = zoomRatio.coerceIn(1f, sliderUpper),
                 onValueChange = onZoomChange,
-                valueRange = 1f..4f,
+                valueRange = 1f..sliderUpper,
                 modifier = Modifier.weight(1f)
             )
             Text("点画面可对焦", fontSize = 11.sp, color = mu.ink3)

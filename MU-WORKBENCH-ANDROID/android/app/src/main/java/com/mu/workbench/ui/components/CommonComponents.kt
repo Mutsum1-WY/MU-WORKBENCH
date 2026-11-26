@@ -257,6 +257,7 @@ fun MuCard(
     padding: Dp = 11.dp,
     showCornerAccent: Boolean = true,
     behindContent: (DrawScope.() -> Unit)? = null,
+    backdropModifier: Modifier = Modifier,
     onClick: (() -> Unit)? = null,
     content: @Composable ColumnScope.() -> Unit
 ) {
@@ -297,6 +298,7 @@ fun MuCard(
     val finalMod = base
         .clip(shape)
         .background(solidBg)
+        .then(backdropModifier)
         .then(if (behindContent != null) Modifier.drawBehind { behindContent() } else Modifier)
         .border(mu.cardBorderWidth, bd, shape)
         .let { m ->

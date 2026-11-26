@@ -13,8 +13,8 @@ android {
         applicationId "com.mu.workbench"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 45
-        versionName "2.31"
+        versionCode 46
+        versionName "2.32"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
     }
 
@@ -36,6 +36,12 @@ android {
         unitTests.returnDefaultValues = true
     }
 
+    packaging {
+        jniLibs {
+            useLegacyPackaging = false
+        }
+    }
+
     if (muDebugKeystore.exists()) {
         signingConfigs {
             debug {
@@ -49,8 +55,10 @@ android {
 
     buildTypes {
         release {
-            minifyEnabled false
-            proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+            minifyEnabled true
+            shrinkResources true
+            signingConfig signingConfigs.debug
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
         }
     }
 }
