@@ -12,6 +12,7 @@ import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
@@ -35,6 +36,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.draw.drawWithCache
+import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
@@ -45,6 +48,7 @@ import androidx.compose.ui.graphics.compositeOver
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.withTransform
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.text.TextStyle as UiTextStyle
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextDecoration
@@ -64,7 +68,10 @@ import com.mu.workbench.ui.components.MuSectionHeader
 import com.mu.workbench.ui.components.TodoCardRow
 import com.mu.workbench.ui.components.parallelogramShape
 import com.mu.workbench.ui.theme.LocalMuColors
+import com.mu.workbench.ui.theme.UiSkin
 import com.mu.workbench.ui.theme.MuMotion
+import com.mu.workbench.ui.theme.muPressTransform
+import com.mu.workbench.ui.theme.muTactileClickable
 import kotlinx.coroutines.launch
 import java.time.DayOfWeek
 import java.time.LocalDateTime
@@ -92,7 +99,7 @@ fun TodayScreen(vm: WorkbenchViewModel) {
     val totalCount = todayTodos.size
     val pendingCount = totalCount - doneCount
     val pct = if (totalCount == 0) 0f else doneCount.toFloat() / totalCount.toFloat()
-    val animPct by animateFloatAsState(targetValue = pct, animationSpec = MuMotion.floatSpring(mu.style), label = "heroPct")
+    val animPct by animateFloatAsState(targetValue = pct, animationSpec = MuMotion.floatSpring(mu.skin), label = "heroPct")
 
     val tt = vm.activeTimetable()
     val wkStatus = remember(tt, today) { ScheduleEngine.weekStatus(tt, today) }
@@ -264,7 +271,7 @@ fun TodayScreen(vm: WorkbenchViewModel) {
                                 Text(
                                     cls.startTime,
                                     fontWeight = FontWeight.Black,
-                                    fontStyle = if (mu.style != ThemeStyle.IOS) FontStyle.Italic else FontStyle.Normal,
+                                    fontStyle = if (mu.skin != UiSkin.IOS) FontStyle.Italic else FontStyle.Normal,
                                     style = androidx.compose.ui.text.TextStyle(fontFeatureSettings = "tnum"),
                                     fontSize = 14.sp,
                                     lineHeight = 17.sp,
@@ -297,14 +304,14 @@ fun TodayScreen(vm: WorkbenchViewModel) {
                                     )
                                     if (cls.item.practice) {
                                         val chipBg = if (isLive) {
-                                            if (mu.style == ThemeStyle.P5R) mu.ink else mu.accent
+                                            if (mu.skin == UiSkin.P5R) mu.ink else mu.accent
                                         } else {
-                                            if (mu.style == ThemeStyle.P5R) mu.ink else mu.accentSoft
+                                            if (mu.skin == UiSkin.P5R) mu.ink else mu.accentSoft
                                         }
                                         val chipFg = if (isLive) {
-                                            if (mu.style == ThemeStyle.P5R) mu.paper else Color.White
+                                            if (mu.skin == UiSkin.P5R) mu.paper else Color.White
                                         } else {
-                                            if (mu.style == ThemeStyle.P5R) mu.paper else mu.accentInk
+                                            if (mu.skin == UiSkin.P5R) mu.paper else mu.accentInk
                                         }
                                         MuChip("实践", chipBg, chipFg)
                                     }
@@ -325,11 +332,11 @@ fun TodayScreen(vm: WorkbenchViewModel) {
                                             modifier = Modifier
                                                 .weight(1f)
                                                 .height(6.dp)
-                                                .clip(RoundedCornerShape(if (mu.style == ThemeStyle.IOS) 999.dp else 0.dp))
+                                                .clip(RoundedCornerShape(if (mu.skin == UiSkin.IOS) 999.dp else 0.dp))
                                                 .background(mu.surface3)
                                                 .border(
-                                                    if (mu.style == ThemeStyle.P5R) 1.dp else 0.dp,
-                                                    if (mu.style == ThemeStyle.P5R) mu.ink else Color.Transparent
+                                                    if (mu.skin == UiSkin.P5R) 1.dp else 0.dp,
+                                                    if (mu.skin == UiSkin.P5R) mu.ink else Color.Transparent
                                                 )
                                         ) {
                                             Box(
@@ -539,7 +546,7 @@ fun TodayScreen(vm: WorkbenchViewModel) {
                     }
                     val ucProgAnimState = animateFloatAsState(
                         targetValue = if (uDone) 0f else dueProgress.second,
-                        animationSpec = MuMotion.floatSpring(mu.style),
+                        animationSpec = MuMotion.floatSpring(mu.skin),
                         label = "ucProg"
                     )
                     val showProg = !uDone && u.endTime.isNotEmpty()
@@ -563,9 +570,9 @@ fun TodayScreen(vm: WorkbenchViewModel) {
                             Box(
                                 modifier = Modifier
                                     .size(20.dp)
-                                    .clip(if (mu.style == ThemeStyle.IOS) CircleShape else RoundedCornerShape(0.dp))
+                                    .clip(if (mu.skin == UiSkin.IOS) CircleShape else RoundedCornerShape(0.dp))
                                     .background(if (uDone) mu.accent else Color.Transparent)
-                                    .border(1.5.dp, if (uDone) mu.accent else mu.ink3, if (mu.style == ThemeStyle.IOS) CircleShape else RoundedCornerShape(0.dp))
+                                    .border(1.5.dp, if (uDone) mu.accent else mu.ink3, if (mu.skin == UiSkin.IOS) CircleShape else RoundedCornerShape(0.dp))
                                     .clickable { vm.toggleUcloudDone(u.id) },
                                 contentAlignment = Alignment.Center
                             ) {
@@ -689,15 +696,15 @@ private fun TodayAlertBanner(
     onDismiss: () -> Unit
 ) {
     val mu = LocalMuColors.current
-    val bgBrush = when (mu.style) {
-        ThemeStyle.IOS -> Brush.linearGradient(listOf(mu.accent, mu.accent2))
-        ThemeStyle.P3R -> Brush.linearGradient(listOf(Color(0xFF03164A), Color(0xFF015FCC)))
-        ThemeStyle.P5R -> Brush.linearGradient(listOf(mu.chrome, mu.chrome))
+    val bgBrush = when (mu.skin) {
+        UiSkin.IOS -> Brush.linearGradient(listOf(mu.accent, mu.accent2))
+        UiSkin.P3R -> Brush.linearGradient(listOf(Color(0xFF03164A), Color(0xFF015FCC)))
+        UiSkin.P5R -> Brush.linearGradient(listOf(mu.chrome, mu.chrome))
     }
     val mod = Modifier
         .fillMaxWidth()
         .then(
-            if (mu.style == ThemeStyle.P5R) {
+            if (mu.skin == UiSkin.P5R) {
                 Modifier
                     .padding(end = 4.dp, bottom = 4.dp)
                     .drawBehind {
@@ -709,12 +716,12 @@ private fun TodayAlertBanner(
         .clip(RoundedCornerShape(mu.cardRadius))
         .background(bgBrush)
         .then(
-            when (mu.style) {
-                ThemeStyle.P3R -> Modifier.drawBehind {
+            when (mu.skin) {
+                UiSkin.P3R -> Modifier.drawBehind {
                     drawRect(mu.p3Cyan, topLeft = Offset.Zero, size = androidx.compose.ui.geometry.Size(4.dp.toPx(), size.height))
                 }
-                ThemeStyle.P5R -> Modifier.border(2.dp, mu.chromeInk)
-                ThemeStyle.IOS -> Modifier
+                UiSkin.P5R -> Modifier.border(2.dp, mu.chromeInk)
+                UiSkin.IOS -> Modifier
             }
         )
         .padding(horizontal = 12.dp, vertical = 7.dp)
@@ -723,10 +730,10 @@ private fun TodayAlertBanner(
         Icon(
             Icons.Rounded.NotificationsActive,
             null,
-            tint = when (mu.style) {
-                ThemeStyle.IOS -> Color.White
-                ThemeStyle.P3R -> mu.p3Cyan
-                ThemeStyle.P5R -> mu.accent2
+            tint = when (mu.skin) {
+                UiSkin.IOS -> Color.White
+                UiSkin.P3R -> mu.p3Cyan
+                UiSkin.P5R -> mu.accent2
             },
             modifier = Modifier.size(18.dp)
         )
@@ -741,25 +748,33 @@ private fun TodayAlertBanner(
         )
         Box(
             modifier = Modifier
-                .clip(if (mu.style == ThemeStyle.IOS) RoundedCornerShape(999.dp) else RoundedCornerShape(3.dp))
-                .background(if (mu.style == ThemeStyle.P5R) mu.accent else Color.White)
-                .clickable(onClick = onGo)
+                .clip(if (mu.skin == UiSkin.IOS) RoundedCornerShape(999.dp) else RoundedCornerShape(3.dp))
+                .background(if (mu.skin == UiSkin.P5R) mu.accent else Color.White)
+                .muTactileClickable(onClick = onGo)
                 .padding(horizontal = 10.dp, vertical = 4.dp)
         ) {
             Text(
                 "去处理",
-                color = if (mu.style == ThemeStyle.P5R) Color.White else if (mu.style == ThemeStyle.P3R) mu.p3Deep else mu.accent,
+                color = if (mu.skin == UiSkin.P5R) Color.White else if (mu.skin == UiSkin.P3R) mu.p3Deep else mu.accent,
                 fontSize = 12.sp,
                 fontWeight = FontWeight.Black
             )
         }
-        Spacer(Modifier.width(8.dp))
-        Icon(
-            Icons.Rounded.Close,
-            contentDescription = "关闭横幅",
-            tint = Color.White.copy(alpha = 0.8f),
-            modifier = Modifier.size(18.dp).clickable(onClick = onDismiss)
-        )
+        Spacer(Modifier.width(6.dp))
+        Box(
+            modifier = Modifier
+                .clip(CircleShape)
+                .muTactileClickable(onClick = onDismiss)
+                .padding(3.dp),
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(
+                Icons.Rounded.Close,
+                contentDescription = "关闭横幅",
+                tint = Color.White.copy(alpha = 0.8f),
+                modifier = Modifier.size(18.dp)
+            )
+        }
     }
 }
 
@@ -774,9 +789,445 @@ private fun TodayHeroCard(
     onNewTodo: () -> Unit
 ) {
     val mu = LocalMuColors.current
-
     when (mu.style) {
-        ThemeStyle.P5R -> {
+        ThemeStyle.BENTO -> BentoHero(monthDay, subLine, doneCount, totalCount, animPct, pomoCount, onNewTodo)
+        ThemeStyle.BRUTAL -> BrutalHero(monthDay, subLine, doneCount, totalCount, animPct, pomoCount, onNewTodo)
+        ThemeStyle.MINIMAL -> MinimalHero(monthDay, subLine, doneCount, totalCount, animPct, pomoCount, onNewTodo)
+        ThemeStyle.GLASS, ThemeStyle.CLAY, ThemeStyle.OLED -> SoftHero(monthDay, subLine, doneCount, totalCount, animPct, pomoCount, onNewTodo)
+        else -> LegacyTodayHeroCard(monthDay, subLine, doneCount, totalCount, animPct, pomoCount, onNewTodo)
+    }
+}
+
+@Composable
+private fun BentoHero(
+    monthDay: String,
+    subLine: String,
+    doneCount: Int,
+    totalCount: Int,
+    animPct: Float,
+    pomoCount: Int,
+    onNewTodo: () -> Unit
+) {
+    val mu = LocalMuColors.current
+    val tileShape = RoundedCornerShape(mu.cardRadius)
+    val remainCount = (totalCount - doneCount).coerceAtLeast(0)
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Row(
+            modifier = Modifier.fillMaxWidth().height(IntrinsicSize.Min),
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            Box(
+                modifier = Modifier
+                    .weight(1.25f)
+                    .fillMaxHeight()
+                    .clip(tileShape)
+                    .background(mu.accent)
+                    .padding(12.dp)
+            ) {
+                Column(
+                    modifier = Modifier.fillMaxHeight(),
+                    verticalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Text(
+                        text = "TODAY",
+                        color = Color.White.copy(alpha = 0.8f),
+                        fontSize = 10.sp,
+                        fontWeight = FontWeight.Bold,
+                        letterSpacing = 1.5.sp
+                    )
+                    Spacer(Modifier.height(10.dp))
+                    Column {
+                        Text(
+                            text = monthDay,
+                            color = Color.White,
+                            fontSize = 28.sp,
+                            fontWeight = FontWeight.Black,
+                            letterSpacing = (-0.5).sp
+                        )
+                        Text(
+                            text = subLine,
+                            color = Color.White.copy(alpha = 0.85f),
+                            fontSize = 11.5.sp,
+                            maxLines = 2,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                    }
+                }
+            }
+            Column(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(tileShape)
+                        .background(mu.surface1)
+                        .padding(12.dp)
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Canvas(modifier = Modifier.size(44.dp)) {
+                            val strokeW = 5.dp.toPx()
+                            drawArc(mu.surface3, 0f, 360f, false, style = Stroke(strokeW, cap = StrokeCap.Round))
+                            drawArc(mu.accent, -90f, animPct * 360f, false, style = Stroke(strokeW, cap = StrokeCap.Round))
+                        }
+                        Column {
+                            Text("完成", color = mu.ink3, fontSize = 10.5.sp, fontWeight = FontWeight.SemiBold)
+                            Text(
+                                text = "$doneCount/$totalCount",
+                                color = mu.ink,
+                                fontSize = 18.sp,
+                                fontWeight = FontWeight.Black,
+                                style = UiTextStyle(fontFeatureSettings = "tnum")
+                            )
+                        }
+                    }
+                }
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(tileShape)
+                        .background(mu.accent2.copy(alpha = 0.22f).compositeOver(mu.surface1))
+                        .padding(12.dp)
+                ) {
+                    Column {
+                        Text("🍅 专注", color = mu.ink3, fontSize = 10.5.sp, fontWeight = FontWeight.SemiBold)
+                        Spacer(Modifier.height(2.dp))
+                        Text(
+                            text = "$pomoCount 个番茄",
+                            color = mu.ink,
+                            fontSize = 16.sp,
+                            fontWeight = FontWeight.Black,
+                            style = UiTextStyle(fontFeatureSettings = "tnum")
+                        )
+                    }
+                }
+            }
+        }
+        val ctaBg = if (mu.isDark) mu.surface2 else mu.ink
+        val ctaFg = if (mu.isDark) mu.ink else mu.paper
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clip(tileShape)
+                .background(ctaBg)
+                .muTactileClickable(onClick = onNewTodo)
+                .padding(12.dp)
+        ) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(Icons.Rounded.Add, null, tint = ctaFg, modifier = Modifier.size(18.dp))
+                Spacer(Modifier.width(6.dp))
+                Text("新建待办", color = ctaFg, fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                Spacer(Modifier.weight(1f))
+                Text(
+                    text = "剩余 $remainCount 项",
+                    color = ctaFg.copy(alpha = 0.7f),
+                    fontSize = 12.sp,
+                    style = UiTextStyle(fontFeatureSettings = "tnum")
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun BrutalHero(
+    monthDay: String,
+    subLine: String,
+    doneCount: Int,
+    totalCount: Int,
+    animPct: Float,
+    pomoCount: Int,
+    onNewTodo: () -> Unit
+) {
+    val mu = LocalMuColors.current
+    val cardShape = RoundedCornerShape(12.dp)
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(end = 5.dp, bottom = 5.dp)
+            .drawBehind {
+                val s = 5.dp.toPx()
+                val cr = CornerRadius(12.dp.toPx(), 12.dp.toPx())
+                drawRoundRect(mu.ink, topLeft = Offset(s, s), size = size, cornerRadius = cr)
+            }
+            .clip(cardShape)
+            .background(mu.accent2)
+            .border(2.5.dp, mu.ink, cardShape)
+            .padding(14.dp)
+    ) {
+        Column {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Box(
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(4.dp))
+                            .background(mu.ink)
+                            .padding(horizontal = 8.dp, vertical = 2.dp)
+                    ) {
+                        Text("TODAY", color = mu.accent2, fontSize = 10.sp, fontWeight = FontWeight.Black)
+                    }
+                    Spacer(Modifier.height(4.dp))
+                    Text(monthDay, color = mu.ink, fontSize = 30.sp, fontWeight = FontWeight.Black)
+                    Text(subLine, color = mu.ink2, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                }
+                val statShape = RoundedCornerShape(8.dp)
+                Box(
+                    modifier = Modifier
+                        .padding(end = 3.dp, bottom = 3.dp)
+                        .drawBehind {
+                            val s = 3.dp.toPx()
+                            val cr = CornerRadius(8.dp.toPx(), 8.dp.toPx())
+                            drawRoundRect(mu.ink, topLeft = Offset(s, s), size = size, cornerRadius = cr)
+                        }
+                        .clip(statShape)
+                        .background(Color.White)
+                        .border(2.dp, mu.ink, statShape)
+                        .padding(horizontal = 10.dp, vertical = 6.dp)
+                ) {
+                    Text(
+                        text = "$doneCount/$totalCount",
+                        color = Color(0xFF111111),
+                        fontSize = 18.sp,
+                        fontWeight = FontWeight.Black,
+                        style = UiTextStyle(fontFeatureSettings = "tnum")
+                    )
+                }
+            }
+            Spacer(Modifier.height(10.dp))
+            val barShape = RoundedCornerShape(7.dp)
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(14.dp)
+                    .clip(barShape)
+                    .background(Color.White)
+                    .border(2.dp, mu.ink, barShape)
+            ) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth(animPct.coerceIn(0f, 1f))
+                        .fillMaxHeight()
+                        .background(mu.accent)
+                )
+            }
+            Spacer(Modifier.height(10.dp))
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(
+                    text = "今日专注 $pomoCount 个番茄",
+                    color = mu.ink,
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier.weight(1f)
+                )
+                val ctaShape = RoundedCornerShape(8.dp)
+                Box(
+                    modifier = Modifier
+                        .padding(end = 3.dp, bottom = 3.dp)
+                        .drawBehind {
+                            val s = 3.dp.toPx()
+                            val cr = CornerRadius(8.dp.toPx(), 8.dp.toPx())
+                            drawRoundRect(mu.ink, topLeft = Offset(s, s), size = size, cornerRadius = cr)
+                        }
+                        .clip(ctaShape)
+                        .background(mu.accent)
+                        .border(2.dp, mu.ink, ctaShape)
+                        .muTactileClickable(onClick = onNewTodo)
+                        .padding(horizontal = 12.dp, vertical = 6.dp)
+                ) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(Icons.Rounded.Add, null, tint = mu.ink, modifier = Modifier.size(15.dp))
+                        Spacer(Modifier.width(4.dp))
+                        Text("新建待办", color = mu.ink, fontSize = 12.5.sp, fontWeight = FontWeight.Black)
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun MinimalHero(
+    monthDay: String,
+    subLine: String,
+    doneCount: Int,
+    totalCount: Int,
+    animPct: Float,
+    pomoCount: Int,
+    onNewTodo: () -> Unit
+) {
+    val mu = LocalMuColors.current
+    val shape = RoundedCornerShape(4.dp)
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(shape)
+            .background(mu.surface1)
+            .border(1.dp, mu.line, shape)
+            .padding(16.dp)
+    ) {
+        Text(
+            text = "TODAY · 今日",
+            color = mu.ink3,
+            fontSize = 10.5.sp,
+            letterSpacing = 2.sp,
+            fontWeight = FontWeight.Medium
+        )
+        Spacer(Modifier.height(4.dp))
+        Row(verticalAlignment = Alignment.Bottom) {
+            Text(
+                text = monthDay,
+                color = mu.ink,
+                fontSize = 34.sp,
+                fontWeight = FontWeight.Light,
+                letterSpacing = (-1).sp,
+                modifier = Modifier.weight(1f)
+            )
+            Text(
+                text = "$doneCount/$totalCount",
+                color = mu.ink,
+                fontSize = 16.sp,
+                fontWeight = FontWeight.Medium,
+                style = UiTextStyle(fontFeatureSettings = "tnum")
+            )
+        }
+        Text(subLine, color = mu.ink3, fontSize = 12.sp)
+        Spacer(Modifier.height(14.dp))
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(2.dp)
+                .background(mu.line)
+        ) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth(animPct.coerceIn(0f, 1f))
+                    .fillMaxHeight()
+                    .background(mu.ink)
+            )
+        }
+        Spacer(Modifier.height(12.dp))
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Text("专注 $pomoCount", color = mu.ink3, fontSize = 12.sp, modifier = Modifier.weight(1f))
+            Box(
+                modifier = Modifier
+                    .clip(shape)
+                    .border(1.dp, mu.ink, shape)
+                    .muTactileClickable(onClick = onNewTodo)
+                    .padding(horizontal = 11.dp, vertical = 6.dp)
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(Icons.Rounded.Add, null, tint = mu.ink, modifier = Modifier.size(14.dp))
+                    Spacer(Modifier.width(4.dp))
+                    Text("新建待办", color = mu.ink, fontSize = 12.5.sp, fontWeight = FontWeight.Medium)
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun SoftHero(
+    monthDay: String,
+    subLine: String,
+    doneCount: Int,
+    totalCount: Int,
+    animPct: Float,
+    pomoCount: Int,
+    onNewTodo: () -> Unit
+) {
+    val mu = LocalMuColors.current
+    val cardBg = when (mu.style) {
+        ThemeStyle.GLASS -> null
+        ThemeStyle.CLAY -> mu.accent.copy(alpha = 0.16f).compositeOver(mu.surface1)
+        else -> mu.surface1
+    }
+    MuCard(
+        padding = 14.dp,
+        showCornerAccent = false,
+        backgroundColor = cardBg
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Column(modifier = Modifier.weight(1f)) {
+                MuChip("TODAY", mu.accentSoft, mu.accentInk)
+                Spacer(Modifier.height(4.dp))
+                Text(monthDay, color = mu.ink, fontSize = 26.sp, fontWeight = FontWeight.Black)
+                Text(subLine, color = mu.ink2, fontSize = 12.sp)
+            }
+            Box(contentAlignment = Alignment.Center, modifier = Modifier.size(60.dp)) {
+                Canvas(modifier = Modifier.fillMaxSize()) {
+                    val trackCol = if (mu.style == ThemeStyle.GLASS) Color.White.copy(alpha = 0.5f) else mu.surface3
+                    drawArc(trackCol, 0f, 360f, false, style = Stroke(6.dp.toPx(), cap = StrokeCap.Round))
+                    if (mu.style == ThemeStyle.OLED) {
+                        drawArc(
+                            mu.accent.copy(alpha = 0.25f),
+                            -90f,
+                            animPct * 360f,
+                            false,
+                            style = Stroke(12.dp.toPx(), cap = StrokeCap.Round)
+                        )
+                    }
+                    drawArc(mu.accent, -90f, animPct * 360f, false, style = Stroke(6.dp.toPx(), cap = StrokeCap.Round))
+                }
+                Text(
+                    text = "$doneCount/$totalCount",
+                    color = mu.ink,
+                    fontSize = 13.sp,
+                    fontWeight = FontWeight.ExtraBold,
+                    style = UiTextStyle(fontFeatureSettings = "tnum")
+                )
+            }
+        }
+        Spacer(Modifier.height(10.dp))
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Text("今日专注 $pomoCount 个番茄", color = mu.ink2, fontSize = 12.sp, modifier = Modifier.weight(1f))
+            val pill = RoundedCornerShape(999.dp)
+            val ctaMod = when (mu.style) {
+                ThemeStyle.GLASS -> Modifier
+                    .clip(pill)
+                    .background(Brush.horizontalGradient(listOf(mu.accent, mu.accent2)))
+                ThemeStyle.CLAY -> Modifier
+                    .shadow(6.dp, pill, spotColor = mu.accent)
+                    .clip(pill)
+                    .background(Brush.verticalGradient(listOf(mu.accent.copy(alpha = 0.85f).compositeOver(Color.White), mu.accent)))
+                else -> Modifier
+                    .clip(pill)
+                    .background(mu.accent.copy(alpha = 0.18f))
+                    .border(1.dp, mu.accent.copy(alpha = 0.6f), pill)
+            }
+            val ctaFg = if (mu.style == ThemeStyle.OLED) mu.accent2 else Color.White
+            Box(
+                modifier = ctaMod
+                    .muTactileClickable(onClick = onNewTodo)
+                    .padding(horizontal = 14.dp, vertical = 7.dp)
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(Icons.Rounded.Add, null, tint = ctaFg, modifier = Modifier.size(15.dp))
+                    Spacer(Modifier.width(4.dp))
+                    Text("新建待办", color = ctaFg, fontWeight = FontWeight.ExtraBold, fontSize = 12.5.sp)
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun LegacyTodayHeroCard(
+    monthDay: String,
+    subLine: String,
+    doneCount: Int,
+    totalCount: Int,
+    animPct: Float,
+    pomoCount: Int,
+    onNewTodo: () -> Unit
+) {
+    val mu = LocalMuColors.current
+
+    when (mu.skin) {
+        UiSkin.P5R -> {
             // P5R：纯黑底 + 右侧红斜切带 + 倾斜 TODAY 贴条 + 红硬阴影日期 + 底部斑马预警条
             Box(
                 modifier = Modifier
@@ -891,7 +1342,7 @@ private fun TodayHeroCard(
                                 .clip(parallelogramShape(0.16f))
                                 .background(mu.accent)
                                 .border(1.5.dp, Color.White)
-                                .clickable(onClick = onNewTodo)
+                                .muTactileClickable(onClick = onNewTodo)
                                 .padding(horizontal = 12.dp, vertical = 6.dp)
                         ) {
                             Row(verticalAlignment = Alignment.CenterVertically) {
@@ -905,7 +1356,7 @@ private fun TodayHeroCard(
             }
         }
 
-        ThemeStyle.P3R -> {
+        UiSkin.P3R -> {
             // P3R：深蓝渐变大卡 + 右上白色斜楔 + 巨型 01 水印 + 白底旋转日期牌(粉色硬影) + 冰青新建按钮
             Box(
                 modifier = Modifier
@@ -1015,7 +1466,7 @@ private fun TodayHeroCard(
                                 }
                                 .clip(parallelogramShape(0.2f))
                                 .background(mu.p3Cyan)
-                                .clickable(onClick = onNewTodo)
+                                .muTactileClickable(onClick = onNewTodo)
                                 .padding(horizontal = 12.dp, vertical = 6.dp)
                         ) {
                             Row(verticalAlignment = Alignment.CenterVertically) {
@@ -1029,7 +1480,7 @@ private fun TodayHeroCard(
             }
         }
 
-        ThemeStyle.IOS -> {
+        UiSkin.IOS -> {
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -1060,12 +1511,16 @@ private fun TodayHeroCard(
                     Spacer(Modifier.height(6.dp))
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Text("今日专注 $pomoCount 个番茄", color = Color.White.copy(alpha = 0.9f), fontSize = 12.sp, modifier = Modifier.weight(1f))
+                        val iosCtaSrc = remember { MutableInteractionSource() }
                         Button(
                             onClick = onNewTodo,
+                            interactionSource = iosCtaSrc,
                             colors = ButtonDefaults.buttonColors(containerColor = Color.White, contentColor = mu.accent),
                             shape = RoundedCornerShape(999.dp),
                             contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp),
-                            modifier = Modifier.height(34.dp)
+                            modifier = Modifier
+                                .height(34.dp)
+                                .muPressTransform(iosCtaSrc)
                         ) {
                             Icon(Icons.Rounded.Add, null, modifier = Modifier.size(15.dp))
                             Spacer(Modifier.width(4.dp))

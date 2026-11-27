@@ -12,7 +12,7 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
-import androidx.compose.animation.togetherWith
+import androidx.compose.foundation.LocalIndication
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
@@ -22,6 +22,7 @@ import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.Immutable
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.Dp
@@ -30,9 +31,12 @@ import androidx.compose.ui.unit.dp
 import com.mu.workbench.data.AccentStyle
 import com.mu.workbench.data.ThemeStyle
 
+enum class UiSkin { P5R, P3R, IOS }
+
 @Immutable
 data class MuColors(
     val style: ThemeStyle,
+    val skin: UiSkin,
     val isDark: Boolean,
     val accent: Color,
     val accent2: Color,
@@ -70,11 +74,26 @@ val LocalMuColors = staticCompositionLocalOf {
 }
 
 fun buildMuColors(style: ThemeStyle, accentStyle: AccentStyle, isDark: Boolean): MuColors {
+    val skin = when (style) {
+        ThemeStyle.P5R -> UiSkin.P5R
+        ThemeStyle.P3R -> UiSkin.P3R
+        else -> UiSkin.IOS
+    }
     val (acc, acc2, acc3) = when (accentStyle) {
         AccentStyle.BLUE -> when (style) {
             ThemeStyle.IOS -> Triple(Color(0xFF007AFF), Color(0xFF5AC8FA), Color(0xFF0056B3))
             ThemeStyle.P3R -> Triple(Color(0xFF015FCC), Color(0xFF16CFFB), Color(0xFF014CA3))
             ThemeStyle.P5R -> Triple(Color(0xFFE4002B), Color(0xFFFF3355), Color(0xFFB3001F))
+            ThemeStyle.MINIMAL -> if (isDark) {
+                Triple(Color(0xFF5A5A5E), Color(0xFF9A9AA0), Color(0xFF3A3A3C))
+            } else {
+                Triple(Color(0xFF2B2B2B), Color(0xFF6B6B6B), Color(0xFF111111))
+            }
+            ThemeStyle.GLASS -> Triple(Color(0xFF6C5CE7), Color(0xFF00C2FF), Color(0xFF4B3FC4))
+            ThemeStyle.BENTO -> Triple(Color(0xFFFF6B35), Color(0xFFFFB627), Color(0xFFD9480F))
+            ThemeStyle.BRUTAL -> Triple(Color(0xFFFF3D7F), Color(0xFFFFE600), Color(0xFFC2185B))
+            ThemeStyle.CLAY -> Triple(Color(0xFF7C6CF2), Color(0xFFFF9EC7), Color(0xFF5A4BD1))
+            ThemeStyle.OLED -> Triple(Color(0xFF0A84FF), Color(0xFF64D2FF), Color(0xFF0060DF))
         }
         AccentStyle.RED -> Triple(Color(0xFFE4002B), Color(0xFFFF5C70), Color(0xFFB3001F))
         AccentStyle.CYAN -> Triple(Color(0xFF0D7F86), Color(0xFF14B8A6), Color(0xFF09575C))
@@ -92,7 +111,7 @@ fun buildMuColors(style: ThemeStyle, accentStyle: AccentStyle, isDark: Boolean):
     return when (style) {
         ThemeStyle.IOS -> if (!isDark) {
             MuColors(
-                style = style, isDark = false,
+                style = style, skin = skin, isDark = false,
                 accent = acc, accent2 = acc2, accent3 = acc3,
                 accentInk = acc, accentSoft = acc.copy(alpha = 0.13f),
                 paper = Color(0xFFF2F2F7), paper2 = Color(0xFFE5E5EA),
@@ -107,7 +126,7 @@ fun buildMuColors(style: ThemeStyle, accentStyle: AccentStyle, isDark: Boolean):
             )
         } else {
             MuColors(
-                style = style, isDark = true,
+                style = style, skin = skin, isDark = true,
                 accent = acc, accent2 = acc2, accent3 = acc3,
                 accentInk = acc2, accentSoft = acc.copy(alpha = 0.22f),
                 paper = Color(0xFF000000), paper2 = Color(0xFF1C1C1E),
@@ -124,7 +143,7 @@ fun buildMuColors(style: ThemeStyle, accentStyle: AccentStyle, isDark: Boolean):
 
         ThemeStyle.P3R -> if (!isDark) {
             MuColors(
-                style = style, isDark = false,
+                style = style, skin = skin, isDark = false,
                 accent = acc, accent2 = acc2, accent3 = acc3,
                 accentInk = acc3, accentSoft = acc.copy(alpha = 0.12f),
                 paper = Color(0xFFEEF4FD), paper2 = Color(0xFFE2ECFB),
@@ -139,7 +158,7 @@ fun buildMuColors(style: ThemeStyle, accentStyle: AccentStyle, isDark: Boolean):
             )
         } else {
             MuColors(
-                style = style, isDark = true,
+                style = style, skin = skin, isDark = true,
                 accent = acc, accent2 = acc2, accent3 = acc3,
                 accentInk = acc2, accentSoft = acc.copy(alpha = 0.24f),
                 paper = Color(0xFF020B20), paper2 = Color(0xFF051530),
@@ -156,7 +175,7 @@ fun buildMuColors(style: ThemeStyle, accentStyle: AccentStyle, isDark: Boolean):
 
         ThemeStyle.P5R -> if (!isDark) {
             MuColors(
-                style = style, isDark = false,
+                style = style, skin = skin, isDark = false,
                 accent = acc, accent2 = acc2, accent3 = acc3,
                 accentInk = acc3, accentSoft = acc.copy(alpha = 0.12f),
                 paper = Color(0xFFF7F4EC), paper2 = Color(0xFFECE7DA),
@@ -171,7 +190,7 @@ fun buildMuColors(style: ThemeStyle, accentStyle: AccentStyle, isDark: Boolean):
             )
         } else {
             MuColors(
-                style = style, isDark = true,
+                style = style, skin = skin, isDark = true,
                 accent = acc, accent2 = acc2, accent3 = acc3,
                 accentInk = acc2, accentSoft = acc.copy(alpha = 0.22f),
                 paper = Color(0xFF0B0B0C), paper2 = Color(0xFF17171A),
@@ -185,42 +204,210 @@ fun buildMuColors(style: ThemeStyle, accentStyle: AccentStyle, isDark: Boolean):
                 cardRadius = 0.dp, cardBorderWidth = 2.dp, hardShadowDp = 3.dp
             )
         }
+
+        ThemeStyle.MINIMAL -> if (!isDark) {
+            MuColors(
+                style = style, skin = skin, isDark = false,
+                accent = acc, accent2 = acc2, accent3 = acc3,
+                accentInk = Color(0xFF111111), accentSoft = acc.copy(alpha = 0.10f),
+                paper = Color(0xFFFAFAFA), paper2 = Color(0xFFF2F2F2),
+                surface1 = Color(0xFFFFFFFF), surface2 = Color(0xFFF7F7F7), surface3 = Color(0xFFEDEDED),
+                ink = Color(0xFF111111), ink2 = Color(0xFF444444), ink3 = Color(0xFF8A8A8A),
+                line = Color(0xFFE6E6E6), line2 = Color(0xFFD0D0D0),
+                chrome = Color(0xFFFFFFFF), chrome2 = Color(0xFFFFFFFF), chromeInk = Color(0xFF111111), chromeSoft = Color(0xFF8A8A8A),
+                p3Cyan = p3Cyan, p3Pink = p3Pink, p3Deep = p3Deep,
+                ok = Color(0xFF1F8A4C), warn = Color(0xFFB7791F), danger = Color(0xFFC62828),
+                hardShadowColor = Color.Transparent,
+                cardRadius = 4.dp, cardBorderWidth = 1.dp, hardShadowDp = 0.dp
+            )
+        } else {
+            MuColors(
+                style = style, skin = skin, isDark = true,
+                accent = acc, accent2 = acc2, accent3 = acc3,
+                accentInk = Color(0xFFE5E5E5), accentSoft = acc.copy(alpha = 0.18f),
+                paper = Color(0xFF0B0B0B), paper2 = Color(0xFF141414),
+                surface1 = Color(0xFF121212), surface2 = Color(0xFF1A1A1A), surface3 = Color(0xFF242424),
+                ink = Color(0xFFF2F2F2), ink2 = Color(0xFFBDBDBD), ink3 = Color(0xFF7A7A7A),
+                line = Color(0xFF262626), line2 = Color(0xFF3A3A3A),
+                chrome = Color(0xFF0B0B0B), chrome2 = Color(0xFF0B0B0B), chromeInk = Color(0xFFF2F2F2), chromeSoft = Color(0xFF7A7A7A),
+                p3Cyan = p3Cyan, p3Pink = p3Pink, p3Deep = p3Deep,
+                ok = Color(0xFF4ADE80), warn = Color(0xFFFBBF24), danger = Color(0xFFF87171),
+                hardShadowColor = Color.Transparent,
+                cardRadius = 4.dp, cardBorderWidth = 1.dp, hardShadowDp = 0.dp
+            )
+        }
+
+        ThemeStyle.GLASS -> if (!isDark) {
+            MuColors(
+                style = style, skin = skin, isDark = false,
+                accent = acc, accent2 = acc2, accent3 = acc3,
+                accentInk = acc3, accentSoft = acc.copy(alpha = 0.14f),
+                paper = Color(0xFFEEF0FF), paper2 = Color(0xFFE4E7FB),
+                surface1 = Color(0xFFFFFFFF), surface2 = Color(0xFFF6F7FF), surface3 = Color(0xFFE9EBFA),
+                ink = Color(0xFF1B1B3A), ink2 = Color(0xFF3D3F66), ink3 = Color(0xFF7A7C9E),
+                line = Color(0x1F1B1B3A), line2 = Color(0x331B1B3A),
+                chrome = Color(0xCCFFFFFF), chrome2 = Color(0xFFFFFFFF), chromeInk = Color(0xFF1B1B3A), chromeSoft = Color(0xFF7A7C9E),
+                p3Cyan = p3Cyan, p3Pink = p3Pink, p3Deep = p3Deep,
+                ok = Color(0xFF10B981), warn = Color(0xFFF59E0B), danger = Color(0xFFEF4444),
+                hardShadowColor = Color.Transparent,
+                cardRadius = 20.dp, cardBorderWidth = 1.dp, hardShadowDp = 0.dp
+            )
+        } else {
+            MuColors(
+                style = style, skin = skin, isDark = true,
+                accent = acc, accent2 = acc2, accent3 = acc3,
+                accentInk = acc2, accentSoft = acc.copy(alpha = 0.24f),
+                paper = Color(0xFF0B0B1E), paper2 = Color(0xFF14142B),
+                surface1 = Color(0xFF1A1A33), surface2 = Color(0xFF222244), surface3 = Color(0xFF2C2C52),
+                ink = Color(0xFFF4F4FF), ink2 = Color(0xFFC9CAEE), ink3 = Color(0xFF8C8DB5),
+                line = Color(0x26FFFFFF), line2 = Color(0x40FFFFFF),
+                chrome = Color(0xCC12122A), chrome2 = Color(0xFF1A1A33), chromeInk = Color(0xFFF4F4FF), chromeSoft = Color(0xFF8C8DB5),
+                p3Cyan = p3Cyan, p3Pink = p3Pink, p3Deep = p3Deep,
+                ok = Color(0xFF34D399), warn = Color(0xFFFBBF24), danger = Color(0xFFF87171),
+                hardShadowColor = Color.Transparent,
+                cardRadius = 20.dp, cardBorderWidth = 1.dp, hardShadowDp = 0.dp
+            )
+        }
+
+        ThemeStyle.BENTO -> if (!isDark) {
+            MuColors(
+                style = style, skin = skin, isDark = false,
+                accent = acc, accent2 = acc2, accent3 = acc3,
+                accentInk = acc3, accentSoft = acc.copy(alpha = 0.14f),
+                paper = Color(0xFFF3F1EC), paper2 = Color(0xFFEAE7E0),
+                surface1 = Color(0xFFFFFFFF), surface2 = Color(0xFFFAF8F4), surface3 = Color(0xFFEFECE5),
+                ink = Color(0xFF1A1A1A), ink2 = Color(0xFF4A4A4A), ink3 = Color(0xFF8C8880),
+                line = Color(0x14000000), line2 = Color(0x24000000),
+                chrome = Color(0xFFF3F1EC), chrome2 = Color(0xFFFFFFFF), chromeInk = Color(0xFF1A1A1A), chromeSoft = Color(0xFF8C8880),
+                p3Cyan = p3Cyan, p3Pink = p3Pink, p3Deep = p3Deep,
+                ok = Color(0xFF2F9E44), warn = Color(0xFFF08C00), danger = Color(0xFFE03131),
+                hardShadowColor = Color.Transparent,
+                cardRadius = 22.dp, cardBorderWidth = 0.dp, hardShadowDp = 0.dp
+            )
+        } else {
+            MuColors(
+                style = style, skin = skin, isDark = true,
+                accent = acc, accent2 = acc2, accent3 = acc3,
+                accentInk = acc2, accentSoft = acc.copy(alpha = 0.22f),
+                paper = Color(0xFF111111), paper2 = Color(0xFF1A1A1A),
+                surface1 = Color(0xFF1C1C1E), surface2 = Color(0xFF232325), surface3 = Color(0xFF2C2C2E),
+                ink = Color(0xFFF5F5F5), ink2 = Color(0xFFC7C7C7), ink3 = Color(0xFF8E8E8E),
+                line = Color(0x1AFFFFFF), line2 = Color(0x2EFFFFFF),
+                chrome = Color(0xFF111111), chrome2 = Color(0xFF1C1C1E), chromeInk = Color(0xFFF5F5F5), chromeSoft = Color(0xFF8E8E8E),
+                p3Cyan = p3Cyan, p3Pink = p3Pink, p3Deep = p3Deep,
+                ok = Color(0xFF51CF66), warn = Color(0xFFFFA94D), danger = Color(0xFFFF6B6B),
+                hardShadowColor = Color.Transparent,
+                cardRadius = 22.dp, cardBorderWidth = 0.dp, hardShadowDp = 0.dp
+            )
+        }
+
+        ThemeStyle.BRUTAL -> if (!isDark) {
+            MuColors(
+                style = style, skin = skin, isDark = false,
+                accent = acc, accent2 = acc2, accent3 = acc3,
+                accentInk = acc3, accentSoft = acc.copy(alpha = 0.16f),
+                paper = Color(0xFFFFF6E0), paper2 = Color(0xFFFFE9B8),
+                surface1 = Color(0xFFFFFFFF), surface2 = Color(0xFFFFFBEF), surface3 = Color(0xFFFFE9B8),
+                ink = Color(0xFF111111), ink2 = Color(0xFF2A2A2A), ink3 = Color(0xFF5C5C5C),
+                line = Color(0xFF111111), line2 = Color(0x66111111),
+                chrome = Color(0xFFFFE600), chrome2 = Color(0xFFFFE600), chromeInk = Color(0xFF111111), chromeSoft = Color(0xFF3A3A3A),
+                p3Cyan = p3Cyan, p3Pink = p3Pink, p3Deep = p3Deep,
+                ok = Color(0xFF00C46A), warn = Color(0xFFFF8A00), danger = Color(0xFFFF2E2E),
+                hardShadowColor = Color(0xFF111111),
+                cardRadius = 10.dp, cardBorderWidth = 2.5.dp, hardShadowDp = 4.dp
+            )
+        } else {
+            MuColors(
+                style = style, skin = skin, isDark = true,
+                accent = acc, accent2 = acc2, accent3 = acc3,
+                accentInk = acc2, accentSoft = acc.copy(alpha = 0.22f),
+                paper = Color(0xFF161616), paper2 = Color(0xFF222222),
+                surface1 = Color(0xFF1F1F1F), surface2 = Color(0xFF262626), surface3 = Color(0xFF333333),
+                ink = Color(0xFFFFF6E0), ink2 = Color(0xFFE6DCC4), ink3 = Color(0xFFA8A08C),
+                line = Color(0xFFFFF6E0), line2 = Color(0x66FFF6E0),
+                chrome = Color(0xFF111111), chrome2 = Color(0xFF111111), chromeInk = Color(0xFFFFE600), chromeSoft = Color(0xFFE6DCC4),
+                p3Cyan = p3Cyan, p3Pink = p3Pink, p3Deep = p3Deep,
+                ok = Color(0xFF22E584), warn = Color(0xFFFFA94D), danger = Color(0xFFFF5C5C),
+                hardShadowColor = acc2,
+                cardRadius = 10.dp, cardBorderWidth = 2.5.dp, hardShadowDp = 4.dp
+            )
+        }
+
+        ThemeStyle.CLAY -> if (!isDark) {
+            MuColors(
+                style = style, skin = skin, isDark = false,
+                accent = acc, accent2 = acc2, accent3 = acc3,
+                accentInk = acc3, accentSoft = acc.copy(alpha = 0.16f),
+                paper = Color(0xFFEFEAFB), paper2 = Color(0xFFE6E0F7),
+                surface1 = Color(0xFFF8F5FF), surface2 = Color(0xFFF2EEFC), surface3 = Color(0xFFE8E2F8),
+                ink = Color(0xFF2D2A4A), ink2 = Color(0xFF55517A), ink3 = Color(0xFF8F8BB0),
+                line = Color(0x142D2A4A), line2 = Color(0x242D2A4A),
+                chrome = Color(0xFFEFEAFB), chrome2 = Color(0xFFF8F5FF), chromeInk = Color(0xFF2D2A4A), chromeSoft = Color(0xFF8F8BB0),
+                p3Cyan = p3Cyan, p3Pink = p3Pink, p3Deep = p3Deep,
+                ok = Color(0xFF34C38F), warn = Color(0xFFFFB547), danger = Color(0xFFFF6B8B),
+                hardShadowColor = Color(0x405A4BD1),
+                cardRadius = 26.dp, cardBorderWidth = 0.dp, hardShadowDp = 0.dp
+            )
+        } else {
+            MuColors(
+                style = style, skin = skin, isDark = true,
+                accent = acc, accent2 = acc2, accent3 = acc3,
+                accentInk = acc2, accentSoft = acc.copy(alpha = 0.24f),
+                paper = Color(0xFF1E1B2E), paper2 = Color(0xFF25213A),
+                surface1 = Color(0xFF2A2640), surface2 = Color(0xFF322D4C), surface3 = Color(0xFF3B3558),
+                ink = Color(0xFFF3F0FF), ink2 = Color(0xFFCEC8EE), ink3 = Color(0xFF9893BD),
+                line = Color(0x1FFFFFFF), line2 = Color(0x33FFFFFF),
+                chrome = Color(0xFF1E1B2E), chrome2 = Color(0xFF2A2640), chromeInk = Color(0xFFF3F0FF), chromeSoft = Color(0xFF9893BD),
+                p3Cyan = p3Cyan, p3Pink = p3Pink, p3Deep = p3Deep,
+                ok = Color(0xFF4ADE9F), warn = Color(0xFFFFC46B), danger = Color(0xFFFF8FA8),
+                hardShadowColor = Color(0x80000000),
+                cardRadius = 26.dp, cardBorderWidth = 0.dp, hardShadowDp = 0.dp
+            )
+        }
+
+        ThemeStyle.OLED -> MuColors(
+            style = style, skin = skin, isDark = true,
+            accent = acc, accent2 = acc2, accent3 = acc3,
+            accentInk = acc2, accentSoft = acc.copy(alpha = 0.16f),
+            paper = Color(0xFF000000), paper2 = Color(0xFF0A0A0A),
+            surface1 = Color(0xFF0D0D0F), surface2 = Color(0xFF151518), surface3 = Color(0xFF1E1E22),
+            ink = Color(0xFFEDEDED), ink2 = Color(0xFFA8A8AD), ink3 = Color(0xFF6B6B70),
+            line = Color(0x14FFFFFF), line2 = Color(0x24FFFFFF),
+            chrome = Color(0xFF000000), chrome2 = Color(0xFF000000), chromeInk = Color(0xFFEDEDED), chromeSoft = Color(0xFF6B6B70),
+            p3Cyan = p3Cyan, p3Pink = p3Pink, p3Deep = p3Deep,
+            ok = Color(0xFF30D158), warn = Color(0xFFFFD60A), danger = Color(0xFFFF453A),
+            hardShadowColor = Color.Transparent,
+            cardRadius = 16.dp, cardBorderWidth = 0.75.dp, hardShadowDp = 0.dp
+        )
     }
 }
 
 object MuMotion {
-    fun intOffsetSpring(style: ThemeStyle): FiniteAnimationSpec<IntOffset> = when (style) {
-        // 临界阻尼高刚度弹簧：约 260ms 顺滑推入，无慢速衰减尾迹
-        ThemeStyle.IOS -> spring(
+    fun intOffsetSpring(skin: UiSkin): FiniteAnimationSpec<IntOffset> = when (skin) {
+        UiSkin.IOS -> spring(
             dampingRatio = Spring.DampingRatioNoBouncy,
             stiffness = 620f
         )
-        ThemeStyle.P3R -> tween(durationMillis = 190, easing = FastOutSlowInEasing)
-        ThemeStyle.P5R -> tween(durationMillis = 160, easing = FastOutSlowInEasing)
+        UiSkin.P3R -> tween(durationMillis = 190, easing = FastOutSlowInEasing)
+        UiSkin.P5R -> tween(durationMillis = 160, easing = FastOutSlowInEasing)
     }
 
-    fun floatSpring(style: ThemeStyle): FiniteAnimationSpec<Float> = when (style) {
-        ThemeStyle.IOS -> spring(
+    fun floatSpring(skin: UiSkin): FiniteAnimationSpec<Float> = when (skin) {
+        UiSkin.IOS -> spring(
             dampingRatio = Spring.DampingRatioNoBouncy,
             stiffness = 620f
         )
-        ThemeStyle.P3R -> tween(durationMillis = 190, easing = FastOutSlowInEasing)
-        ThemeStyle.P5R -> tween(durationMillis = 160, easing = FastOutSlowInEasing)
+        UiSkin.P3R -> tween(durationMillis = 190, easing = FastOutSlowInEasing)
+        UiSkin.P5R -> tween(durationMillis = 160, easing = FastOutSlowInEasing)
     }
 
-    /**
-     * 零拖影切屏动画：
-     * - iOS：仿 UINavigationController / 分页器纯不透明整页推动（上层完全不透明覆盖下层微视差），杜绝双层文字重影；
-     * - P5R：160ms 利落硬切微移，无慢速半透明混叠；
-     * - P3R：190ms 干脆滑入，快速退场。
-     */
     fun <T> tabTransition(
-        style: ThemeStyle,
-        direction: Int // >0 forward, <0 backward, 0 fade
+        skin: UiSkin,
+        direction: Int
     ): AnimatedContentTransitionScope<T>.() -> ContentTransform = {
-        val spec = intOffsetSpring(style)
+        val spec = intOffsetSpring(skin)
         when {
-            style == ThemeStyle.IOS && direction > 0 -> {
+            skin == UiSkin.IOS && direction > 0 -> {
                 ContentTransform(
                     targetContentEnter = slideInHorizontally(animationSpec = spec) { full -> full },
                     initialContentExit = slideOutHorizontally(animationSpec = spec) { full -> -(full * 0.25f).toInt() },
@@ -228,7 +415,7 @@ object MuMotion {
                     sizeTransform = SizeTransform(clip = true)
                 )
             }
-            style == ThemeStyle.IOS && direction < 0 -> {
+            skin == UiSkin.IOS && direction < 0 -> {
                 ContentTransform(
                     targetContentEnter = slideInHorizontally(animationSpec = spec) { full -> -(full * 0.25f).toInt() },
                     initialContentExit = slideOutHorizontally(animationSpec = spec) { full -> full },
@@ -236,7 +423,7 @@ object MuMotion {
                     sizeTransform = SizeTransform(clip = true)
                 )
             }
-            style == ThemeStyle.P5R -> {
+            skin == UiSkin.P5R -> {
                 val shift = if (direction > 0) 80 else if (direction < 0) -80 else 0
                 ContentTransform(
                     targetContentEnter = slideInHorizontally(tween(150, easing = FastOutSlowInEasing)) { shift } +
@@ -246,7 +433,7 @@ object MuMotion {
                     sizeTransform = SizeTransform(clip = true)
                 )
             }
-            style == ThemeStyle.P3R -> {
+            skin == UiSkin.P3R -> {
                 val shift = if (direction > 0) 96 else if (direction < 0) -96 else 36
                 ContentTransform(
                     targetContentEnter = slideInHorizontally(tween(180, easing = FastOutSlowInEasing)) { shift } +
@@ -273,7 +460,7 @@ fun MuWorkbenchTheme(
     accent: AccentStyle,
     content: @Composable () -> Unit
 ) {
-    val isDark = isSystemInDarkTheme()
+    val isDark = style == ThemeStyle.OLED || isSystemInDarkTheme()
     val mu = buildMuColors(style, accent, isDark)
 
     val m3 = if (isDark) {
@@ -292,8 +479,8 @@ fun MuWorkbenchTheme(
             surfaceContainerHigh = mu.surface2,
             surfaceContainerHighest = mu.surface3,
             surfaceContainerLowest = mu.paper,
-            inverseSurface = if (isDark) Color(0xFFF2F2F7) else Color(0xFF1C1C1E),
-            inverseOnSurface = if (isDark) Color(0xFF1C1C1E) else Color.White,
+            inverseSurface = Color(0xFFF2F2F7),
+            inverseOnSurface = Color(0xFF1C1C1E),
             outline = mu.line2,
             error = mu.danger
         )
@@ -313,8 +500,8 @@ fun MuWorkbenchTheme(
             surfaceContainerHigh = mu.surface2,
             surfaceContainerHighest = mu.surface3,
             surfaceContainerLowest = mu.paper,
-            inverseSurface = if (isDark) Color(0xFFF2F2F7) else Color(0xFF1C1C1E),
-            inverseOnSurface = if (isDark) Color(0xFF1C1C1E) else Color.White,
+            inverseSurface = Color(0xFF1C1C1E),
+            inverseOnSurface = Color.White,
             outline = mu.line2,
             error = mu.danger
         )
@@ -323,14 +510,27 @@ fun MuWorkbenchTheme(
     val shapes = Shapes(
         small = RoundedCornerShape(mu.cardRadius.coerceAtMost(8.dp)),
         medium = RoundedCornerShape(mu.cardRadius),
-        large = RoundedCornerShape(if (style == ThemeStyle.IOS) 24.dp else mu.cardRadius)
+        large = RoundedCornerShape(
+            when (style) {
+                ThemeStyle.IOS -> 24.dp
+                ThemeStyle.GLASS -> 24.dp
+                ThemeStyle.BENTO -> 26.dp
+                ThemeStyle.CLAY -> 28.dp
+                else -> mu.cardRadius
+            }
+        )
     )
+
+    val themeIndication = remember(mu) { MuThemeIndication(mu) }
 
     CompositionLocalProvider(LocalMuColors provides mu) {
         MaterialTheme(
             colorScheme = m3,
-            shapes = shapes,
-            content = content
-        )
+            shapes = shapes
+        ) {
+            CompositionLocalProvider(LocalIndication provides themeIndication) {
+                content()
+            }
+        }
     }
 }

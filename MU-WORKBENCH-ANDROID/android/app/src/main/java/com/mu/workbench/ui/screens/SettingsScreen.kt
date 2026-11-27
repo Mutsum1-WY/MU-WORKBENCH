@@ -37,6 +37,7 @@ import com.mu.workbench.ui.components.MuChip
 import com.mu.workbench.ui.components.MuSectionHeader
 import com.mu.workbench.ui.components.MuSegmentedRow
 import com.mu.workbench.ui.theme.LocalMuColors
+import com.mu.workbench.ui.theme.muTactileClickable
 import org.json.JSONObject
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -106,7 +107,8 @@ fun SettingsScreen(
                             Row(
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .clickable {
+                                    .clip(androidx.compose.foundation.shape.RoundedCornerShape(8.dp))
+                                    .muTactileClickable {
                                         vm.updateState { s -> s.copy(settings = s.settings.copy(theme = ts)) }
                                         vm.toast("已切换为 ${ts.label}")
                                     }
@@ -152,7 +154,7 @@ fun SettingsScreen(
                                             .clip(CircleShape)
                                             .background(Color(ac.previewHex(state.settings.theme)))
                                             .border(if (on) 3.dp else 1.dp, if (on) mu.ink else Color.White, CircleShape)
-                                            .clickable {
+                                            .muTactileClickable {
                                                 vm.updateState { s -> s.copy(settings = s.settings.copy(accent = ac)) }
                                                 vm.toast("配色已切换为 ${ac.displayLabel(state.settings.theme)}")
                                             }

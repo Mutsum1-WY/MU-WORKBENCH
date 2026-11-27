@@ -3,12 +3,18 @@ package com.mu.workbench.ui.components
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.LocalIndication
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.GenericShape
@@ -54,7 +60,10 @@ import androidx.compose.ui.unit.sp
 import com.mu.workbench.data.ThemeStyle
 import com.mu.workbench.data.TodoItem
 import com.mu.workbench.ui.theme.LocalMuColors
+import com.mu.workbench.ui.theme.UiSkin
 import com.mu.workbench.ui.theme.MuMotion
+import com.mu.workbench.ui.theme.muPressTransform
+import com.mu.workbench.ui.theme.muTactileClickable
 import java.util.concurrent.ConcurrentHashMap
 
 /**
@@ -66,7 +75,7 @@ import java.util.concurrent.ConcurrentHashMap
 fun <T> MuTabTransition(
     targetState: T,
     direction: Int,
-    style: ThemeStyle,
+    style: UiSkin,
     modifier: Modifier = Modifier,
     content: @Composable (T) -> Unit
 ) {
@@ -78,7 +87,7 @@ fun <T> MuTabTransition(
             initialized = true
             return@LaunchedEffect
         }
-        val shift = if (style == ThemeStyle.IOS) 0.14f else 0.08f
+        val shift = if (style == UiSkin.IOS) 0.14f else 0.08f
         val startOffset = when {
             direction > 0 -> shift
             direction < 0 -> -shift
@@ -148,7 +157,7 @@ fun MuPageBackground(
             .fillMaxSize()
             .background(mu.paper)
     ) {
-        if (mu.style == ThemeStyle.P5R) {
+        if (mu.skin == UiSkin.P5R) {
             val dotColor = if (mu.isDark) Color.White.copy(alpha = 0.05f) else Color(0xFF0B0B0C).copy(alpha = 0.085f)
             val slashTint = mu.accent.copy(alpha = if (mu.isDark) 0.10f else 0.065f)
             Spacer(
@@ -183,7 +192,7 @@ fun MuPageBackground(
                         }
                     }
             )
-        } else if (mu.style == ThemeStyle.P3R) {
+        } else if (mu.skin == UiSkin.P3R) {
             val lineColor = if (mu.isDark) mu.p3Cyan.copy(alpha = 0.05f) else Color(0xFF031F64).copy(alpha = 0.035f)
             val glowTop = mu.p3Cyan.copy(alpha = if (mu.isDark) 0.16f else 0.18f)
             val glowSide = mu.accent.copy(alpha = if (mu.isDark) 0.25f else 0.10f)
@@ -241,6 +250,126 @@ fun MuPageBackground(
                     .align(Alignment.BottomEnd)
                     .padding(end = 6.dp, bottom = 78.dp)
             )
+        } else {
+            when (mu.style) {
+                ThemeStyle.GLASS -> {
+                    val a1 = if (mu.isDark) 0.35f else 0.55f
+                    val a2 = if (mu.isDark) 0.28f else 0.45f
+                    val a3 = if (mu.isDark) 0.25f else 0.40f
+                    val c1 = mu.accent.copy(alpha = a1)
+                    val c2 = mu.accent2.copy(alpha = a2)
+                    val c3 = Color(0xFFFF7AC6).copy(alpha = a3)
+                    Spacer(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .drawWithCache {
+                                val pt1 = Offset(size.width * 0.10f, size.height * 0.05f)
+                                val r1 = (size.width * 0.9f).coerceAtLeast(32f)
+                                val pt2 = Offset(size.width * 0.95f, size.height * 0.35f)
+                                val r2 = (size.width * 0.8f).coerceAtLeast(32f)
+                                val pt3 = Offset(size.width * 0.20f, size.height * 0.85f)
+                                val r3 = (size.width * 0.9f).coerceAtLeast(32f)
+                                val b1 = Brush.radialGradient(listOf(c1, Color.Transparent), center = pt1, radius = r1)
+                                val b2 = Brush.radialGradient(listOf(c2, Color.Transparent), center = pt2, radius = r2)
+                                val b3 = Brush.radialGradient(listOf(c3, Color.Transparent), center = pt3, radius = r3)
+                                onDrawBehind {
+                                    drawCircle(b1, radius = r1, center = pt1)
+                                    drawCircle(b2, radius = r2, center = pt2)
+                                    drawCircle(b3, radius = r3, center = pt3)
+                                }
+                            }
+                    )
+                }
+                ThemeStyle.MINIMAL -> {
+                    val gridCol = mu.ink.copy(alpha = 0.035f)
+                    Spacer(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .drawWithCache {
+                                val tilePx = 24.dp.toPx().toInt().coerceAtLeast(16)
+                                val tile = ImageBitmap(tilePx, tilePx)
+                                val tileCanvas = androidx.compose.ui.graphics.Canvas(tile)
+                                val lp = Paint().apply {
+                                    color = gridCol
+                                    strokeWidth = 1f
+                                    style = PaintingStyle.Stroke
+                                }
+                                val f = tilePx.toFloat()
+                                tileCanvas.drawLine(Offset(0f, 0f), Offset(f, 0f), lp)
+                                tileCanvas.drawLine(Offset(0f, 0f), Offset(0f, f), lp)
+                                val shaderPaint = Paint().apply {
+                                    shader = ImageShader(tile, TileMode.Repeated, TileMode.Repeated)
+                                }
+                                val fullRect = Rect(0f, 0f, size.width, size.height)
+                                onDrawBehind {
+                                    drawContext.canvas.drawRect(fullRect, shaderPaint)
+                                }
+                            }
+                    )
+                }
+                ThemeStyle.BRUTAL -> {
+                    val dotCol = mu.ink.copy(alpha = 0.07f)
+                    Spacer(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .drawWithCache {
+                                val tilePx = 20.dp.toPx().toInt().coerceAtLeast(12)
+                                val tile = ImageBitmap(tilePx, tilePx)
+                                val tileCanvas = androidx.compose.ui.graphics.Canvas(tile)
+                                val dotPaint = Paint().apply {
+                                    color = dotCol
+                                    isAntiAlias = true
+                                }
+                                val r = 1.1.dp.toPx()
+                                val q = tilePx / 4f
+                                tileCanvas.drawCircle(Offset(q, q), r, dotPaint)
+                                tileCanvas.drawCircle(Offset(tilePx * 0.75f, tilePx * 0.75f), r, dotPaint)
+                                val shaderPaint = Paint().apply {
+                                    shader = ImageShader(tile, TileMode.Repeated, TileMode.Repeated)
+                                }
+                                val fullRect = Rect(0f, 0f, size.width, size.height)
+                                onDrawBehind {
+                                    drawContext.canvas.drawRect(fullRect, shaderPaint)
+                                }
+                            }
+                    )
+                }
+                ThemeStyle.CLAY -> {
+                    val b1Col = mu.accent2.copy(alpha = 0.18f)
+                    val b2Col = mu.accent.copy(alpha = 0.12f)
+                    Spacer(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .drawWithCache {
+                                val pt1 = Offset(size.width * 0.88f, size.height * 0.10f)
+                                val pt2 = Offset(size.width * 0.12f, size.height * 0.85f)
+                                val r = (size.width * 0.75f).coerceAtLeast(32f)
+                                val br1 = Brush.radialGradient(listOf(b1Col, Color.Transparent), center = pt1, radius = r)
+                                val br2 = Brush.radialGradient(listOf(b2Col, Color.Transparent), center = pt2, radius = r)
+                                onDrawBehind {
+                                    drawCircle(br1, radius = r, center = pt1)
+                                    drawCircle(br2, radius = r, center = pt2)
+                                }
+                            }
+                    )
+                }
+                ThemeStyle.OLED -> {
+                    val glow = mu.accent.copy(alpha = 0.08f)
+                    Spacer(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .drawWithCache {
+                                val pt = Offset(size.width * 0.5f, 0f)
+                                val r = (size.width * 0.9f).coerceAtLeast(32f)
+                                val br = Brush.radialGradient(listOf(glow, Color.Transparent), center = pt, radius = r)
+                                onDrawBehind {
+                                    drawCircle(br, radius = r, center = pt)
+                                }
+                            }
+                    )
+                }
+                else -> Unit
+            }
         }
     }
 }
@@ -262,24 +391,49 @@ fun MuCard(
     content: @Composable ColumnScope.() -> Unit
 ) {
     val mu = LocalMuColors.current
+    val haptic = LocalHapticFeedback.current
     val shape: Shape = RoundedCornerShape(mu.cardRadius)
-    val bg = backgroundColor ?: mu.surface1
-    val solidBg = if (bg.alpha < 1f) bg.compositeOver(mu.surface1) else bg
+    val solidBg = if (mu.style == ThemeStyle.GLASS) {
+        when {
+            backgroundColor == null -> Color.White.copy(alpha = if (mu.isDark) 0.07f else 0.55f)
+            backgroundColor.alpha >= 0.99f -> backgroundColor.copy(alpha = if (mu.isDark) 0.55f else 0.70f)
+            else -> backgroundColor
+        }
+    } else {
+        val bg = backgroundColor ?: mu.surface1
+        if (bg.alpha < 1f) bg.compositeOver(mu.surface1) else bg
+    }
     val bd = borderColor ?: mu.line
-    val shadowCol = if (borderColor != null && mu.style == ThemeStyle.P5R) borderColor else mu.hardShadowColor
-    val rootMod = modifier.fillMaxWidth()
+    val shadowCol = if (borderColor != null && mu.skin == UiSkin.P5R) borderColor else mu.hardShadowColor
+    val src = if (onClick != null) remember { MutableInteractionSource() } else null
+    val pressed by (src?.collectIsPressedAsState() ?: remember { mutableStateOf(false) })
+    val hardShadowAnim by animateDpAsState(
+        targetValue = if (pressed) mu.hardShadowDp * 0.4f else mu.hardShadowDp,
+        animationSpec = spring(stiffness = 900f),
+        label = "cardHardShadow"
+    )
+    val rootMod = modifier
+        .fillMaxWidth()
+        .let { m -> if (src != null) m.muPressTransform(src) else m }
 
-    val base = if (mu.style == ThemeStyle.P5R && mu.hardShadowDp > 0.dp) {
+    val base = if ((mu.skin == UiSkin.P5R || mu.style == ThemeStyle.BRUTAL) && mu.hardShadowDp > 0.dp) {
+        val isRound = mu.style == ThemeStyle.BRUTAL
         rootMod
             .padding(end = mu.hardShadowDp, bottom = mu.hardShadowDp)
             .drawWithCache {
-                val sh = mu.hardShadowDp.toPx()
-                val tl = Offset(sh, sh)
+                val r = mu.cardRadius.toPx()
+                val cr = CornerRadius(r, r)
                 onDrawBehind {
-                    drawRect(color = shadowCol, topLeft = tl, size = size)
+                    val sh = hardShadowAnim.toPx()
+                    val tl = Offset(sh, sh)
+                    if (isRound) {
+                        drawRoundRect(color = shadowCol, topLeft = tl, size = size, cornerRadius = cr)
+                    } else {
+                        drawRect(color = shadowCol, topLeft = tl, size = size)
+                    }
                 }
             }
-    } else if (mu.style == ThemeStyle.P3R) {
+    } else if (mu.skin == UiSkin.P3R) {
         rootMod
             .padding(end = 2.dp, bottom = 3.dp)
             .drawWithCache {
@@ -292,7 +446,30 @@ fun MuCard(
                 }
             }
     } else {
-        rootMod.shadow(2.dp, shape, ambientColor = Color.Black.copy(alpha = 0.06f))
+        when (mu.style) {
+            ThemeStyle.MINIMAL, ThemeStyle.OLED, ThemeStyle.GLASS -> rootMod
+            ThemeStyle.BENTO -> rootMod.shadow(1.dp, shape, ambientColor = Color.Black.copy(alpha = 0.05f))
+            ThemeStyle.CLAY -> rootMod.shadow(10.dp, shape, ambientColor = mu.hardShadowColor, spotColor = mu.hardShadowColor)
+            else -> rootMod.shadow(2.dp, shape, ambientColor = Color.Black.copy(alpha = 0.06f))
+        }
+    }
+
+    val effectiveBorderW = if (borderColor != null) maxOf(mu.cardBorderWidth, 1.5.dp) else mu.cardBorderWidth
+    val borderMod = when {
+        mu.style == ThemeStyle.GLASS && borderColor == null -> Modifier.border(
+            BorderStroke(
+                1.dp,
+                Brush.linearGradient(
+                    listOf(
+                        Color.White.copy(alpha = if (mu.isDark) 0.28f else 0.90f),
+                        Color.White.copy(alpha = if (mu.isDark) 0.06f else 0.35f)
+                    )
+                )
+            ),
+            shape
+        )
+        effectiveBorderW > 0.dp -> Modifier.border(effectiveBorderW, bd, shape)
+        else -> Modifier
     }
 
     val finalMod = base
@@ -300,11 +477,35 @@ fun MuCard(
         .background(solidBg)
         .then(backdropModifier)
         .then(if (behindContent != null) Modifier.drawBehind { behindContent() } else Modifier)
-        .border(mu.cardBorderWidth, bd, shape)
+        .then(borderMod)
         .let { m ->
-            if (!showCornerAccent || mu.style == ThemeStyle.IOS) m
+            if (mu.style == ThemeStyle.CLAY) {
+                val topAlpha = if (mu.isDark) 0.10f else 0.55f
+                val botShadow = mu.hardShadowColor.copy(alpha = 0.50f)
+                m.drawWithCache {
+                    val h = size.height.coerceAtLeast(2f)
+                    val topBrush = Brush.verticalGradient(
+                        colors = listOf(Color.White.copy(alpha = topAlpha), Color.Transparent),
+                        startY = 0f,
+                        endY = h * 0.45f
+                    )
+                    val botBrush = Brush.verticalGradient(
+                        colors = listOf(Color.Transparent, botShadow),
+                        startY = h * 0.70f,
+                        endY = h
+                    )
+                    onDrawWithContent {
+                        drawContent()
+                        drawRect(brush = topBrush, size = Size(size.width, h * 0.45f))
+                        drawRect(brush = botBrush, topLeft = Offset(0f, h * 0.70f), size = Size(size.width, h * 0.30f))
+                    }
+                }
+            } else m
+        }
+        .let { m ->
+            if (!showCornerAccent || mu.skin == UiSkin.IOS) m
             else m.drawWithCache {
-                if (mu.style == ThemeStyle.P5R) {
+                if (mu.skin == UiSkin.P5R) {
                     val tri = 16.dp.toPx()
                     val p = Path().apply {
                         moveTo(size.width - tri, 0f)
@@ -338,7 +539,17 @@ fun MuCard(
                 }
             }
         }
-        .then(if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier)
+        .then(
+            if (onClick != null && src != null) {
+                Modifier.clickable(
+                    interactionSource = src,
+                    indication = LocalIndication.current
+                ) {
+                    haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                    onClick()
+                }
+            } else Modifier
+        )
         .padding(padding)
 
     Column(modifier = finalMod, content = content)
@@ -357,8 +568,69 @@ fun MuSectionHeader(
             .padding(vertical = 2.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        when (mu.style) {
-            ThemeStyle.P5R -> {
+        if (mu.style == ThemeStyle.MINIMAL) {
+            Text(
+                text = title,
+                color = mu.ink,
+                fontWeight = FontWeight.SemiBold,
+                letterSpacing = 1.sp,
+                fontSize = 13.sp
+            )
+            Spacer(Modifier.width(8.dp))
+            HorizontalDivider(modifier = Modifier.weight(1f), thickness = 1.dp, color = mu.line)
+            if (!badge.isNullOrEmpty()) {
+                Spacer(Modifier.width(8.dp))
+                Text(
+                    text = badge,
+                    color = mu.ink3,
+                    fontSize = 11.sp,
+                    maxLines = 1,
+                    softWrap = false,
+                    fontWeight = FontWeight.Medium
+                )
+            }
+        } else if (mu.style == ThemeStyle.BRUTAL) {
+            val tagShape = RoundedCornerShape(6.dp)
+            Box(
+                modifier = Modifier
+                    .padding(end = 3.dp, bottom = 3.dp)
+                    .drawBehind {
+                        val s = 3.dp.toPx()
+                        val cr = CornerRadius(6.dp.toPx(), 6.dp.toPx())
+                        drawRoundRect(mu.ink, topLeft = Offset(s, s), size = size, cornerRadius = cr)
+                    }
+                    .clip(tagShape)
+                    .background(mu.accent2)
+                    .border(2.dp, mu.ink, tagShape)
+                    .padding(horizontal = 10.dp, vertical = 3.dp)
+            ) {
+                Text(
+                    text = title,
+                    color = mu.ink,
+                    fontWeight = FontWeight.Black,
+                    fontSize = 14.sp
+                )
+            }
+            Spacer(Modifier.weight(1f))
+            if (!badge.isNullOrEmpty()) {
+                Box(
+                    modifier = Modifier
+                        .clip(tagShape)
+                        .background(mu.ink)
+                        .padding(horizontal = 8.dp, vertical = 3.dp)
+                ) {
+                    Text(
+                        text = badge,
+                        color = mu.accent2,
+                        fontSize = 11.sp,
+                        maxLines = 1,
+                        softWrap = false,
+                        fontWeight = FontWeight.Black
+                    )
+                }
+            }
+        } else when (mu.skin) {
+            UiSkin.P5R -> {
                 Box(
                     modifier = Modifier
                         .size(width = 6.dp, height = 17.dp)
@@ -395,7 +667,7 @@ fun MuSectionHeader(
                     }
                 }
             }
-            ThemeStyle.P3R -> {
+            UiSkin.P3R -> {
                 Canvas(modifier = Modifier.size(12.dp)) {
                     val p = Path().apply {
                         moveTo(0f, 0f)
@@ -440,7 +712,7 @@ fun MuSectionHeader(
                     }
                 }
             }
-            ThemeStyle.IOS -> {
+            UiSkin.IOS -> {
                 Box(
                     modifier = Modifier
                         .width(4.dp)
@@ -487,20 +759,44 @@ fun <T> MuSegmentedRow(
 ) {
     val mu = LocalMuColors.current
     val shape = when (mu.style) {
-        ThemeStyle.IOS -> RoundedCornerShape(12.dp)
-        ThemeStyle.P3R -> RoundedCornerShape(6.dp)
-        ThemeStyle.P5R -> RoundedCornerShape(0.dp)
+        ThemeStyle.BRUTAL -> RoundedCornerShape(10.dp)
+        ThemeStyle.MINIMAL -> RoundedCornerShape(0.dp)
+        ThemeStyle.CLAY -> RoundedCornerShape(999.dp)
+        ThemeStyle.GLASS -> RoundedCornerShape(14.dp)
+        else -> when (mu.skin) {
+            UiSkin.IOS -> RoundedCornerShape(12.dp)
+            UiSkin.P3R -> RoundedCornerShape(6.dp)
+            UiSkin.P5R -> RoundedCornerShape(0.dp)
+        }
     }
-    val containerBg = when (mu.style) {
-        ThemeStyle.P5R -> mu.chrome
-        ThemeStyle.P3R -> mu.p3Deep
-        ThemeStyle.IOS -> mu.surface3
+    val containerMod = when (mu.style) {
+        ThemeStyle.BRUTAL -> Modifier
+            .clip(shape)
+            .background(mu.surface1)
+            .border(2.dp, mu.ink, shape)
+        ThemeStyle.MINIMAL -> Modifier
+            .drawBehind {
+                val h = 1.dp.toPx()
+                drawRect(mu.line, topLeft = Offset(0f, size.height - h), size = Size(size.width, h))
+            }
+        ThemeStyle.GLASS -> Modifier
+            .clip(shape)
+            .background(Color.White.copy(alpha = if (mu.isDark) 0.10f else 0.35f))
+            .border(1.dp, Color.White.copy(alpha = if (mu.isDark) 0.22f else 0.60f), shape)
+        ThemeStyle.OLED -> Modifier.clip(shape).background(mu.surface2)
+        else -> {
+            val containerBg = when (mu.skin) {
+                UiSkin.P5R -> mu.chrome
+                UiSkin.P3R -> mu.p3Deep
+                UiSkin.IOS -> mu.surface3
+            }
+            Modifier.clip(shape).background(containerBg)
+        }
     }
     Row(
         modifier = modifier
             .fillMaxWidth()
-            .clip(shape)
-            .background(containerBg)
+            .then(containerMod)
             .padding(3.dp),
         horizontalArrangement = Arrangement.spacedBy(3.dp)
     ) {
@@ -508,33 +804,60 @@ fun <T> MuSegmentedRow(
             val isOn = key == selected
             val bg by animateColorAsState(
                 targetValue = when {
-                    isOn && mu.style == ThemeStyle.P5R -> mu.accent
-                    isOn && mu.style == ThemeStyle.P3R -> Color.White
+                    mu.style == ThemeStyle.MINIMAL -> Color.Transparent
+                    isOn && mu.style == ThemeStyle.BRUTAL -> mu.accent2
+                    isOn && mu.style == ThemeStyle.GLASS -> Color.White.copy(alpha = if (mu.isDark) 0.24f else 0.85f)
+                    isOn && mu.style == ThemeStyle.OLED -> mu.accent.copy(alpha = 0.22f)
+                    isOn && mu.skin == UiSkin.P5R -> mu.accent
+                    isOn && mu.skin == UiSkin.P3R -> Color.White
                     isOn -> mu.surface1
                     else -> Color.Transparent
                 },
-                animationSpec = tween(if (mu.style == ThemeStyle.IOS) 240 else 140),
+                animationSpec = tween(if (mu.skin == UiSkin.IOS) 240 else 140),
                 label = "segBg"
             )
             val txtColor = when {
-                isOn && mu.style == ThemeStyle.P5R -> Color.White
-                isOn && mu.style == ThemeStyle.P3R -> mu.p3Deep
+                isOn && mu.style == ThemeStyle.BRUTAL -> mu.ink
+                isOn && mu.style == ThemeStyle.OLED -> mu.accent2
+                isOn && mu.skin == UiSkin.P5R -> Color.White
+                isOn && mu.skin == UiSkin.P3R -> mu.p3Deep
                 isOn -> mu.ink
-                mu.style == ThemeStyle.P5R -> mu.chromeSoft
-                mu.style == ThemeStyle.P3R -> Color(0xFFB8EAFF)
+                mu.skin == UiSkin.P5R -> mu.chromeSoft
+                mu.skin == UiSkin.P3R -> Color(0xFFB8EAFF)
                 else -> mu.ink2
             }
             val itemShape = when (mu.style) {
-                ThemeStyle.IOS -> RoundedCornerShape(9.dp)
-                ThemeStyle.P3R -> if (isOn) parallelogramShape(0.18f) else RoundedCornerShape(4.dp)
-                ThemeStyle.P5R -> RoundedCornerShape(0.dp)
+                ThemeStyle.BRUTAL -> RoundedCornerShape(7.dp)
+                ThemeStyle.MINIMAL -> RoundedCornerShape(2.dp)
+                ThemeStyle.CLAY -> RoundedCornerShape(999.dp)
+                ThemeStyle.GLASS -> RoundedCornerShape(11.dp)
+                else -> when (mu.skin) {
+                    UiSkin.IOS -> RoundedCornerShape(9.dp)
+                    UiSkin.P3R -> if (isOn) parallelogramShape(0.18f) else RoundedCornerShape(4.dp)
+                    UiSkin.P5R -> RoundedCornerShape(0.dp)
+                }
             }
             Box(
                 modifier = Modifier
                     .weight(1f)
+                    .then(
+                        if (isOn && mu.style == ThemeStyle.CLAY) {
+                            Modifier.shadow(4.dp, itemShape, spotColor = mu.hardShadowColor)
+                        } else Modifier
+                    )
                     .clip(itemShape)
                     .background(bg)
-                    .clickable { onSelect(key) }
+                    .then(
+                        when {
+                            isOn && mu.style == ThemeStyle.BRUTAL -> Modifier.border(2.dp, mu.ink, itemShape)
+                            isOn && mu.style == ThemeStyle.MINIMAL -> Modifier.drawBehind {
+                                val h = 2.dp.toPx()
+                                drawRect(mu.ink, topLeft = Offset(0f, size.height - h), size = Size(size.width, h))
+                            }
+                            else -> Modifier
+                        }
+                    )
+                    .muTactileClickable { onSelect(key) }
                     .padding(vertical = 8.dp),
                 contentAlignment = Alignment.Center
             ) {
@@ -542,7 +865,9 @@ fun <T> MuSegmentedRow(
                     text = label,
                     color = txtColor,
                     fontSize = 13.sp,
-                    fontWeight = if (isOn) FontWeight.ExtraBold else FontWeight.SemiBold,
+                    fontWeight = if (isOn) {
+                        if (mu.style == ThemeStyle.BRUTAL) FontWeight.Black else FontWeight.ExtraBold
+                    } else FontWeight.SemiBold,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
                 )
@@ -559,16 +884,16 @@ fun MuChip(
     modifier: Modifier = Modifier
 ) {
     val mu = LocalMuColors.current
-    val shape = when (mu.style) {
-        ThemeStyle.P5R -> RoundedCornerShape(0.dp)
-        ThemeStyle.P3R -> parallelogramShape(0.18f)
-        ThemeStyle.IOS -> RoundedCornerShape(999.dp)
+    val shape = when (mu.skin) {
+        UiSkin.P5R -> RoundedCornerShape(0.dp)
+        UiSkin.P3R -> parallelogramShape(0.18f)
+        UiSkin.IOS -> RoundedCornerShape(999.dp)
     }
     Box(
         modifier = modifier
             .clip(shape)
             .background(bgColor)
-            .padding(horizontal = if (mu.style == ThemeStyle.P3R) 9.dp else 7.dp, vertical = 2.dp)
+            .padding(horizontal = if (mu.skin == UiSkin.P3R) 9.dp else 7.dp, vertical = 2.dp)
     ) {
         Text(
             text = text,
@@ -645,11 +970,11 @@ fun TodoCardRow(
             }
         }
     ) {
-        val showIndexStrip = mu.style != ThemeStyle.IOS
+        val showIndexStrip = mu.skin != UiSkin.IOS
         val stripColor = when {
             overdueDays > 0 && !isDone -> mu.danger
             isDone -> mu.ink3
-            mu.style == ThemeStyle.P3R -> mu.accent
+            mu.skin == UiSkin.P3R -> mu.accent
             else -> mu.ink
         }
 
@@ -704,9 +1029,24 @@ fun TodoCardRow(
                     verticalAlignment = Alignment.Top
                 ) {
                     val chkShape = when (mu.style) {
-                        ThemeStyle.IOS -> CircleShape
-                        ThemeStyle.P3R -> beveledCornerShape(0.24f)
-                        ThemeStyle.P5R -> RoundedCornerShape(0.dp)
+                        ThemeStyle.MINIMAL -> RoundedCornerShape(3.dp)
+                        ThemeStyle.BRUTAL -> RoundedCornerShape(6.dp)
+                        else -> when (mu.skin) {
+                            UiSkin.IOS -> CircleShape
+                            UiSkin.P3R -> beveledCornerShape(0.24f)
+                            UiSkin.P5R -> RoundedCornerShape(0.dp)
+                        }
+                    }
+                    val chkBorderW = when {
+                        mu.style == ThemeStyle.MINIMAL -> 1.dp
+                        mu.style == ThemeStyle.BRUTAL -> 2.5.dp
+                        mu.skin == UiSkin.P5R -> 2.dp
+                        else -> 1.5.dp
+                    }
+                    val chkBorderCol = when {
+                        isDone -> mu.accent
+                        mu.style == ThemeStyle.BRUTAL || mu.skin == UiSkin.P5R -> mu.ink
+                        else -> mu.ink3
                     }
                     Box(
                         modifier = Modifier
@@ -714,15 +1054,8 @@ fun TodoCardRow(
                             .size(22.dp)
                             .clip(chkShape)
                             .background(if (isDone) mu.accent else Color.Transparent)
-                            .border(
-                                if (mu.style == ThemeStyle.P5R) 2.dp else 1.5.dp,
-                                if (isDone) mu.accent else if (mu.style == ThemeStyle.P5R) mu.ink else mu.ink3,
-                                chkShape
-                            )
-                            .clickable {
-                                haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                                onToggleDone()
-                            },
+                            .border(chkBorderW, chkBorderCol, chkShape)
+                            .muTactileClickable(onClick = onToggleDone),
                         contentAlignment = Alignment.Center
                     ) {
                         if (isDone) {
@@ -785,9 +1118,9 @@ fun TodoCardRow(
                                         Box(
                                             modifier = Modifier
                                                 .size(14.dp)
-                                                .clip(RoundedCornerShape(if (mu.style == ThemeStyle.P5R) 0.dp else 3.dp))
+                                                .clip(RoundedCornerShape(if (mu.skin == UiSkin.P5R) 0.dp else 3.dp))
                                                 .background(if (st.done) mu.accent else Color.Transparent)
-                                                .border(1.2.dp, if (st.done) mu.accent else mu.ink3, RoundedCornerShape(if (mu.style == ThemeStyle.P5R) 0.dp else 3.dp)),
+                                                .border(1.2.dp, if (st.done) mu.accent else mu.ink3, RoundedCornerShape(if (mu.skin == UiSkin.P5R) 0.dp else 3.dp)),
                                             contentAlignment = Alignment.Center
                                         ) {
                                             if (st.done) Icon(Icons.Rounded.Check, null, tint = Color.White, modifier = Modifier.size(10.dp))
@@ -805,10 +1138,14 @@ fun TodoCardRow(
                         }
                     }
                     if (!isDone) {
+                        val postponeSrc = remember { MutableInteractionSource() }
                         TextButton(
                             onClick = onPostpone,
+                            interactionSource = postponeSrc,
                             contentPadding = PaddingValues(horizontal = 8.dp, vertical = 2.dp),
-                            modifier = Modifier.height(28.dp)
+                            modifier = Modifier
+                                .height(28.dp)
+                                .muPressTransform(postponeSrc)
                         ) {
                             Text("明天", fontSize = 11.sp, color = mu.accentInk, fontWeight = FontWeight.Bold)
                         }

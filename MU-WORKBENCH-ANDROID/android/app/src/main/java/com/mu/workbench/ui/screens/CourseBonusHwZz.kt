@@ -39,6 +39,7 @@ import com.mu.workbench.ui.components.MuChip
 import com.mu.workbench.ui.components.MuSectionHeader
 import com.mu.workbench.ui.components.MuSegmentedRow
 import com.mu.workbench.ui.theme.LocalMuColors
+import com.mu.workbench.ui.theme.UiSkin
 import java.util.UUID
 import kotlin.math.roundToInt
 
@@ -115,13 +116,13 @@ fun BonusPane(vm: WorkbenchViewModel) {
                 Spacer(Modifier.height(8.dp))
                 Text("创新实践线（4 合格 / 8 良好 / >10 需市级大创+成果>=6）", fontSize = 11.sp, color = mu.ink3)
                 Spacer(Modifier.height(4.dp))
-                Box(modifier = Modifier.fillMaxWidth().height(7.dp).clip(RoundedCornerShape(if (mu.style == ThemeStyle.IOS) 999.dp else 0.dp)).background(mu.surface3)) {
+                Box(modifier = Modifier.fillMaxWidth().height(7.dp).clip(RoundedCornerShape(if (mu.skin == UiSkin.IOS) 999.dp else 0.dp)).background(mu.surface3)) {
                     Box(modifier = Modifier.fillMaxWidth((totalPi / 12.0).toFloat().coerceIn(0f, 1f)).fillMaxHeight().background(mu.ok))
                 }
                 Spacer(Modifier.height(8.dp))
                 Text("推免加分线（51号：最高单条计入，上限 4.0 分）", fontSize = 11.sp, color = mu.ink3)
                 Spacer(Modifier.height(4.dp))
-                Box(modifier = Modifier.fillMaxWidth().height(7.dp).clip(RoundedCornerShape(if (mu.style == ThemeStyle.IOS) 999.dp else 0.dp)).background(mu.surface3)) {
+                Box(modifier = Modifier.fillMaxWidth().height(7.dp).clip(RoundedCornerShape(if (mu.skin == UiSkin.IOS) 999.dp else 0.dp)).background(mu.surface3)) {
                     Box(modifier = Modifier.fillMaxWidth((bestTui / 4.0).toFloat().coerceIn(0f, 1f)).fillMaxHeight().background(mu.accent))
                 }
                 Spacer(Modifier.height(8.dp))
@@ -769,7 +770,7 @@ fun ZzPane(vm: WorkbenchViewModel) {
                                 "%.2f".format(total),
                                 fontSize = 32.sp,
                                 fontWeight = FontWeight.Black,
-                                fontStyle = if (mu.style != ThemeStyle.IOS) FontStyle.Italic else FontStyle.Normal,
+                                fontStyle = if (mu.skin != UiSkin.IOS) FontStyle.Italic else FontStyle.Normal,
                                 color = mu.accentInk
                             )
                             Text(

@@ -35,6 +35,7 @@ import com.mu.workbench.ui.components.MuSectionHeader
 import com.mu.workbench.ui.components.MuSegmentedRow
 import com.mu.workbench.ui.components.MuTabTransition
 import com.mu.workbench.ui.theme.LocalMuColors
+import com.mu.workbench.ui.theme.UiSkin
 import java.time.LocalTime
 import kotlin.math.cos
 import kotlin.math.sin
@@ -55,7 +56,7 @@ fun FocusScreen(vm: WorkbenchViewModel) {
         MuTabTransition(
             targetState = focusSub,
             direction = if (focusSub == FocusSub.PROJECTS) 1 else -1,
-            style = mu.style,
+            style = mu.skin,
             modifier = Modifier.fillMaxSize()
         ) { sub ->
             if (sub == FocusSub.CLOCK) ClockPane(vm) else ProjectsPane(vm)
@@ -123,7 +124,7 @@ private fun ClockPane(vm: WorkbenchViewModel) {
                             "%02d:%02d".format(mins, secs),
                             fontSize = 28.sp,
                             fontWeight = FontWeight.Black,
-                            fontStyle = if (mu.style != ThemeStyle.IOS) FontStyle.Italic else FontStyle.Normal,
+                            fontStyle = if (mu.skin != UiSkin.IOS) FontStyle.Italic else FontStyle.Normal,
                             style = TextStyle(fontFeatureSettings = "tnum"),
                             color = mu.ink
                         )
@@ -224,7 +225,7 @@ private fun ClockHeroCard(
                     "%02d:%02d:%02d".format(nowTime.hour, nowTime.minute, nowTime.second),
                     fontSize = 32.sp,
                     fontWeight = FontWeight.Black,
-                    fontStyle = if (mu.style != ThemeStyle.IOS) FontStyle.Italic else FontStyle.Normal,
+                    fontStyle = if (mu.skin != UiSkin.IOS) FontStyle.Italic else FontStyle.Normal,
                     style = TextStyle(fontFeatureSettings = "tnum"),
                     color = mu.ink
                 )

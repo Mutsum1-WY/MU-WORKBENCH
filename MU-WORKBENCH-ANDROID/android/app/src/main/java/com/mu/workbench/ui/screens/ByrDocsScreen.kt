@@ -36,6 +36,7 @@ import com.mu.workbench.ui.WorkbenchViewModel
 import com.mu.workbench.ui.components.MuCard
 import com.mu.workbench.ui.components.MuChip
 import com.mu.workbench.ui.theme.LocalMuColors
+import com.mu.workbench.ui.theme.UiSkin
 import com.mu.workbench.ui.theme.MuColors
 
 /* ==================== 2. 找资料（BYR Docs 检索） ==================== */
@@ -286,10 +287,10 @@ private fun BdEmpty(text: String) {
 }
 
 private fun chipShape(mu: MuColors) = RoundedCornerShape(
-    when (mu.style) {
-        ThemeStyle.IOS -> 999.dp
-        ThemeStyle.P3R -> 5.dp
-        ThemeStyle.P5R -> 0.dp
+    when (mu.skin) {
+        UiSkin.IOS -> 999.dp
+        UiSkin.P3R -> 5.dp
+        UiSkin.P5R -> 0.dp
     }
 )
 
@@ -301,7 +302,7 @@ private fun BdQuickChip(text: String, count: Int?, dim: Boolean, onClick: () -> 
     Surface(
         color = mu.surface1,
         shape = shape,
-        border = androidx.compose.foundation.BorderStroke(if (mu.style == ThemeStyle.P5R) 2.dp else 1.dp, if (mu.style == ThemeStyle.P5R) mu.ink else mu.line2),
+        border = androidx.compose.foundation.BorderStroke(if (mu.skin == UiSkin.P5R) 2.dp else 1.dp, if (mu.skin == UiSkin.P5R) mu.ink else mu.line2),
         modifier = Modifier
             .alpha(if (dim) 0.45f else 1f)
             .clip(shape)

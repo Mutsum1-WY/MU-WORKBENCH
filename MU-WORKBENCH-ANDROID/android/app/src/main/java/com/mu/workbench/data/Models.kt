@@ -5,7 +5,13 @@ import androidx.compose.runtime.Immutable
 enum class ThemeStyle(val key: String, val label: String, val desc: String) {
     P5R("p5r", "P5R · 红黑斜切", "Persona 5 Royal 视觉致敬：米纸底、粗黑描边、硬投影与斜切角标。"),
     P3R("p3r", "P3R · 蓝白斜切", "Persona 3 Reload 视觉致敬：蓝白斜切、冰青高光与白昼/月夜双模式。"),
-    IOS("ios", "iOS · 灵动流体", "原生 Jetpack Compose 物理弹簧驱动：柔和阻尼过渡、圆润分组卡片与毛玻璃层次。");
+    IOS("ios", "iOS · 灵动流体", "原生 Jetpack Compose 物理弹簧驱动：柔和阻尼过渡、圆润分组卡片与毛玻璃层次。"),
+    MINIMAL("minimal", "极简 · 黑白网格", "大量留白、黑白灰与细线网格：信息清晰、加载轻快、不易过时。"),
+    GLASS("glass", "玻璃 · 通透光感", "半透明卡片、彩色光斑背景与高光描边，现代感强、空间层次丰富。"),
+    BENTO("bento", "便当盒 · 模块网格", "大圆角模块化卡片，今日页拼贴式网格，信息密度高且井井有条。"),
+    BRUTAL("brutal", "新粗野 · 撞色硬投影", "粗黑描边、硬投影与高饱和撞色，视觉冲击力强、年轻化。"),
+    CLAY("clay", "黏土 · 蓬松立体", "蓬松立体的大圆角、双层阴影与柔美糖果色，亲和有趣。"),
+    OLED("oled", "暗黑 · 纯黑微光", "纯黑底色、微光层级与低眩光强调色；始终深色，OLED 省电。");
 
     companion object {
         fun fromKey(k: String?): ThemeStyle = entries.firstOrNull { it.key == k } ?: P5R
@@ -27,6 +33,12 @@ enum class AccentStyle(val key: String, val label: String, val hex: Long, val he
             ThemeStyle.IOS -> 0xFF007AFF
             ThemeStyle.P3R -> 0xFF015FCC
             ThemeStyle.P5R -> 0xFFE4002B
+            ThemeStyle.MINIMAL -> 0xFF2B2B2B
+            ThemeStyle.GLASS -> 0xFF6C5CE7
+            ThemeStyle.BENTO -> 0xFFFF6B35
+            ThemeStyle.BRUTAL -> 0xFFFF3D7F
+            ThemeStyle.CLAY -> 0xFF7C6CF2
+            ThemeStyle.OLED -> 0xFF0A84FF
         }
         else -> hex
     }
@@ -36,6 +48,12 @@ enum class AccentStyle(val key: String, val label: String, val hex: Long, val he
             ThemeStyle.IOS -> "经典蓝（默认）"
             ThemeStyle.P3R -> "月海蓝（默认）"
             ThemeStyle.P5R -> "怪盗红（默认）"
+            ThemeStyle.MINIMAL -> "墨黑（默认）"
+            ThemeStyle.GLASS -> "极光紫（默认）"
+            ThemeStyle.BENTO -> "橘橙（默认）"
+            ThemeStyle.BRUTAL -> "撞色粉（默认）"
+            ThemeStyle.CLAY -> "薰衣草（默认）"
+            ThemeStyle.OLED -> "夜光蓝（默认）"
         }
         else -> label
     }

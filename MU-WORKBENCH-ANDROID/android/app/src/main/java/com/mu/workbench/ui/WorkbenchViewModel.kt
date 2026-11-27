@@ -1530,11 +1530,11 @@ class WorkbenchViewModel(app: Application) : AndroidViewModel(app) {
                 @Suppress("DEPRECATION")
                 pm.getPackageInfo(ctx.packageName, 0)
             }
-            val verName = info.versionName?.takeIf { it.isNotBlank() } ?: "2.32"
+            val verName = info.versionName?.takeIf { it.isNotBlank() } ?: "2.33"
             val verCode = PackageInfoCompat.getLongVersionCode(info)
             verName to verCode
         } catch (_: Throwable) {
-            "2.32" to 0L
+            "2.33" to 0L
         }
     }
 

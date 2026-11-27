@@ -35,6 +35,7 @@ import com.mu.workbench.ui.components.MuSectionHeader
 import com.mu.workbench.ui.components.MuSegmentedRow
 import com.mu.workbench.ui.components.TodoCardRow
 import com.mu.workbench.ui.theme.LocalMuColors
+import com.mu.workbench.ui.theme.UiSkin
 import java.time.YearMonth
 
 @OptIn(ExperimentalFoundationApi::class)
@@ -155,7 +156,7 @@ fun CalendarScreen(vm: WorkbenchViewModel) {
                                     Box(
                                         modifier = Modifier
                                             .weight(1f)
-                                            .clip(RoundedCornerShape(if (mu.style == ThemeStyle.P5R) 0.dp else 6.dp))
+                                            .clip(RoundedCornerShape(if (mu.skin == UiSkin.P5R) 0.dp else 6.dp))
                                             .background(if (on) mu.accent else mu.surface2)
                                             .clickable {
                                                 currentYm = YearMonth.of(currentYm.year, m)
@@ -199,7 +200,7 @@ fun CalendarScreen(vm: WorkbenchViewModel) {
                                     val flags = cellInfo?.third ?: (false to false)
                                     val hasPending = flags.first
                                     val hasDone = flags.second
-                                    val cellRadius = if (mu.style == ThemeStyle.P5R) 0.dp else 7.dp
+                                    val cellRadius = if (mu.skin == UiSkin.P5R) 0.dp else 7.dp
 
                                     Box(
                                         modifier = Modifier

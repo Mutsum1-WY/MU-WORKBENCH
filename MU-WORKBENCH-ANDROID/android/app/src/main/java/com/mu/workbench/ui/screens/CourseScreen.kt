@@ -35,6 +35,7 @@ import com.mu.workbench.ui.components.MuCard
 import com.mu.workbench.ui.components.MuChip
 import com.mu.workbench.ui.components.MuTabTransition
 import com.mu.workbench.ui.theme.LocalMuColors
+import com.mu.workbench.ui.theme.UiSkin
 
 @Composable
 fun CourseScreen(vm: WorkbenchViewModel) {
@@ -47,7 +48,7 @@ fun CourseScreen(vm: WorkbenchViewModel) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .background(if (mu.style == ThemeStyle.P5R) mu.chrome else mu.paper2)
+                .background(if (mu.skin == UiSkin.P5R) mu.chrome else mu.paper2)
                 .horizontalScroll(rememberScrollState())
                 .padding(horizontal = 10.dp, vertical = 5.dp),
             horizontalArrangement = Arrangement.spacedBy(6.dp)
@@ -56,21 +57,21 @@ fun CourseScreen(vm: WorkbenchViewModel) {
                 val on = tab == sub
                 val chipBg = when {
                     on -> mu.accent
-                    mu.style == ThemeStyle.P5R -> mu.chrome2
+                    mu.skin == UiSkin.P5R -> mu.chrome2
                     else -> mu.surface1
                 }
                 val chipTxt = when {
                     on -> Color.White
-                    mu.style == ThemeStyle.P5R -> mu.chromeSoft
+                    mu.skin == UiSkin.P5R -> mu.chromeSoft
                     else -> mu.ink2
                 }
                 Surface(
                     color = chipBg,
                     shape = RoundedCornerShape(
-                        when (mu.style) {
-                            ThemeStyle.IOS -> 999.dp
-                            ThemeStyle.P3R -> 5.dp
-                            ThemeStyle.P5R -> 0.dp
+                        when (mu.skin) {
+                            UiSkin.IOS -> 999.dp
+                            UiSkin.P3R -> 5.dp
+                            UiSkin.P5R -> 0.dp
                         }
                     ),
                     modifier = Modifier.clickable { vm.selectCourseSub(tab) }
@@ -89,7 +90,7 @@ fun CourseScreen(vm: WorkbenchViewModel) {
         MuTabTransition(
             targetState = sub,
             direction = dir,
-            style = mu.style,
+            style = mu.skin,
             modifier = Modifier.fillMaxSize()
         ) { cur ->
             when (cur) {
@@ -336,7 +337,7 @@ private fun CourseRatioPane(vm: WorkbenchViewModel) {
                         Text(
                             "%.2f".format(v),
                             fontWeight = FontWeight.Black,
-                            fontStyle = if (mu.style != ThemeStyle.IOS) FontStyle.Italic else FontStyle.Normal,
+                            fontStyle = if (mu.skin != UiSkin.IOS) FontStyle.Italic else FontStyle.Normal,
                             style = TextStyle(fontFeatureSettings = "tnum"),
                             color = mu.accentInk,
                             fontSize = 15.sp

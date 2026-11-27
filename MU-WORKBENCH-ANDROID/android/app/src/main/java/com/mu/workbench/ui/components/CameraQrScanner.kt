@@ -50,6 +50,7 @@ import com.google.zxing.common.HybridBinarizer
 import com.google.zxing.qrcode.QRCodeReader
 import com.mu.workbench.data.ThemeStyle
 import com.mu.workbench.ui.theme.LocalMuColors
+import com.mu.workbench.ui.theme.UiSkin
 import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
 
@@ -252,7 +253,7 @@ fun CameraQrScanner(
             Box(
                 modifier = Modifier
                     .size(185.dp)
-                    .border(2.dp, if (paused) mu.ok else mu.accent, RoundedCornerShape(if (mu.style == ThemeStyle.P5R) 0.dp else 12.dp))
+                    .border(2.dp, if (paused) mu.ok else mu.accent, RoundedCornerShape(if (mu.skin == UiSkin.P5R) 0.dp else 12.dp))
             )
 
             // 右上角闪光灯按钮
@@ -261,7 +262,7 @@ fun CameraQrScanner(
                     modifier = Modifier
                         .align(Alignment.TopEnd)
                         .padding(10.dp)
-                        .clip(RoundedCornerShape(if (mu.style == ThemeStyle.P5R) 0.dp else 999.dp))
+                        .clip(RoundedCornerShape(if (mu.skin == UiSkin.P5R) 0.dp else 999.dp))
                         .background(if (torchOn) mu.accent else Color.Black.copy(alpha = 0.65f))
                         .clickable { torchOn = !torchOn }
                         .padding(8.dp)
@@ -280,7 +281,7 @@ fun CameraQrScanner(
                 modifier = Modifier
                     .align(Alignment.BottomCenter)
                     .padding(bottom = 10.dp)
-                    .clip(RoundedCornerShape(if (mu.style == ThemeStyle.P5R) 0.dp else 999.dp))
+                    .clip(RoundedCornerShape(if (mu.skin == UiSkin.P5R) 0.dp else 999.dp))
                     .background(Color.Black.copy(alpha = 0.68f))
                     .padding(horizontal = 6.dp, vertical = 4.dp),
                 horizontalArrangement = Arrangement.spacedBy(4.dp)
@@ -289,7 +290,7 @@ fun CameraQrScanner(
                     val on = kotlin.math.abs(zoomRatio - z) < 0.25f
                     Box(
                         modifier = Modifier
-                            .clip(RoundedCornerShape(if (mu.style == ThemeStyle.P5R) 0.dp else 999.dp))
+                            .clip(RoundedCornerShape(if (mu.skin == UiSkin.P5R) 0.dp else 999.dp))
                             .background(if (on) mu.accent else Color.Transparent)
                             .clickable {
                                 onZoomChange(z)

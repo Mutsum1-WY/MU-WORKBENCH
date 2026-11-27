@@ -54,6 +54,7 @@ import com.mu.workbench.ui.components.MuCard
 import com.mu.workbench.ui.components.MuChip
 import com.mu.workbench.ui.components.MuSegmentedRow
 import com.mu.workbench.ui.theme.LocalMuColors
+import com.mu.workbench.ui.theme.UiSkin
 import kotlinx.coroutines.CancellationException
 import java.time.temporal.ChronoUnit
 
@@ -519,7 +520,7 @@ private fun PortalImageBlock(
         }
     }
 
-    val shape = RoundedCornerShape(if (mu.style == ThemeStyle.IOS) 8.dp else 2.dp)
+    val shape = RoundedCornerShape(if (mu.skin == UiSkin.IOS) 8.dp else 2.dp)
     when {
         slices != null -> {
             Column(
